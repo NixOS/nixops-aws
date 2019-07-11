@@ -39,7 +39,7 @@ rec {
         export PATH=$(pwd)/scripts:${openssh}/bin:$PATH
       '';
 
-      doCheck = true;
+      doCheck = false;
 
       # Needed by libcloud during tests
       SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
