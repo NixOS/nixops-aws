@@ -4,15 +4,14 @@
 
 from __future__ import absolute_import
 
-import time
-import boto.ec2
-import nixops.util
-import nixopsaws.ec2_utils
-import nixops.resources
+import boto3
 import botocore.exceptions
+import nixops.resources
+import nixops.util
+
+import nixopsaws.ec2_utils
 from . import ec2_common
 
-import boto3
 
 class EBSVolumeDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EBS volume."""

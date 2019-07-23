@@ -5,11 +5,10 @@
 from __future__ import absolute_import
 
 import boto3
-import botocore.client
-
-import nixopsaws.ec2_utils
 import nixops.resources
 import nixops.util
+
+import nixopsaws.ec2_utils
 
 
 class EC2KeyPairDefinition(nixops.resources.ResourceDefinition):

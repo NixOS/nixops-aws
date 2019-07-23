@@ -2,35 +2,28 @@
 
 from __future__ import absolute_import, print_function
 
-import os
-import os.path
-import sys
+import datetime
+import math
 import re
 import time
-import math
-import shutil
-import calendar
+from xml.etree.ElementTree import Element
+
 import boto.ec2
 import boto.ec2.blockdevicemapping
 import boto.ec2.networkinterface
+import boto3
 import botocore.exceptions
-
-from nixops.backends import MachineDefinition, MachineState
-from nixops.nix_expr import Function, Call, RawValue
-from ..resources.ebs_volume import EBSVolumeState
-from ..resources.elastic_ip import ElasticIPState
-import nixopsaws.resources.ec2_common
-from nixops.util import device_name_to_boto_expected, device_name_stored_to_real, device_name_user_entered_to_stored
-import nixopsaws.ec2_utils
 import nixops.known_hosts
 import nixops.util
-import nixops.resources.ec2_keypair
-from xml import etree
-import datetime
-import boto3
-from typing import Any, Dict, Optional, List, Iterable
+from nixops.backends import MachineDefinition, MachineState
+from nixops.nix_expr import Call, Function, RawValue
+from nixops.util import device_name_stored_to_real, device_name_to_boto_expected, device_name_user_entered_to_stored
+from typing import Any, Dict, Iterable, List, Optional
+
+import nixopsaws.ec2_utils
+import nixopsaws.resources.ec2_common
+import nixopsaws.resources.ec2_keypair
 from ..ec2_utils import key_value_to_ec2_key_value
-from xml.etree.ElementTree import Element
 
 
 class EC2InstanceDisappeared(Exception):

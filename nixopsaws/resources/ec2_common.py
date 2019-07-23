@@ -1,17 +1,14 @@
 from __future__ import absolute_import
 
-import socket
 import getpass
+import socket
 
 import boto3
-from typing import Dict, Mapping, Optional, Callable
-
 import nixops.util
-import nixops.resources
-from nixops.diff import Diff, Handler
-import nixopsaws.ec2_utils
-
 from nixops.resources import ResourceState
+from typing import Callable, Dict, Mapping, Optional
+
+import nixopsaws.ec2_utils
 from ..ec2_utils import key_value_to_ec2_key_value
 
 

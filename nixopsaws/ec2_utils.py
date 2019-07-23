@@ -3,29 +3,20 @@
 from __future__ import absolute_import
 
 import os
-import time
 import random
+import time
 
-from botocore import credentials
-from typing import Optional, Callable, List, TypeVar, Dict, Mapping, TYPE_CHECKING, Container, Any, cast, NoReturn, \
-    Union
-
-import nixops.util
-
-import boto3
 import boto.ec2
 import boto.vpc
-import logging
-from boto.exception import EC2ResponseError
-from boto.exception import SQSError
-from boto.exception import BotoServerError
-from botocore.exceptions import ClientError
-from boto.pyami.config import Config
-
-import botocore.session
+import boto3
 import botocore.exceptions
-
+import botocore.session
+import nixops.util
+from boto.pyami.config import Config
+from botocore import credentials
+from botocore.exceptions import ClientError
 from nixops.resources import ResourceState
+from typing import Any, Callable, Container, Dict, List, Mapping, Optional, TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
     from .resources.ec2_common import EC2CommonState
@@ -77,8 +68,6 @@ def fetch_aws_secret_key(access_key_id):
 
 def session(**kwargs):
     # type: (**str) -> boto3.Session
-    # TODO: remove me
-    print("session", kwargs)
 
     kwargs = kwargs.copy()
     profile = kwargs.pop('profile_name', None)
@@ -95,7 +84,6 @@ def session(**kwargs):
 
 def connect(region, profile, access_key_id):
     """Connect to the specified EC2 region using the given access key."""
-    print("connect", region, profile, access_key_id)
     assert region
     credentials = fetch_aws_secret_key(access_key_id)
     if credentials:
@@ -111,7 +99,6 @@ def connect(region, profile, access_key_id):
     return conn
 
 def connect_ec2_boto3(region, profile, access_key_id):
-    print("connect3", region, profile, access_key_id)
     assert region
     credentials = fetch_aws_secret_key(access_key_id)
     if credentials:
