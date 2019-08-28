@@ -49,14 +49,8 @@ class EC2CommonState():
         '''
         Generic method to get a cached AWS client or create it.
         '''
-
-        cfg = self.get_defn()
-
-        if 'accessKeyId' in cfg:
-            new_access_key_id = cfg['accessKeyId']
-        else:
-            new_access_key_id = nixopsaws.ec2_utils.get_access_key_id()
-
+        new_access_key_id = (self.get_defn()['accessKeyId'] if self.depl.definitions else None) \
+                            or nixopsaws.ec2_utils.get_access_key_id()
         if new_access_key_id is not None:
             self.access_key_id = new_access_key_id
         if self.access_key_id is None:
@@ -71,6 +65,7 @@ class EC2CommonState():
             aws_access_key_id=access_key_id,
             aws_secret_access_key=secret_access_key)
         return self._client
+
 
     def reset_client(self):
         self._client = None
