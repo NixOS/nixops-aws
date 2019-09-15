@@ -1576,7 +1576,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
         self.wait_for_ssh(check=True)
         self.send_keys()
 
-    def _machine_check(self, res):
+    def _check(self, res):
         # type: (CheckResult) -> None
 
         if not self.vm_id:
@@ -1622,7 +1622,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
                 self.private_ipv4 = instance.private_ip_address
                 self.public_ipv4 = instance.public_ip_address
 
-            super(EC2State, self)._machine_check(res)
+            super(EC2State, self)._check(res)
 
         elif instance.state['Name'] == "stopping":
             res.is_up = False
