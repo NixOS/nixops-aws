@@ -6,6 +6,7 @@ import time
 import nixops.util
 import nixops.resources
 import nixopsaws.ec2_utils
+import botocore.exceptions
 
 
 class ElasticIPDefinition(nixops.resources.ResourceDefinition):
@@ -33,14 +34,13 @@ class ElasticIPState(nixops.resources.ResourceState):
     allocation_id = nixops.util.attr_property("allocationId", None)
     vpc = nixops.util.attr_property("vpc", False, bool)
 
-
     @classmethod
     def get_type(cls):
         return "elastic-ip"
 
     def __init__(self, depl, name, id):
         nixops.resources.ResourceState.__init__(self, depl, name, id)
-        self._client = None
+        self._conn_boto3 = None
 
     def show_type(self):
         s = super(ElasticIPState, self).show_type()
@@ -60,10 +60,10 @@ class ElasticIPState(nixops.resources.ResourceState):
     def prefix_definition(self, attr):
         return {('resources', 'elasticIPs'): attr}
 
-    def connect(self, region):
-        if self._client:
-            return
-        self._client = nixopsaws.ec2_utils.connect_ec2_boto3(region, self.access_key_id)
+    def connect_boto3(self, region):
+        if self._conn_boto3: return self._conn_boto3
+        self._conn_boto3 = nixops.ec2_utils.connect_ec2_boto3(region, self.access_key_id)
+        return self._conn_boto3
 
     def create(self, defn, check, allow_reboot, allow_recreate):
 
@@ -76,13 +76,13 @@ class ElasticIPState(nixops.resources.ResourceState):
 
         if self.state != self.UP:
 
-            self.connect(defn.config['region'])
+            self.connect_boto3(defn.config['region'])
 
             is_vpc = defn.config['vpc']
             domain = 'vpc' if is_vpc else 'standard'
 
             self.log("creating elastic IP address (region ‘{0}’ - domain ‘{1}’)...".format(defn.config['region'],domain))
-            address = self._client.allocate_address(Domain=domain)
+            address = self._conn_boto3.allocate_address(Domain=domain)
 
             # FIXME: if we crash before the next step, we forget the
             # address we just created.  Doesn't seem to be anything we
@@ -100,10 +100,7 @@ class ElasticIPState(nixops.resources.ResourceState):
 
     def describe_eip(self):
         try:
-            response = self._client.describe_addresses(Filters=[{
-                "Name":"public-ip",
-                "Values":[self.public_ipv4]
-                }])
+            response = self._conn_boto3.describe_addresses(PublicIps=[self.public_ipv4])
         except botocore.exceptions.ClientError as error:
             if error.response['Error']['Code'] == "InvalidAddress.NotFound":
                 self.warn("public IP {} was deleted".format(self.public_ipv4))
@@ -115,22 +112,28 @@ class ElasticIPState(nixops.resources.ResourceState):
             return None
         return response['Addresses'][0]
 
+    def check(self):
+        self.connect_boto3(self.region)
+        eip = self.describe_eip()
+        if eip is None:
+            self.state = self.MISSING
+
     def destroy(self, wipe=False):
         if self.state == self.UP:
-            self.connect(self.region)
+            self.connect_boto3(self.region)
             eip = self.describe_eip()
-            vpc = (eip.get('Domain', None) == 'vpc')
             if eip is not None:
+                vpc = (eip.get('Domain', None) == 'vpc')
                 if 'AssociationId' in eip.keys():
                     self.log("disassociating elastic ip {0} with assocation ID {1}".format(
                         eip['PublicIp'], eip['AssociationId']))
                     if vpc:
-                        self._client.disassociate_address(AssociationId=eip['AssociationId'])
+                        self._conn_boto3.disassociate_address(AssociationId=eip['AssociationId'])
                 self.log("releasing elastic IP {}".format(eip['PublicIp']))
                 if vpc == True:
-                    self._client.release_address(AllocationId=eip['AllocationId'])
+                    self._conn_boto3.release_address(AllocationId=eip['AllocationId'])
                 else:
-                    self._client.release_address(PublicIp=eip['PublicIp'])
+                    self._conn_boto3.release_address(PublicIp=eip['PublicIp'])
 
             with self.depl._db:
                 self.state = self.MISSING
