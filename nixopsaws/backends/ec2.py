@@ -479,7 +479,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
                 snapshot_tags = {}
                 snapshot_tags.update(defn.tags)
                 snapshot_tags.update(self.get_common_tags())
-                snapshot_tags['Name'] = "{0} - {3} [{1} - {2}]".format(self.depl.description, self.name, device_stored, backup_id)
+                snapshot_tags['Name'] = "{0} - {3} [{1} - {2}]".format(self.depl.name, self.name, device_stored, backup_id)
 
                 self._retry(lambda: self._conn.create_tags([snapshot.id], snapshot_tags))
                 backup[device_stored] = snapshot.id
