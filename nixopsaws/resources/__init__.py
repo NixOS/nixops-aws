@@ -10,6 +10,7 @@ import ec2_keypair
 import ec2_placement_group
 import ec2_rds_dbinstance
 import ec2_rds_dbsecurity_group
+import ec2_rds_subnet_group
 import ec2_security_group
 import efs_common
 import elastic_file_system

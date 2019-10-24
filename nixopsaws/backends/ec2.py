@@ -6,6 +6,7 @@ import re
 import time
 import math
 import shutil
+import socket
 import calendar
 import boto.ec2
 import boto.ec2.blockdevicemapping
@@ -14,6 +15,7 @@ from nixops.backends import MachineDefinition, MachineState
 from nixops.nix_expr import Function, Call, RawValue
 from nixopsaws.resources.ebs_volume import EBSVolumeState
 from nixopsaws.resources.elastic_ip import ElasticIPState
+from nixopsaws.resources.ec2_rds_dbinstance import EC2RDSDbInstanceState
 import nixopsaws.resources.ec2_common
 import nixopsaws.resources
 from nixops.util import device_name_to_boto_expected, device_name_stored_to_real, device_name_user_entered_to_stored
@@ -271,8 +273,14 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
 
 
     def address_to(self, m):
-        if isinstance(m, EC2State): # FIXME: only if we're in the same region
+        # FIXME: enforce region/VPC constraints
+        if isinstance(m, EC2State):
             return m.private_ipv4
+        if isinstance(m, EC2RDSDbInstanceState) and m.rds_dbinstance_endpoint is not None:
+            # FIXME: it returns a hostname, need DNS resolution in the VPC/region_
+            # FIXME: support IPv6 stack using getaddrinfo rather.
+            hostname, _ = m.rds_dbinstance_endpoint.split(":")
+            return socket.gethostbyname(hostname)
         return MachineState.address_to(self, m)
 
 

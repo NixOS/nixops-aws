@@ -18,6 +18,7 @@
     ebsVolumes = evalResources ./ebs-volume.nix (zipAttrs resourcesByType.ebsVolumes or []);
     elasticIPs = evalResources ./elastic-ip.nix (zipAttrs resourcesByType.elasticIPs or []);
     rdsDbInstances = evalResources ./ec2-rds-dbinstance.nix (zipAttrs resourcesByType.rdsDbInstances or []);
+    rdsDbSubnetGroups = evalResources ./ec2-rds-subnet-group.nix (zipAttrs resourcesByType.rdsDbSubnetGroups or []);
     rdsDbSecurityGroups = evalResources ./ec2-rds-dbsecurity-group.nix (zipAttrs resourcesByType.rdsDbSecurityGroups or []);
     route53RecordSets = evalResources ./route53-recordset.nix (zipAttrs resourcesByType.route53RecordSets or []);
     elasticFileSystems = evalResources ./elastic-file-system.nix (zipAttrs resourcesByType.elasticFileSystems or []);
