@@ -92,7 +92,7 @@ with import ./lib.nix lib;
 
     vpcSecurityGroups = mkOption {
       default = null; # default to the default security group of the DB subnet.
-      type = types.listOf (types.either type.str (resource "ec2-security-group"));
+      type = types.listOf (types.either types.str (resource "ec2-security-group"));
       description = ''
         List of names of VPCSecurityGroupMembership to authorize on this DBInstance, use this if you are in an VPC and not on EC2-Classic. Not applicable for Amazon Aurora.
         '';

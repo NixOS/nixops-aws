@@ -232,7 +232,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
     def get_db_subnet_group_name(self, name):
         if name.startswith("res-"):
             res = self.depl.get_typed_resource(name[4:].split(".")[0], "ec2-rds-subnet-group")
-            return res._state['groupName']
+            return res.resource_id
         else:
             return name
 
@@ -240,8 +240,8 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
         vpc_sgs = []
         for sg in config:
             if sg.startswith("res-"):
-                # TODO: implement the resource.
-                raise NotImplementedError("ec2-rds-vpcsecurity-group is not implemented as a resource")
+                res = self.depl.get_typed_resource(sg[4:].split('.')[0], "ec2-security-group")
+                return res.resource_id
             else:
                 vpc_sgs.append(sg)
 
