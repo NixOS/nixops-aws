@@ -98,7 +98,7 @@ with import ./lib.nix lib;
         '';
     };
 
-    dbSubnetGroupName = mkOption {
+    dbSubnetGroup = mkOption {
       default = null;
       type = types.either type.str (resource "ec2-rds-subnet-group");
       description = ''
