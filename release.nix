@@ -1,4 +1,4 @@
-{ src ? { outPath = ./.; revCount = 0; shortRev = "abcdef"; rev = "HEAD"; }
+{ nixopsSrc ? { outPath = ./.; revCount = 0; shortRev = "abcdef"; rev = "HEAD"; }
 , officialRelease ? false
 , nixpkgs ? <nixpkgs>
 }:
@@ -7,8 +7,8 @@ let
   pkgs = import nixpkgs { system = "x86_64-linux"; };
   version = "1.7" +
             (if officialRelease then ""
-             else if src ? lastModified then "pre${builtins.substring 0 8 src.lastModified}.${src.shortRev}"
-             else "pre${toString src.revCount}_${src.shortRev}");
+             else if nixopsSrc ? lastModified then "pre${builtins.substring 0 8 nixopsSrc.lastModified}.${nixopsSrc.shortRev}"
+             else "pre${toString nixopsSrc.revCount}_${nixopsSrc.shortRev}");
 in
 
 rec {
