@@ -73,10 +73,10 @@ class S3BucketState(nixops.resources.ResourceState):
     def get_definition_prefix(self):
         return "resources.s3Buckets."
 
-    def connect(self):
+    def connect(self, region):
         if self._conn: return
         (access_key_id, secret_access_key) = nixopsaws.ec2_utils.fetch_aws_secret_key(self.access_key_id)
-        self._conn = boto3.session.Session(region_name=self.region if self.region != "US" else "us-east-1",
+        self._conn = boto3.session.Session(region_name=region_name_to_region(region),
                                            aws_access_key_id=access_key_id,
                                            aws_secret_access_key=secret_access_key)
 
@@ -89,7 +89,7 @@ class S3BucketState(nixops.resources.ResourceState):
         if len(defn.bucket_name) > 63:
             raise Exception("bucket name ‘{0}’ is longer than 63 characters.".format(defn.bucket_name))
 
-        self.connect()
+        self.connect(defn.region)
         s3client = self._conn.client('s3')
         if check or self.state != self.UP:
 
@@ -175,7 +175,7 @@ class S3BucketState(nixops.resources.ResourceState):
                           " persistOnDestroy = true".format(self.bucket_name))
                 return True;
 
-            self.connect()
+            self.connect(self.region)
             try:
                 self.log("destroying S3 bucket ‘{0}’...".format(self.bucket_name))
                 bucket = self._conn.resource('s3').Bucket(self.bucket_name)
@@ -196,4 +196,9 @@ def region_to_s3_location(region):
     # us-east-1 and eu-west-1.
     if region == "eu-west-1": return "EU"
     elif region == "us-east-1": return "US"
+    else: return region
+
+def region_name_to_region(region):
+    if region == "EU": return "eu-west-1"
+    elif region == "US": return "us-east-1"
     else: return region
