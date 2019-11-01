@@ -108,11 +108,6 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
                 or isinstance(r, nixopsaws.resources.ec2_rds_subnet_group.EC2RDSSubnetGroupState)
                 or isinstance(r, nixopsaws.resources.ec2_security_group.EC2SecurityGroupState)}
 
-    def destroy_before(self, resources):
-        return {r for r in resources if
-                isinstance(r, nixopsaws.resources.ec2_rds_subnet_group.EC2RDSSubnetGroupState)
-                or isinstance(r, nixopsaws.resources.ec2_security_group.EC2SecurityGroupState)}
-
     def _connect(self):
         if self._conn: return
         (access_key_id, secret_access_key) = nixopsaws.ec2_utils.fetch_aws_secret_key(self.access_key_id)
