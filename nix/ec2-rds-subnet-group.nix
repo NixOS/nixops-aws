@@ -20,22 +20,16 @@ with import ./lib.nix lib;
       ''; 
     };
 
-    region = mkOption {
-      type = types.str;
-      description = "Amazon RDS DB subnet group region.";
-    };
-
-    accessKeyId = mkOption {
-      default = "";
-      type = types.str;
-      description = "The AWS Access Key ID.";
-    };
+    imports = [ ./common-ec2-options.nix ];
 
     subnetIds = mkOption {
       default = [];
       type = types.listOf (types.either types.str (resource "vpc-subnet"));
       apply = map (x: if builtins.isString x then x else "res-" + x._name + "." + x._type + ".subnetId");
-      description = "List of VPC subnets to use for this DB subnet group (must contain at least a subnet for each AZ), it can be a VPC Subnet resource or a string representing the ID of the VPC Subnet.";
+      description = ''List of VPC subnets to use for this DB subnet group
+        (must contain at least a subnet for each AZ).
+        It can be a VPC Subnet resource or a string representing the ID of the VPC Subnet.
+      '';
     };
     
   };

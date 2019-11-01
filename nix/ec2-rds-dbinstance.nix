@@ -86,7 +86,8 @@ with import ./lib.nix lib;
       type = types.listOf (types.either types.str (resource "ec2-rds-security-group"));
       apply = map (x: if builtins.isString x then x else "res-" + x._name);
       description = ''
-        List of names of DBSecurityGroup to authorize on this DBInstance, use it if you are not a VPC or are using EC2-Classic.
+        List of names of DBSecurityGroup to authorize on this DBInstance.
+        Use it if you are not a VPC or are using EC2-Classic.
       '';
     };
 
@@ -95,7 +96,8 @@ with import ./lib.nix lib;
       type = types.nullOr (types.listOf (types.either types.str (resource "ec2-security-group")));
       apply = map (x: if builtins.isString x then x else "res-" + x._name);
       description = ''
-        List of names of VPCSecurityGroupMembership to authorize on this DBInstance, use this if you are in an VPC and not on EC2-Classic. Not applicable for Amazon Aurora.
+        List of names of VPCSecurityGroupMembership to authorize on this DBInstance.
+        Use this if you are in an VPC and not on EC2-Classic. Not applicable for Amazon Aurora.
         '';
     };
 
@@ -104,7 +106,8 @@ with import ./lib.nix lib;
       type = types.nullOr (types.either types.str (resource "ec2-rds-db-subnet-group"));
       apply = group: if (builtins.isString group || group == null) then group else "res-" + group._name;
       description = ''
-        A name for a DBSubnetGroup, they must contain at least one subnet in each availability zone in the AWS region.
+        A name for a DBSubnetGroup.
+        They must contain at least one subnet in each availability zone in the AWS region.
         '';
     };
 

@@ -65,7 +65,7 @@ in
         engine = "postgres";
         dbName = "testNixOps";
         multiAZ = true;
-        vpcSecurityGroups = [ resources.ec2SecurityGroups.database ];
+        vpcSecurityGroupIds = [ resources.ec2SecurityGroups.database ];
         dbSubnetGroup = resources.rdsDbSubnetGroups.db-subnet.name;
       };
     }
