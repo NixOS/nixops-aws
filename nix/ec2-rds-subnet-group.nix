@@ -4,6 +4,7 @@ with lib;
 with import ./lib.nix lib;
 
 {
+  imports = [ ./common-ec2-auth-options ];
   options = {
     name = mkOption {
       default = "nixops-${uuid}-${name}";
@@ -19,8 +20,6 @@ with import ./lib.nix lib;
         Description of the RDS DB subnet group.
       ''; 
     };
-
-    imports = [ ./common-ec2-options.nix ];
 
     subnetIds = mkOption {
       default = [];

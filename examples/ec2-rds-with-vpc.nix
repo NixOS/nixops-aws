@@ -2,8 +2,8 @@ let
   region = "us-east-1";
   accessKeyId = "AKIA...";
 in
-  {
-    network.description = "NixOps RDS in a VPC Testing";
+{
+  network.description = "NixOps RDS in a VPC Testing";
   # A VPC.
   resources.vpc.private = {
     inherit region accessKeyId;
@@ -44,28 +44,24 @@ in
     };
   };
 
-  resources.rdsDbSubnetGroups.db-subnet =
-    {resources, ...}:
-    {
-      inherit region accessKeyId;
-      description = "RDS test subnet";
-      subnetIds = (map (key: resources.vpcSubnets.${"db-" + key}) ["a" "b"]);
-    };
+  resources.rdsDbSubnetGroups.db-subnet = {resources, ...}: {
+    inherit region accessKeyId;
+    description = "RDS test subnet";
+    subnetIds = (map (key: resources.vpcSubnets.${"db-" + key}) ["a" "b"]);
+  };
 
-    resources.rdsDbInstances.test-rds-instance =
-      { resources, ... }:
-      {
-        inherit region accessKeyId;
-        id = "test-multi-az";
-        instanceClass = "db.r3.large";
-        allocatedStorage = 30;
-        masterUsername = "administrator";
-        masterPassword = "testing123";
-        port = 5432;
-        engine = "postgres";
-        dbName = "testNixOps";
-        multiAZ = true;
-        vpcSecurityGroupIds = [ resources.ec2SecurityGroups.database ];
-        dbSubnetGroup = resources.rdsDbSubnetGroups.db-subnet.name;
-      };
-    }
+  resources.rdsDbInstances.test-rds-instance = { resources, ... }: {
+    inherit region accessKeyId;
+    id = "test-multi-az";
+    instanceClass = "db.r3.large";
+    allocatedStorage = 30;
+    masterUsername = "administrator";
+    masterPassword = "testing123";
+    port = 5432;
+    engine = "postgres";
+    dbName = "testNixOps";
+    multiAZ = true;
+    vpcSecurityGroupIds = [ resources.ec2SecurityGroups.database ];
+    dbSubnetGroup = resources.rdsDbSubnetGroups.db-subnet.name;
+  };
+}
