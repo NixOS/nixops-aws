@@ -4,7 +4,8 @@ with lib;
 with import ./lib.nix lib;
 
 {
-  imports = [ ./common-ec2-auth-options ];
+  imports = [ ./common-ec2-auth-options.nix ];
+
   options = {
     name = mkOption {
       default = "nixops-${uuid}-${name}";
@@ -30,7 +31,6 @@ with import ./lib.nix lib;
         It can be a VPC Subnet resource or a string representing the ID of the VPC Subnet.
       '';
     };
-    
   };
 
   config._type = "ec2-rds-db-subnet-group";
