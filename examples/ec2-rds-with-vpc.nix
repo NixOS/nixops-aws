@@ -4,7 +4,6 @@ let
 in
 {
   network.description = "NixOps RDS in a VPC Testing";
-  # A VPC.
   resources.vpc.private = {
     inherit region accessKeyId;
     enableDnsSupport = true;
@@ -12,7 +11,8 @@ in
     cidrBlock = "10.0.0.0/16";
   };
 
-  # 2 VPC at least.
+  # You cannot create a db subnet without at least 2 VPC subnets which spans across all AZ of your region.
+  # In this case, us-east-1a / us-east-1c for example.
   resources.vpcSubnets = {
     db-a = { resources, ... }: {
       inherit region accessKeyId;
