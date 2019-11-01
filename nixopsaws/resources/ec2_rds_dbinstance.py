@@ -189,7 +189,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
         while True:
             dbinstance.update()
             self.log_continue("[{0}] ".format(dbinstance.status))
-            if dbinstance.status not in {'creating', 'backing-up', 'available', 'modifying'}:
+            if dbinstance.status not in {'creating', 'backing-up', 'available', 'modifying', 'configuring-enhanced-monitoring'}:
                 raise Exception("RDS database instance ‘{0}’ in an error state (state is ‘{1}’)".format(dbinstance.id, dbinstance.status))
             if dbinstance.status == state:
                 break
