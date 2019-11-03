@@ -3,8 +3,6 @@
 # Automatic provisioning of AWS Route53 RecordSets.
 
 import os
-import time
-import botocore
 import boto3
 import nixops.util
 import nixops.resources
@@ -12,7 +10,7 @@ import nixopsaws.ec2_utils
 #boto3.set_stream_logger(name='botocore')
 
 class Route53RecordSetDefinition(nixops.resources.ResourceDefinition):
-    """Definition of an Route53 RecordSet."""
+    """Definition of a Route53 RecordSet."""
 
     @classmethod
     def get_type(cls):
@@ -261,4 +259,3 @@ class Route53RecordSetState(nixops.resources.ResourceState):
                 isinstance(r, nixopsaws.resources.route53_hosted_zone.Route53HostedZoneState) or
                 isinstance(r, nixopsaws.resources.route53_health_check.Route53HealthCheckState) or
                 isinstance(r, nixops.backends.MachineState)}
-

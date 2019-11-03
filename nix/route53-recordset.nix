@@ -86,8 +86,8 @@ with (import ./lib.nix lib);
       apply = l: map (x: if (builtins.isString x) || ( x == null) then x else "res-" + x._name) l;
 
       description = ''
-        The value of the DNS record 
-        (e.g. IP adress in case of an A or AAA record type, 
+        The value of the DNS record
+        (e.g. IP address in case of an A or AAA record type,
          or a DNS name in case of a CNAME record type)
       '';
     };
