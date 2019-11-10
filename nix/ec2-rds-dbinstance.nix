@@ -92,7 +92,7 @@ with import ./lib.nix lib;
     };
 
     vpcSecurityGroupIds = mkOption {
-      default = null; # default to the default security group of the DB subnet.
+      default = []; # default to the default security group of the DB subnet.
       type = types.nullOr (types.listOf (types.either types.str (resource "ec2-security-group")));
       apply = map (x: if builtins.isString x then x else "res-" + x._name);
       description = ''

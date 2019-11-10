@@ -46,7 +46,8 @@ class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
                 sg_name = sg_str.get("value")
                 self.rds_dbinstance_vpc_security_group_ids.append(sg_name)
 
-        self.rds_dbinstance_db_subnet_group = xml.find("attrs/attr[@name='dbSubnetGroup']/string").get("value")
+        db_subnet_group_node = xml.find("attrs/attr[@name='dbSubnetGroup']/string")
+        self.rds_dbinstance_db_subnet_group = db_subnet_group_node.get("value") if db_subnet_group_node is not None else None
 
         # TODO: implement remainder of boto.rds.RDSConnection.create_dbinstance parameters
 
