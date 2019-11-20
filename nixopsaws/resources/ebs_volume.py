@@ -56,7 +56,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
 
     def show_type(self):
         s = super(EBSVolumeState, self).show_type()
-        if self._exists(): s = "{0} [{1}]".format(s, self.zone)
+        if self._exists(): s = "{0} [{1}; {2} GiB]".format(s, self.zone, self.size)
         return s
 
 
