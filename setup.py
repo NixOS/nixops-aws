@@ -1,7 +1,4 @@
-import sys
-import subprocess
-
-from distutils.core import setup, Command
+from distutils.core import setup
 
 
 setup(name='nixops-aws',
