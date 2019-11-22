@@ -16,25 +16,18 @@ rec {
     with import nixpkgs { inherit system; };
 
     python2Packages.buildPythonApplication rec {
-      name = "nixops-aws-${version}";
+      pname = "nixops-aws";
+      inherit version;
       namePrefix = "";
 
       src = ./.;
 
       prePatch = ''
-        for i in setup.py; do
-          substituteInPlace $i --subst-var-by version ${version}
-        done
+        substituteAllInPlace setup.py
       '';
 
-      buildInputs = [ python2Packages.nose python2Packages.coverage ];
-
-
-      propagatedBuildInputs = with python2Packages;
-        [
-          boto
-          boto3
-        ];
+      buildInputs = with python2Packages; [ nose coverage ];
+      propagatedBuildInputs = with python2Packages; [ boto boto3 ];
 
       # For "nix-build --run-env".
       shellHook = ''
@@ -51,13 +44,12 @@ rec {
       # the version of openssh is causing errors when have big networks (40+)
       makeWrapperArgs = ["--prefix" "PATH" ":" "${openssh}/bin" "--set" "PYTHONPATH" ":"];
 
-      postInstall =
-        ''
-          mkdir -p $out/share/nix/nixops-aws
-          cp -av nix/* $out/share/nix/nixops-aws
-        '';
+      postInstall = ''
+        mkdir -p $out/share/nix/nixops-aws
+        cp -av nix/* $out/share/nix/nixops-aws
+      '';
 
-      meta.description = "Nix package for ${stdenv.system}";
+      meta.description = "NixOps AWS package for ${stdenv.system}";
     }
   );
 }
