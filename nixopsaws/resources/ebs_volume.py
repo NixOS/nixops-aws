@@ -37,6 +37,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
     size = nixops.util.attr_property("ec2.size", None, int)
     iops = nixops.util.attr_property("ec2.iops", None, int)
     volume_type = nixops.util.attr_property("ec2.volumeType", None)
+    kms_key_id = nixops.util.attr_property("ec2.kmsKeyId", None)
 
 
     @classmethod
@@ -70,6 +71,10 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
         self._conn = nixopsaws.ec2_utils.connect(region, self.access_key_id)
         return self._conn
 
+    def create_after(self, resources, defn):
+        return {r for r in resources if
+                isinstance(r, nixopsaws.resources.cmk.CMKState)}
+
     def connect_boto3(self, region):
         if self._conn_boto3: return self._conn_boto3
         self._conn_boto3 = nixopsaws.ec2_utils.connect_ec2_boto3(region, self.access_key_id)
@@ -102,6 +107,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
         if not self.access_key_id:
             raise Exception("please set ‘accessKeyId’, $EC2_ACCESS_KEY or $AWS_ACCESS_KEY_ID")
 
+        self.connect_boto3(defn.config['region'])
         self.connect(defn.config['region'])
 
         if self._exists():
@@ -123,9 +129,9 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
                 self._get_vol(defn.config)
             else:
                 if defn.config['size'] == 0 and defn.config['snapshot'] != "":
-                    snapshots = self._conn.get_all_snapshots(snapshot_ids=[defn.config['snapshot']])
+                    snapshots = self._conn_boto3.describe_snapshots(SnapshotIds=[defn.config['snapshot']])
                     assert len(snapshots) == 1
-                    defn.config['size'] = snapshots[0].volume_size
+                    defn.config['size'] = snapshots[0]['VolumeSize']
 
                 if defn.config['snapshot']:
                     self.log("creating EBS volume of {0} GiB from snapshot ‘{1}’...".format(defn.config['size'], defn.config['snapshot']))
@@ -135,9 +141,23 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
                 if defn.config['zone'] is None:
                     raise Exception("please set a zone where the volume will be created")
 
-                volume = self._conn.create_volume(
-                    zone=defn.config['zone'], size=defn.config['size'], snapshot=defn.config['snapshot'],
-                    iops=defn.config['iops'], volume_type=defn.config['volumeType'])
+                args = dict(
+                    AvailabilityZone=defn.config['zone'],
+                    Size=defn.config['size'],
+                    SnapshotId=defn.config['snapshot'],
+                    VolumeType=defn.config['volumeType']
+                )
+                if defn.config['iops']:
+                    args['Iops'] = defn.config['iops']
+                if defn.config['kmsKeyId']:
+                    if defn.config['kmsKeyId'].startswith("res-"):
+                        res = self.depl.get_typed_resource(defn.config['kmsKeyId'][4:].split(".")[0], "cmk")
+                        defn.config['kmsKeyId'] = res.keyId
+                    args['Encrypted']=True
+                    args['KmsKeyId']=defn.config['kmsKeyId']
+
+                volume = self._conn_boto3.create_volume(**args)
+
                 # FIXME: if we crash before the next step, we forget the
                 # volume we just created.  Doesn't seem to be anything we
                 # can do about this.
@@ -147,7 +167,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
                     self.region = defn.config['region']
                     self.zone = defn.config['zone']
                     self.size = defn.config['size']
-                    self.volume_id = volume.id
+                    self.volume_id = volume['VolumeId']
                     self.iops = defn.config['iops']
                     self.volume_type = defn.config['volumeType']
 
@@ -171,10 +191,15 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
         if wipe:
             log.warn("wipe is not supported")
 
-        self.connect(self.region)
-        volume = nixopsaws.ec2_utils.get_volume_by_id(self._conn, self.volume_id, allow_missing=True)
-        if not volume: return True
+        self.connect_boto3(self.region)
+
+        try:
+            volume = self._conn_boto3.describe_volumes(VolumeIds=[self.volume_id])['Volumes'][0]['State']
+        except botocore.exceptions.ClientError as error:
+            if error.response['Error']['Code'] == "InvalidVolume.NotFound":
+                return True
+        if volume == "deleted": return True
         if not self.depl.logger.confirm("are you sure you want to destroy EBS volume ‘{0}’?".format(self.name)): return False
         self.log("destroying EBS volume ‘{0}’...".format(self.volume_id))
-        volume.delete()
+        self._conn_boto3.delete_volume(VolumeId=self.volume_id)
         return True

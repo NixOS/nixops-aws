@@ -1,6 +1,7 @@
 { config, lib, uuid, name, ... }:
 
 with lib;
+with import ./lib.nix lib;
 
 {
 
@@ -46,6 +47,17 @@ with lib;
         The snapshot ID from which this volume will be created.  If
         not specified, an empty volume is created.  Changing the
         snapshot ID has no effect if the volume already exists.
+      '';
+    };
+
+    kmsKeyId = mkOption {
+      default = null;
+      type = with types; nullOr (either types.str (resource "cmk"));
+      apply = x: if builtins.isString x then x else "res-" + x._name;
+      description = ''
+        The identifier of the AWS Key Management Service (AWS KMS)
+        customer master key (CMK) to use for Amazon EBS encryption.
+        If this parameter is not specified, your AWS managed CMK for EBS is used.
       '';
     };
 
