@@ -73,7 +73,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
 
     def create_after(self, resources, defn):
         return {r for r in resources if
-                isinstance(r, nixopsaws.resources.cmk.CMKState)}
+                isinstance(r, nixopsaws.resources.aws_customer_master_key.awsCustomerMasterKeyState)}
 
     def connect_boto3(self, region):
         if self._conn_boto3: return self._conn_boto3
@@ -151,7 +151,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
                     args['Iops'] = defn.config['iops']
                 if defn.config['kmsKeyId']:
                     if defn.config['kmsKeyId'].startswith("res-"):
-                        res = self.depl.get_typed_resource(defn.config['kmsKeyId'][4:].split(".")[0], "cmk")
+                        res = self.depl.get_typed_resource(defn.config['kmsKeyId'][4:].split(".")[0], "aws-customer-master-key")
                         defn.config['kmsKeyId'] = res.keyId
                     args['Encrypted']=True
                     args['KmsKeyId']=defn.config['kmsKeyId']

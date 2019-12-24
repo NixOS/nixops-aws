@@ -36,4 +36,4 @@ import vpc_route
 import vpc_route_table
 import vpc_route_table_association
 import vpc_subnet
-import cmk
+import aws_customer_master_key

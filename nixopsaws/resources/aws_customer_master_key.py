@@ -12,22 +12,22 @@ import nixopsaws.ec2_utils
 from nixops.state import StateDict
 from nixops.diff import Diff, Handler
 
-class CMKDefinition(nixops.resources.ResourceDefinition):
-    """Definition of a CMK."""
+class awsCustomerMasterKeyDefinition(nixops.resources.ResourceDefinition):
+    """Definition of an aws customer master key."""
 
     @classmethod
     def get_type(cls):
-        return "cmk"
+        return "aws-customer-master-key"
 
     @classmethod
     def get_resource_type(cls):
-        return "cmk"
+        return "awsCustomerMasterKey"
 
     def show_type(self):
         return "{0}".format(self.get_type())
 
 
-class CMKState(nixops.resources.DiffEngineResourceState, EC2CommonState):
+class awsCustomerMasterKeyState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a CMK."""
 
     state = nixops.util.attr_property("state", nixops.resources.ResourceState.MISSING, int)
@@ -36,7 +36,7 @@ class CMKState(nixops.resources.DiffEngineResourceState, EC2CommonState):
 
     @classmethod
     def get_type(cls):
-        return "cmk"
+        return "aws-customer-master-key"
 
     def __init__(self, depl, name, id):
         nixops.resources.DiffEngineResourceState.__init__(self, depl, name, id)
@@ -50,7 +50,7 @@ class CMKState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         self.handle_tag_update = Handler(['tags'], after=[self.handle_create], handle=self.realize_update_tag)
 
     def show_type(self):
-        s = super(CMKState, self).show_type()
+        s = super(awsCustomerMasterKeyState, self).show_type()
         region = self._state.get('region', None)
         if region: s = "{0} [{1}]".format(s, region)
         return s
@@ -60,28 +60,28 @@ class CMKState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         return self._state.get('keyId', None)
 
     def prefix_definition(self, attr):
-        return {('resources', 'cmk'): attr}
+        return {('resources', 'awsCustomerMasterKey'): attr}
 
     def get_physical_spec(self):
         return { 'cmkId': self._state.get('keyId', None)}
 
     def get_definition_prefix(self):
-        return "resources.cmk."
+        return "resources.awsCustomerMasterKey."
 
     def realize_create_cmk(self, allow_recreate):
-        """Handle both create and recreate of the cmk resource """
+        """Handle both create and recreate of the aws customer master key resource """
         config = self.get_defn()
         if self.state == self.UP:
             if not allow_recreate:
-                raise Exception("cmk {} definition changed and it needs to be recreated "
+                raise Exception("aws customer master key {} definition changed and it needs to be recreated "
                                 "use --allow-recreate if you want to create a new one".format(self.keyId))
-            self.warn("cmk definition changed, recreating...")
+            self.warn("aws customer master key definition changed, recreating...")
             self._destroy()
             self._client = None
 
         self._state["region"] = config['region']
 
-        self.log("creating cmk under region {0}".format(config['region']))
+        self.log("creating aws customer master key under region {0}".format(config['region']))
         args = dict(
             KeyUsage='ENCRYPT_DECRYPT',
             Origin = config['origin'],
@@ -92,7 +92,7 @@ class CMKState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         self.keyId = cmk['KeyMetadata']['KeyId']
 
         with self.depl._db:
-            self.state = self.UP if config['origin'] != "EXTERNAL" else self.STARTING
+            self.state = self.UP
             self._state["keyId"] = self.keyId
             self._state["region"] = config['region']
             self._state["origin"] = config['origin']
@@ -139,7 +139,7 @@ class CMKState(nixops.resources.DiffEngineResourceState, EC2CommonState):
             cmk = self.get_client(service="kms").describe_key(KeyId=self._state["keyId"])
         except botocore.exceptions.ClientError as e:
             if e.response['Error']['Code'] == 'InvalidKmsID.NotFound':
-                self.warn("cmk {0} was deleted from outside nixops,"
+                self.warn("aws customer master key {0} was deleted from outside nixops,"
                           " it needs to be recreated...".format(self._state["keyId"]))
                 self.cleanup_state()
                 return
@@ -147,30 +147,27 @@ class CMKState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         if cmk_state == "Enabled":
             return
         elif cmk_state == "Disabled":
-            raise Exception("cmk state is {1}, Enable it form the console".format(cmk_state))
+            raise Exception("aws customer master key state is {1}, Enable it form the console".format(cmk_state))
         elif cmk_state == "PendingDeletion":
-            raise Exception("cmk state is {1}, run a destroy operation to sync the state or cancel the deletion.".format(cmk_state))
+            raise Exception("aws customer master key state is {1}, run a destroy operation to sync the state or cancel the deletion.".format(cmk_state))
         else:
-            raise Exception("cmk state is {1}".format(cmk_state))
+            raise Exception("aws customer master key state is {1}".format(cmk_state))
 
     def _destroy(self):
         if self.state != self.UP: return
-        if self._state['deletionWaitPeriod'] == 0:
-            self.warn("`deletionWaitPeriod` for the cmk is set to 0, keeping the key and cleaning the nixops state...")
-        else:
-            self.get_client(service="kms").delete_alias(AliasName="alias/" + self._state['alias'])
-            self.log("scheduling cmk `{0}` deletion to {1} day(s)..."
-                .format(self._state['alias'], self._state['deletionWaitPeriod']))
-            try:
-                self.get_client(service="kms").schedule_key_deletion(
-                                            KeyId=self._state['keyId'],
-                                            PendingWindowInDays=self._state['deletionWaitPeriod'])
-            except botocore.exceptions.ClientError as e:
-                # fix this
-                if e.response['Error']['Code'] == 'InvalidCmkID.NotFound':
-                    self.warn("cmk {0} was already deleted".format(self._state['keyId']))
-                else:
-                    raise e
+
+        self.get_client(service="kms").delete_alias(AliasName="alias/" + self._state['alias'])
+        self.log("scheduling aws customer master key `{0}` deletion to {1} day(s)..."
+           .format(self._state['alias'], self._state['deletionWaitPeriod']))
+        try:
+           self.get_client(service="kms").schedule_key_deletion(
+                                       KeyId=self._state['keyId'],
+                                       PendingWindowInDays=self._state['deletionWaitPeriod'])
+        except botocore.exceptions.ClientError as e:
+           if e.response['Error']['Code'] == 'InvalidCmkID.NotFound':
+               self.warn("aws customer master key {0} was already deleted".format(self._state['keyId']))
+           else:
+               raise e
         self.cleanup_state()
 
     def cleanup_state(self):

@@ -56,17 +56,16 @@ with lib;
     };
 
     deletionWaitPeriod = mkOption {
-      default = 0;
+      default = 30;
       type = types.int;
       description = ''
         The waiting period, specified in number of days. After
         the waiting period ends, AWS KMS deletes the customer master key (CMK).
-        Valid values are between 7 and 30
-        Use 0 to indicate that you do not want to delete the key
+        Valid values are between 7 and 30.
       '';
     };
 
   } // import ./common-ec2-options.nix { inherit lib; };
 
-  config._type = "cmk";
+  config._type = "aws-customer-master-key";
 }

@@ -1,5 +1,5 @@
 {
-    resources.cmk.cmk =
+  resources.awsCustomerMasterKey.cmk =
     {lib, ...}:
     {
       alias = "nixops-kms";
@@ -21,14 +21,14 @@
       accessKeyId = "testing";
       tags = { name = "nixops-managed-cmk";};
     };
-    resources.ebsVolumes.ebs =
+  resources.ebsVolumes.ebs =
     {resources, ...}:
     {
       region = "us-east-1";
       accessKeyId = "testing";
       size = 50;
       volumeType = "gp2";
-      kmsKeyId = resources.cmk.cmk;
+      kmsKeyId = resources.awsCustomerMasterKey.cmk;
       zone = "us-east-1a";
       tags = { name = "nixops"; env = "test";};
   };

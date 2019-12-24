@@ -52,7 +52,7 @@ with import ./lib.nix lib;
 
     kmsKeyId = mkOption {
       default = null;
-      type = with types; nullOr (either types.str (resource "cmk"));
+      type = with types; nullOr (either types.str (resource "aws-customer-master-key"));
       apply = x: if builtins.isString x then x else "res-" + x._name;
       description = ''
         The identifier of the AWS Key Management Service (AWS KMS)
