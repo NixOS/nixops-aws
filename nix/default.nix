@@ -44,6 +44,7 @@
     awsVPNGateways = evalResources ./aws-vpn-gateway.nix (zipAttrs resourcesByType.awsVPNGateways or []);
     awsVPNConnections = evalResources ./aws-vpn-connection.nix (zipAttrs resourcesByType.awsVPNConnections or []);
     awsVPNConnectionRoutes = evalResources ./aws-vpn-connection-route.nix (zipAttrs resourcesByType.awsVPNConnectionRoutes or []);
+    awsCustomerMasterKey  = evalResources ./aws-customer-master-key.nix (zipAttrs resourcesByType.awsCustomerMasterKey or []);
   };
 }
 
