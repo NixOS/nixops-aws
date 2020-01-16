@@ -176,5 +176,5 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
         if not volume: return True
         if not self.depl.logger.confirm("are you sure you want to destroy EBS volume ‘{0}’?".format(self.name)): return False
         self.log("destroying EBS volume ‘{0}’...".format(self.volume_id))
-        volume.delete()
+        self._retry(lambda: volume.delete())
         return True
