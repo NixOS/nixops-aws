@@ -44,6 +44,7 @@
     awsVPNGateways = evalResources ./aws-vpn-gateway.nix (zipAttrs resourcesByType.awsVPNGateways or []);
     awsVPNConnections = evalResources ./aws-vpn-connection.nix (zipAttrs resourcesByType.awsVPNConnections or []);
     awsVPNConnectionRoutes = evalResources ./aws-vpn-connection-route.nix (zipAttrs resourcesByType.awsVPNConnectionRoutes or []);
+    awsEc2LaunchTemplate = evalResources ./aws-ec2-launch-template.nix (zipAttrs resourcesByType.awsEc2LaunchTemplate or []);
   };
 }
 
