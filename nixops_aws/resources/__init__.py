@@ -1,4 +1,5 @@
 __all__ = (
+    "aws_ec2_launch_template",
     "aws_vpn_connection",
     "aws_vpn_connection_route",
     "aws_vpn_gateway",
@@ -40,6 +41,7 @@ __all__ = (
     "aws_data_lifecycle_manager",
 )
 
+from . import aws_ec2_launch_template
 from . import aws_vpn_connection
 from . import aws_vpn_connection_route
 from . import aws_vpn_gateway
