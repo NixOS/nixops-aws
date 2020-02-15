@@ -14,6 +14,7 @@ import ec2_security_group
 import elastic_file_system
 import time
 
+
 class ElasticFileSystemMountTargetDefinition(nixops.resources.ResourceDefinition):
     """Definition of an AWS Elastic File System mount target."""
 
@@ -28,10 +29,15 @@ class ElasticFileSystemMountTargetDefinition(nixops.resources.ResourceDefinition
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
 
-class ElasticFileSystemMountTargetState(nixops.resources.ResourceState, efs_common.EFSCommonState):
+
+class ElasticFileSystemMountTargetState(
+    nixops.resources.ResourceState, efs_common.EFSCommonState
+):
     """State of an AWS Elastic File System mount target."""
 
-    state = nixops.util.attr_property("state", nixops.resources.ResourceState.MISSING, int)
+    state = nixops.util.attr_property(
+        "state", nixops.resources.ResourceState.MISSING, int
+    )
     access_key_id = nixops.util.attr_property("ec2.accessKeyId", None)
     region = nixops.util.attr_property("ec2.region", None)
     fs_id = nixops.util.attr_property("ec2.fsId", None)
@@ -56,7 +62,8 @@ class ElasticFileSystemMountTargetState(nixops.resources.ResourceState, efs_comm
 
     def show_type(self):
         s = super(ElasticFileSystemMountTargetState, self).show_type()
-        if self._exists(): s = "{0} [{1}]".format(s, self.region)
+        if self._exists():
+            s = "{0} [{1}]".format(s, self.region)
         return s
 
     @property
@@ -64,13 +71,18 @@ class ElasticFileSystemMountTargetState(nixops.resources.ResourceState, efs_comm
         return self.fsmt_id
 
     def create_after(self, resources, defn):
-        return {r for r in resources if
-                isinstance(r, ec2_security_group.EC2SecurityGroupState) or
-                isinstance(r, elastic_file_system.ElasticFileSystemState)}
+        return {
+            r
+            for r in resources
+            if isinstance(r, ec2_security_group.EC2SecurityGroupState)
+            or isinstance(r, elastic_file_system.ElasticFileSystemState)
+        }
 
     def create(self, defn, check, allow_reboot, allow_recreate):
 
-        access_key_id = defn.config["accessKeyId"] or nixopsaws.ec2_utils.get_access_key_id()
+        access_key_id = (
+            defn.config["accessKeyId"] or nixopsaws.ec2_utils.get_access_key_id()
+        )
         region = defn.config["region"]
         client = self._get_client(access_key_id, region)
 
@@ -81,9 +93,15 @@ class ElasticFileSystemMountTargetState(nixops.resources.ResourceState, efs_comm
             # Resolve the file system ID if it refers to a file system resource.
             fs_id = defn.config["fileSystem"]
             if fs_id.startswith("res-"):
-                file_system = self.depl.get_typed_resource(fs_id[4:], "elastic-file-system")
+                file_system = self.depl.get_typed_resource(
+                    fs_id[4:], "elastic-file-system"
+                )
                 if not file_system.fs_id:
-                    raise Exception("cannot create mount target for not-yet created Elastic File System ‘{0}’".format(file_system.name))
+                    raise Exception(
+                        "cannot create mount target for not-yet created Elastic File System ‘{0}’".format(
+                            file_system.name
+                        )
+                    )
                 fs_id = file_system.fs_id
 
             # Create the mount target. There's no client token, but
@@ -96,8 +114,15 @@ class ElasticFileSystemMountTargetState(nixops.resources.ResourceState, efs_comm
                 args["IpAddress"] = defn.config["ipAddress"]
 
             subnetId = defn.config["subnet"]
-            securityGroups = self.security_groups_to_ids(region, access_key_id, subnetId, defn.config["securityGroups"] )
-            res = client.create_mount_target(FileSystemId=fs_id, SubnetId=subnetId, SecurityGroups=securityGroups, **args)
+            securityGroups = self.security_groups_to_ids(
+                region, access_key_id, subnetId, defn.config["securityGroups"]
+            )
+            res = client.create_mount_target(
+                FileSystemId=fs_id,
+                SubnetId=subnetId,
+                SecurityGroups=securityGroups,
+                **args
+            )
 
             with self.depl._db:
                 self.state = self.STARTING
@@ -112,8 +137,10 @@ class ElasticFileSystemMountTargetState(nixops.resources.ResourceState, efs_comm
             self.log_start("waiting for Elastic File System mount target...")
 
             while True:
-                mts = client.describe_mount_targets(MountTargetId=self.fsmt_id)["MountTargets"]
-                assert(len(mts) <= 1)
+                mts = client.describe_mount_targets(MountTargetId=self.fsmt_id)[
+                    "MountTargets"
+                ]
+                assert len(mts) <= 1
 
                 if len(mts) == 1:
                     mt = mts[0]
@@ -121,7 +148,11 @@ class ElasticFileSystemMountTargetState(nixops.resources.ResourceState, efs_comm
                         self.state = self.UP
                         break
                     if mt["LifeCycleState"] != "creating":
-                        raise Exception("Elastic File System mount target ‘{0}’ is in unexpected state ‘{1}’".format(mt["LifeCycleState"]))
+                        raise Exception(
+                            "Elastic File System mount target ‘{0}’ is in unexpected state ‘{1}’".format(
+                                mt["LifeCycleState"]
+                            )
+                        )
 
                 self.log_continue(".")
                 time.sleep(1)
@@ -129,11 +160,11 @@ class ElasticFileSystemMountTargetState(nixops.resources.ResourceState, efs_comm
             self.log_end(" done")
 
     def prefix_definition(self, attr):
-        return {('resources', 'elasticFileSystemMountTargets'): attr}
+        return {("resources", "elasticFileSystemMountTargets"): attr}
 
     def get_physical_spec(self):
         return {
-            ('ipAddress'): self.private_ipv4,
+            ("ipAddress"): self.private_ipv4,
         }
 
     def destroy(self, wipe=False):
@@ -146,19 +177,21 @@ class ElasticFileSystemMountTargetState(nixops.resources.ResourceState, efs_comm
             try:
                 client.delete_mount_target(MountTargetId=self.fsmt_id)
             except botocore.exceptions.ClientError as e:
-                if e.response['Error']['Code'] == 'MountTargetNotFound':
+                if e.response["Error"]["Code"] == "MountTargetNotFound":
                     pass
 
             while True:
                 try:
-                    mts = client.describe_mount_targets(MountTargetId=self.fsmt_id)["MountTargets"]
-                    assert(len(mts) <= 1)
+                    mts = client.describe_mount_targets(MountTargetId=self.fsmt_id)[
+                        "MountTargets"
+                    ]
+                    assert len(mts) <= 1
                     if mts[0]["LifeCycleState"] == "deleted":
                         break
                     self.log_continue(".")
                     time.sleep(1)
                 except botocore.exceptions.ClientError as e:
-                    if e.response['Error']['Code'] == 'MountTargetNotFound':
+                    if e.response["Error"]["Code"] == "MountTargetNotFound":
                         break
                     time.sleep(1)
 
@@ -172,9 +205,12 @@ class ElasticFileSystemMountTargetState(nixops.resources.ResourceState, efs_comm
         conn = nixopsaws.ec2_utils.connect(region, access_key_id)
         conn_vpc = nixopsaws.ec2_utils.connect_vpc(region, access_key_id)
 
-        sg_names = filter(lambda g: not g.startswith('sg-'), groups)
-        if sg_names != [ ] and subnetId != "":
+        sg_names = filter(lambda g: not g.startswith("sg-"), groups)
+        if sg_names != [] and subnetId != "":
             vpc_id = conn_vpc.get_all_subnets([subnetId])[0].vpc_id
-            groups = map(lambda g: nixopsaws.ec2_utils.name_to_security_group(conn, g, vpc_id), groups)
+            groups = map(
+                lambda g: nixopsaws.ec2_utils.name_to_security_group(conn, g, vpc_id),
+                groups,
+            )
 
         return groups
