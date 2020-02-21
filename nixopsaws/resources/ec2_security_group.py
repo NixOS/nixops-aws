@@ -144,7 +144,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
                             rules.append(new_rule)
                     self.security_group_rules = rules
                 except boto.exception.EC2ResponseError as e:
-                    if e.error_code == u'InvalidGroup.NotFound':
+                    if e.error_code == 'InvalidGroup.NotFound':
                         self.state = self.MISSING
                     else:
                         raise
@@ -168,7 +168,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
                 # in which case also its rules must be (re-)created below.
                 security_group_was_created = True
             except boto.exception.EC2ResponseError as e:
-                if self.state != self.UNKNOWN or e.error_code != u'InvalidGroup.Duplicate':
+                if self.state != self.UNKNOWN or e.error_code != 'InvalidGroup.Duplicate':
                     raise
             self.state = self.STARTING #ugh
 
@@ -203,7 +203,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
                         src_group = boto.ec2.securitygroup.SecurityGroup(**args)
                         retry_notfound(lambda: grp.authorize(ip_protocol=rule[0], from_port=rule[1], to_port=rule[2], src_group=src_group))
                 except boto.exception.EC2ResponseError as e:
-                    if e.error_code != u'InvalidPermission.Duplicate':
+                    if e.error_code != 'InvalidPermission.Duplicate':
                         raise
 
         if old_rules:
@@ -244,7 +244,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
             try:
                 conn.delete_security_group(group['name'])
             except boto.exception.EC2ResponseError as e:
-                if e.error_code != u'InvalidGroup.NotFound':
+                if e.error_code != 'InvalidGroup.NotFound':
                     raise
         self.old_security_groups = []
 
@@ -258,7 +258,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
                     lambda: self._conn.delete_security_group(group_id=self.security_group_id),
                     error_codes=['DependencyViolation'])
             except boto.exception.EC2ResponseError as e:
-                if e.error_code != u'InvalidGroup.NotFound':
+                if e.error_code != 'InvalidGroup.NotFound':
                     raise
 
             self.state = self.MISSING

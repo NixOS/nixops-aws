@@ -130,7 +130,7 @@ class SNSTopicState(nixops.resources.ResourceState):
 
         defn_endpoints = self.get_defn_endpoints(defn)
         if len(defn_endpoints) > 0:
-            for subscriber_endpoint, subscriber_arn in current_subscriptions_arns.items():
+            for subscriber_endpoint, subscriber_arn in list(current_subscriptions_arns.items()):
                 if subscriber_endpoint not in defn_endpoints:
                     self.log("removing SNS subscriber with endpoint '{0}'...".format(subscriber_endpoint))
                     if subscriber_arn != "PendingConfirmation": 

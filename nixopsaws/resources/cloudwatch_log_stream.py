@@ -70,7 +70,7 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState):
         self.log("destroying cloudwatch log stream ‘{0}’...".format(self.log_stream_name))
         try:
             self._conn.delete_log_stream(log_group_name=self.log_group_name,log_stream_name=self.log_stream_name)
-        except  boto.logs.exceptions.ResourceNotFoundException, e:
+        except  boto.logs.exceptions.ResourceNotFoundException as e:
             self.log("the log group ‘{0}’ or log stream ‘{1}’ was already deleted".format(self.log_group_name,self.log_stream_name))
         with self.depl._db:
             self.state = self.MISSING

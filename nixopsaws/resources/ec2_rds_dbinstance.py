@@ -127,7 +127,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
         try:
             dbinstance = self._conn.get_all_dbinstances(instance_id=instance_id)[0]
         except boto.exception.BotoServerError as bse:
-            if bse.error_code == u'DBInstanceNotFound':
+            if bse.error_code == 'DBInstanceNotFound':
                 dbinstance = None
             else:
                 raise
@@ -190,11 +190,11 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
             'rds_dbinstance_multi_az': 'multi_az',
             'rds_dbinstance_security_groups': 'security_groups'
         }
-        return { attr_to_kwarg[attr] : attrs[attr] for attr in attrs.keys() }
+        return { attr_to_kwarg[attr] : attrs[attr] for attr in list(attrs.keys()) }
 
     def _compare_instance_id(self, instance_id):
         # take care when comparing instance ids, as aws lowercases and converts to unicode
-        return unicode(self.rds_dbinstance_id).lower() == unicode(instance_id).lower()
+        return str(self.rds_dbinstance_id).lower() == str(instance_id).lower()
 
     def fetch_security_group_resources(self, config):
         security_groups = []

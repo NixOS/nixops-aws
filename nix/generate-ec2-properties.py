@@ -11,7 +11,7 @@ with open('index.json') as f:
     data = json.load(f)
 
 instanceTypes = {}
-for p in data['products'].keys():
+for p in list(data['products'].keys()):
     product = data['products'][p]['attributes']
     if 'operatingSystem' in product and product['operatingSystem'] in ('NA', 'Linux') \
        and 'tenancy' in product and product['tenancy'] == 'Shared' \
@@ -24,7 +24,7 @@ for p in data['products'].keys():
                continue
            instanceTypes[product['instanceType']] = '  "'+instanceType+'" = { cores = '+cores+'; memory = '+str(memory)+'; allowsEbsOptimized = '+('true' if ebsOptimized else 'false')+'; supportsNVMe = '+'false'+';};'
 
-print '{'
+print('{')
 for instanceType in sorted(instanceTypes.keys()):
-    print instanceTypes[instanceType]
-print '}'
+    print(instanceTypes[instanceType])
+print('}')

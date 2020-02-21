@@ -8,10 +8,10 @@ import botocore
 import nixops.util
 import nixopsaws.ec2_utils
 import nixops.resources
-import ec2_common
-import efs_common
-import ec2_security_group
-import elastic_file_system
+from . import ec2_common
+from . import efs_common
+from . import ec2_security_group
+from . import elastic_file_system
 import time
 
 class ElasticFileSystemMountTargetDefinition(nixops.resources.ResourceDefinition):
@@ -172,9 +172,9 @@ class ElasticFileSystemMountTargetState(nixops.resources.ResourceState, efs_comm
         conn = nixopsaws.ec2_utils.connect(region, access_key_id)
         conn_vpc = nixopsaws.ec2_utils.connect_vpc(region, access_key_id)
 
-        sg_names = filter(lambda g: not g.startswith('sg-'), groups)
+        sg_names = [g for g in groups if not g.startswith('sg-')]
         if sg_names != [ ] and subnetId != "":
             vpc_id = conn_vpc.get_all_subnets([subnetId])[0].vpc_id
-            groups = map(lambda g: nixopsaws.ec2_utils.name_to_security_group(conn, g, vpc_id), groups)
+            groups = [nixopsaws.ec2_utils.name_to_security_group(conn, g, vpc_id) for g in groups]
 
         return groups

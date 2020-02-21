@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import, print_function
+
 
 import datetime
 import math
@@ -77,7 +77,7 @@ class EC2Definition(MachineDefinition):
         self.security_group_ids = config["ec2"]["securityGroupIds"]
 
         # convert sd to xvd because they are equal from aws perspective
-        self.block_device_mapping = {device_name_user_entered_to_stored(k): v for k, v in config["ec2"]["blockDeviceMapping"].iteritems()}
+        self.block_device_mapping = {device_name_user_entered_to_stored(k): v for k, v in config["ec2"]["blockDeviceMapping"].items()}
 
         self.elastic_ipv4 = config["ec2"]["elasticIPv4"]
 
@@ -210,7 +210,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
         if self._ssh_private_key_file:
             return self._ssh_private_key_file
 
-        for r in self.depl.active_resources.itervalues():
+        for r in self.depl.active_resources.values():
             if isinstance(r, nixopsaws.resources.ec2_keypair.EC2KeyPairState) and \
                     r.state == nixopsaws.resources.ec2_keypair.EC2KeyPairState.UP and \
                     r.keypair_name == self.key_pair:
@@ -228,7 +228,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
 
     def get_physical_spec(self):
         block_device_mapping = {}
-        for device_stored, v in self.block_device_mapping.items():
+        for device_stored, v in list(self.block_device_mapping.items()):
             device_real = device_name_stored_to_real(device_stored)
 
             if (v.get('encrypt', False)
@@ -252,7 +252,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
     def get_physical_backup_spec(self, backupid):
         val = {}
         if backupid in self.backups:
-            for device_stored, snap in self.backups[backupid].items():
+            for device_stored, snap in list(self.backups[backupid].items()):
                 device_real = device_name_stored_to_real(device_stored)
 
                 is_root_device = device_real.startswith("/dev/xvda") or device_real.startswith("/dev/nvme0")
@@ -271,7 +271,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
         # there in the first evaluation (though they are present in
         # the final nix-build). Had to hardcode the default here to
         # make the old way of defining keys work.
-        for device_stored, v in self.block_device_mapping.items():
+        for device_stored, v in list(self.block_device_mapping.items()):
             if v.get('encrypt', False) and v.get('passphrase', "") == "" and v.get('generatedKey', "") != "" and v.get('encryptionType', "luks") == "luks":
                 device_real = device_name_stored_to_real(device_stored)
 
@@ -439,13 +439,13 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
             return {}
 
         backups = {}  # type: Dict[str, Dict[str, Any]]
-        current_volumes = set([v['volumeId'] for v in self.block_device_mapping.values()])
-        for b_id, b in self.backups.items():
-            b = {device_name_stored_to_real(device): snap for device, snap in b.items()}
+        current_volumes = set([v['volumeId'] for v in list(self.block_device_mapping.values())])
+        for b_id, b in list(self.backups.items()):
+            b = {device_name_stored_to_real(device): snap for device, snap in list(b.items())}
             backups[b_id] = {}
             backup_status = "complete"
             info = []
-            for device_stored, v in self.block_device_mapping.items():
+            for device_stored, v in list(self.block_device_mapping.items()):
                 device_real = device_name_stored_to_real(device_stored)
 
                 snapshot_id = b.get(device_real, None)
@@ -473,11 +473,11 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
 
         self.log('removing backup {0}'.format(backup_id))
         _backups = self.backups
-        if not backup_id in _backups.keys():
+        if not backup_id in list(_backups.keys()):
             self.warn('backup {0} not found, skipping'.format(backup_id))
         else:
             if not keep_physical:
-                for dev, snapshot_id in _backups[backup_id].items():
+                for dev, snapshot_id in list(_backups[backup_id].items()):
                     snapshot = None
                     try:
                         snapshot = self._get_snapshot_by_id(snapshot_id)
@@ -501,7 +501,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
         _backups = self.backups
 
         ec2 = self.session().client('ec2')
-        for device_stored, v in self.block_device_mapping.items():
+        for device_stored, v in list(self.block_device_mapping.items()):
             device_real = device_name_stored_to_real(device_stored)
 
             if not devices or device_real in devices:
@@ -879,7 +879,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
 
     def after_activation(self, defn):
         # Detach volumes that are no longer in the deployment spec.
-        for device_stored, v in self.block_device_mapping.items():
+        for device_stored, v in list(self.block_device_mapping.items()):
             device_real = device_name_stored_to_real(device_stored)
 
             if device_stored not in defn.block_device_mapping and not v.get('partOfImage', False):
@@ -1004,7 +1004,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
             # later.
             args['BlockDeviceMappings'] = []
 
-            for device_stored, v in defn.block_device_mapping.iteritems():
+            for device_stored, v in defn.block_device_mapping.items():
                 device_real = device_name_stored_to_real(device_stored)
                 # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/device_naming.html
                 ebs_disk = not v['disk'].startswith("ephemeral")
@@ -1037,7 +1037,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
             # If we're attaching any EBS volumes, then make sure that
             # we create the instance in the right placement zone.
             zone = defn.zone or None
-            for device_stored, v in defn.block_device_mapping.iteritems():
+            for device_stored, v in defn.block_device_mapping.items():
                 if not v['disk'].startswith("vol-"):
                     continue
                 # Make note of the placement zone of the volume.
@@ -1054,7 +1054,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
 
             # Do we want an EBS-optimized instance?
             prefer_ebs_optimized = False
-            for device_stored, v in defn.block_device_mapping.iteritems():
+            for device_stored, v in defn.block_device_mapping.items():
                 if v['volumeType'] != "standard":
                     prefer_ebs_optimized = True
 
@@ -1219,7 +1219,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
         # Detect if volumes were manually detached.  If so, reattach
         # them.
         devices = [device['DeviceName'] for device in self._get_instance().block_device_mappings]
-        for device_stored, v in self.block_device_mapping.items():
+        for device_stored, v in list(self.block_device_mapping.items()):
             if device_name_to_boto_expected(device_stored) not in devices and not v.get('needsAttach', False) and v.get('volumeId', None):
                 device_real = device_name_stored_to_real(device_stored)
                 self.warn("device ‘{0}’ was manually detached!".format(device_real))
@@ -1227,7 +1227,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
                 self.update_block_device_mapping(device_stored, v)
 
         # Detect if volumes were manually destroyed.
-        for device_stored, v in self.block_device_mapping.items():
+        for device_stored, v in list(self.block_device_mapping.items()):
             if v.get('needsAttach', False):
                 volume = nixopsaws.ec2_utils.get_volume_by_id(self.session(), v['volumeId'], allow_missing=True)
                 if volume:
@@ -1244,7 +1244,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
 
         # Create missing volumes.
         ec2 = self.session().client('ec2')
-        for device_stored, v in defn.block_device_mapping.iteritems():
+        for device_stored, v in defn.block_device_mapping.items():
             device_real = device_name_stored_to_real(device_stored)
 
             volume = None
@@ -1310,7 +1310,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
 
         # Always apply tags to the volumes we just created.
         ec2 = self.session().client('ec2')
-        for device_stored, v in self.block_device_mapping.items():
+        for device_stored, v in list(self.block_device_mapping.items()):
             device_real = device_name_stored_to_real(device_stored)
 
             if not (('disk' in v and not (v['disk'].startswith("ephemeral")
@@ -1335,7 +1335,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
         # FIXME: process changes to the deleteOnTermination flag.
 
         # Auto-generate LUKS keys if the model didn't specify one.
-        for device_stored, v in self.block_device_mapping.items():
+        for device_stored, v in list(self.block_device_mapping.items()):
             if v.get('encrypt', False) and v.get('passphrase', "") == "" and v.get('generatedKey', "") == "" and v.get('encryptionType', "luks") == "luks":
                 v['generatedKey'] = nixops.util.generate_random_string(length=256)
                 self.update_block_device_mapping(device_stored, v)
@@ -1492,7 +1492,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
         nixops.known_hosts.update(self.public_ipv4, None, self.public_host_key)
 
         # Destroy volumes created for this instance.
-        for device_stored, v in self.block_device_mapping.items():
+        for device_stored, v in list(self.block_device_mapping.items()):
             if v.get('charonDeleteOnTermination', False):
                 self._delete_volume(v['volumeId'], True)
                 self.update_block_device_mapping(device_stored, None)
@@ -1602,18 +1602,18 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
 
             res.disks_ok = True
             mappings = {mapping['DeviceName']: {"Ebs": mapping["Ebs"]} for mapping in instance.block_device_mappings}
-            for device_stored, v in self.block_device_mapping.items():
+            for device_stored, v in list(self.block_device_mapping.items()):
                 device_real = device_name_stored_to_real(device_stored)
                 device_that_boto_expects = device_name_to_boto_expected(device_real)  # boto expects only sd names
 
-                if device_that_boto_expects not in mappings.keys() and v.get('volumeId', None):
+                if device_that_boto_expects not in list(mappings.keys()) and v.get('volumeId', None):
                     res.disks_ok = False
                     res.messages.append("volume ‘{0}’ not attached to ‘{1}’".format(v['volumeId'], device_real))
                     volume = nixopsaws.ec2_utils.get_volume_by_id(self.session(), v['volumeId'], allow_missing=True)
                     if not volume:
                         res.messages.append("volume ‘{0}’ no longer exists".format(v['volumeId']))
 
-                if device_that_boto_expects in mappings.keys() and mappings[device_that_boto_expects]['Ebs']['Status'] != 'attached':
+                if device_that_boto_expects in list(mappings.keys()) and mappings[device_that_boto_expects]['Ebs']['Status'] != 'attached':
                     res.disks_ok = False
                     res.messages.append("volume ‘{0}’ on device ‘{1}’ has unexpected state: ‘{2}’".format(v['volumeId'], device_real, mappings[device_stored]['Ebs']['Status']))
 

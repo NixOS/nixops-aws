@@ -131,7 +131,7 @@ class VPCRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
 
     def _destroy(self):
         if self.state != self.UP: return
-        destination = 'destinationCidrBlock' if ('destinationCidrBlock' in self._state.keys()) else 'destinationIpv6CidrBlock'
+        destination = 'destinationCidrBlock' if ('destinationCidrBlock' in list(self._state.keys())) else 'destinationIpv6CidrBlock'
         self.log("deleting route to {0} from route table {1}".format(self._state[destination], self._state['routeTableId']))
         try:
             args = dict()

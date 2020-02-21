@@ -2,7 +2,7 @@
 
 # Automatic provisioning of AWS EBS volumes.
 
-from __future__ import absolute_import
+
 
 import boto3
 import botocore.exceptions

@@ -87,7 +87,7 @@ class EC2PlacementGroupState(nixops.resources.ResourceState):
                     self.state = self.UP
                     self.placement_group_strategy = grp.strategy
                 except boto.exception.EC2ResponseError as e:
-                    if e.error_code == u'InvalidGroup.NotFound':
+                    if e.error_code == 'InvalidGroup.NotFound':
                         self.state = self.Missing
                     else:
                         raise
@@ -98,7 +98,7 @@ class EC2PlacementGroupState(nixops.resources.ResourceState):
                 self.logger.log("creating EC2 placement group ‘{0}’...".format(self.placement_group_name))
                 created = self._conn.create_placement_group(self.placement_group_name, self.placement_group_strategy)
             except boto.exception.EC2ResponseError as e:
-                if self.state != self.UNKNOWN or e.error_code != u'InvalidGroup.Duplicate':
+                if self.state != self.UNKNOWN or e.error_code != 'InvalidGroup.Duplicate':
                     raise
 
         self.state = self.UP
@@ -114,7 +114,7 @@ class EC2PlacementGroupState(nixops.resources.ResourceState):
             try:
                 conn.delete_placement_group(group['name'])
             except boto.exception.EC2ResponseError as e:
-                if e.error_code != u'InvalidGroup.NotFound':
+                if e.error_code != 'InvalidGroup.NotFound':
                     raise
         self.old_placement_groups = []
 

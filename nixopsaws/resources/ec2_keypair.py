@@ -2,7 +2,7 @@
 
 # Automatic provisioning of EC2 key pairs.
 
-from __future__ import absolute_import
+
 
 import boto3
 import nixops.resources
@@ -116,7 +116,7 @@ class EC2KeyPairState(nixops.resources.ResourceState):
                 self.keypair_name = defn.keypair_name
 
     def destroy(self, wipe=False):
-        for m in self.depl.active_resources.values():
+        for m in list(self.depl.active_resources.values()):
             if isinstance(m, nixopsaws.backends.ec2.EC2State) and m.key_pair == self.keypair_name:
                 raise Exception("keypair ‘{0}’ is still in use by ‘{1}’ ({2})".format(self.keypair_name, m.name, m.vm_id))
 

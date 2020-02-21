@@ -124,7 +124,7 @@ class ElasticIPState(nixops.resources.ResourceState):
             eip = self.describe_eip()
             if eip is not None:
                 vpc = (eip.get('Domain', None) == 'vpc')
-                if 'AssociationId' in eip.keys():
+                if 'AssociationId' in list(eip.keys()):
                     self.log("disassociating elastic ip {0} with assocation ID {1}".format(
                         eip['PublicIp'], eip['AssociationId']))
                     if vpc:

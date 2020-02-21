@@ -119,7 +119,7 @@ class CloudwatchMetricAlarmState(nixops.resources.ResourceState):
 
             return kv
 
-        cfg['Dimensions'] = map(resolve_values, defn.dimensions)
+        cfg['Dimensions'] = list(map(resolve_values, defn.dimensions))
 
         def resolve_action(a):
             if a.startswith('res-'):
@@ -130,9 +130,9 @@ class CloudwatchMetricAlarmState(nixops.resources.ResourceState):
             return a
 
         # resolve sns topics
-        cfg['AlarmActions'] = map(resolve_action, defn.alarm_actions)
-        cfg['OKActions'] = map(resolve_action, defn.ok_actions)
-        cfg['InsufficientDataActions'] = map(resolve_action, defn.insufficient_data_actions)
+        cfg['AlarmActions'] = list(map(resolve_action, defn.alarm_actions))
+        cfg['OKActions'] = list(map(resolve_action, defn.ok_actions))
+        cfg['InsufficientDataActions'] = list(map(resolve_action, defn.insufficient_data_actions))
 
         if self.put_config != cfg or check:
             client.put_metric_alarm(**cfg)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 import os
 import random
@@ -229,4 +229,4 @@ def id_to_security_group_name(conn, sg_id, vpc_id):
 def key_value_to_ec2_key_value(kv):
     # type: (Mapping[str, str]) -> List[Dict[str, str]]
 
-    return [{'Key': key, 'Value': value} for key, value in kv.items()]
+    return [{'Key': key, 'Value': value} for key, value in list(kv.items())]

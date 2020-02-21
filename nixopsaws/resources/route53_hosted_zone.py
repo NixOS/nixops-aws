@@ -32,7 +32,7 @@ class Route53HostedZoneDefinition(nixops.resources.ResourceDefinition):
         self.private_zone =  config["privateZone"]
         self.zone_name = config['name']
         self.associated_vpcs = config['associatedVPCs']
-        map(lambda x: x.pop('_module'), self.associated_vpcs)
+        list(map(lambda x: x.pop('_module'), self.associated_vpcs))
 
 
 class Route53HostedZoneState(nixops.resources.ResourceState):

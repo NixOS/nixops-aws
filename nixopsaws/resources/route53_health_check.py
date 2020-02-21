@@ -120,7 +120,7 @@ class Route53HealthCheckState(nixops.resources.ResourceState):
             cfg['AlarmIdentifier'] = { 'Name': defn.alarm_indentifier_name, 'Region': defn.alarm_indentifier_region };
 
         if defn.type == "CALCULATED":
-            cfg['ChildHealthChecks'] = map(self.resolve_health_check, defn.child_health_checks)
+            cfg['ChildHealthChecks'] = list(map(self.resolve_health_check, defn.child_health_checks))
             cfg['HealthThreshold'] = defn.health_threshold
         else:
             cfg['RequestInterval'] = defn.request_interval
