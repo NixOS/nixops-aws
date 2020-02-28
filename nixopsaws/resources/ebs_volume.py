@@ -2,13 +2,15 @@
 
 # Automatic provisioning of AWS EBS volumes.
 
-import time
-import boto.ec2
-import nixops.util
-import nixopsaws.ec2_utils
-import nixops.resources
+from __future__ import absolute_import
+
+import boto3
 import botocore.exceptions
-import ec2_common
+import nixops.resources
+import nixops.util
+
+import nixopsaws.ec2_utils
+from . import ec2_common
 
 
 class EBSVolumeDefinition(nixops.resources.ResourceDefinition):
@@ -26,10 +28,11 @@ class EBSVolumeDefinition(nixops.resources.ResourceDefinition):
         return "{0}".format(self.get_type())
 
 
-class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
+class EBSVolumeState(ec2_common.EC2CommonState, nixops.resources.ResourceState):
     """State of an EBS volume."""
 
     state = nixops.util.attr_property("state", nixops.resources.ResourceState.MISSING, int)
+    profile = nixops.util.attr_property("ec2.profile", None)
     access_key_id = nixops.util.attr_property("ec2.accessKeyId", None)
     region = nixops.util.attr_property("ec2.region", None)
     zone = nixops.util.attr_property("ec2.zone", None)
@@ -46,8 +49,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
 
     def __init__(self, depl, name, id):
         nixops.resources.ResourceState.__init__(self, depl, name, id)
-        self._conn = None
-        self._conn_boto3 = None
+        self._session = None  # type: boto3.Session
 
 
     def _exists(self):
@@ -64,6 +66,17 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
     def resource_id(self):
         return self.volume_id
 
+    def session(self):
+        # type: () -> boto3.Session
+
+        if self._session is None:
+            self._session = boto3.session.Session(
+                region_name=self.region,
+                profile_name=self.profile,
+                aws_access_key_id=self.access_key_id
+            )
+
+        return self._session
 
     def connect(self, region):
         if self._conn: return self._conn
@@ -154,7 +167,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
                 self.log("volume ID is ‘{0}’".format(self.volume_id))
 
         if self.state == self.STARTING or check:
-            self.update_tags(self.volume_id, user_tags=defn.config['tags'], check=check)
+            self.update_tags(self.session(), self.volume_id, user_tags=defn.config['tags'], check=check)
             nixopsaws.ec2_utils.wait_for_volume_available(
                 self._conn, self.volume_id, self.logger,
                 states=['available', 'in-use'])

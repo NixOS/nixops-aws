@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
+import time
+import uuid
+
+import botocore.exceptions
+import nixops.resources
+import nixops.util
+
+import nixopsaws.ec2_utils
+from . import ec2_common, efs_common
+
+
 # AWS Elastic File Systems.
 
-import uuid
-import boto3
-import botocore
-import nixops.util
-import nixopsaws.ec2_utils
-import nixops.resources
-import ec2_common
-import efs_common
-import time
 
 class ElasticFileSystemDefinition(nixops.resources.ResourceDefinition):
     """Definition of an AWS Elastic File System."""
@@ -26,9 +30,10 @@ class ElasticFileSystemDefinition(nixops.resources.ResourceDefinition):
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
 
-class ElasticFileSystemState(nixops.resources.ResourceState, \
-                             ec2_common.EC2CommonState, \
-                             efs_common.EFSCommonState):
+
+class ElasticFileSystemState(ec2_common.EC2CommonState,
+                             efs_common.EFSCommonState,
+                             nixops.resources.ResourceState):
     """State of an AWS Elastic File System."""
 
     state = nixops.util.attr_property("state", nixops.resources.ResourceState.MISSING, int)
