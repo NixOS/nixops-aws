@@ -112,6 +112,9 @@ class IAMRoleState(nixops.resources.ResourceState):
                 raise
             except IamNotFound:
                 self.warn("role policy already destroyed")
+            except BotoServerError as e:
+                if e.status == 404:
+                    self.warn("role policy already removed")
             except Exception as e:
                 self.log("error removing role policy: " + str(e))
                 raise
@@ -124,6 +127,10 @@ class IAMRoleState(nixops.resources.ResourceState):
                 raise
             except IamNotFound:
                 self.warn("could not find role")
+            except BotoServerError as e:
+                if e.status == 404:
+                    self.warn("role already removed")
+
             except Exception as e:
                 self.log("error removing role: " + str(e))
                 raise
@@ -135,6 +142,10 @@ class IAMRoleState(nixops.resources.ResourceState):
             raise
         except IamNotFound:
             self.warn("instance profile already destroyed");
+        except BotoServerError as e:
+                if e.status == 404:
+                    self.warn("instance profile already removed")
+
         except Exception as e:
             self.log(str(e))
             raise
