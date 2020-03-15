@@ -1,4 +1,3 @@
-
 from os import path
 
 from nose import tools
