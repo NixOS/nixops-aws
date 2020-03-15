@@ -23,6 +23,9 @@ To start developing on the NixOps AWS plugin, you can run:
 
 Documentation for the `nixops-aws` plugin is in the [nixops repo](https://github.com/NixOS/nixops)
 
+The python code is formatted with the latest release of [black](https://black.readthedocs.io/en/stable)
+and is checked in PR validation. See the `black` target in [ci.yaml](./github/workflows/ci.yaml) for the cmd to run.
+
 ## Building from source
 
 The command to build NixOps depends on your platform.

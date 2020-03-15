@@ -1,0 +1,30 @@
+name: CI
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "**" ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Nix
+        uses: cachix/install-nix-action@v8
+      - name: Build
+        run: 'nix-build -I nixpkgs=channel:nixos-19.09 --quiet release.nix -A build.x86_64-linux'
+  # Run black v19.10b0 and ensure no diff, using a pinned channel to ensure the
+  # build doesn't break when the version of black on the release channel
+  # upgrades. The specific commit is not special; just a commit from the
+  # nixpkgs-unstable channel that deterministically provides the Black v19.10b0,
+  # which as of this writing is the latest version.
+  black:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Nix
+        uses: cachix/install-nix-action@v8
+      - name: Black
+        run: 'nix run -I nixpkgs=https://github.com/nixos/nixpkgs-channels/archive/0729b8c55e0dfaf302af4c57546871d47a652048.tar.gz nixpkgs.python3Packages.black -c black --check .'
