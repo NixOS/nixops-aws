@@ -2,4 +2,10 @@ language: nix
 before_script:
   - sudo mkdir /etc/nix && echo 'sandbox = true' | sudo tee /etc/nix/nix.conf
 script:
-  - nix-build --quiet release.nix -A build.x86_64-linux -I nixpkgs=channel:nixos-19.09
+  - nix-build -I nixpkgs=channel:nixos-19.09 --quiet release.nix -A build.x86_64-linux
+  # Run black v19.10b0 and ensure no diff, using a pinned channel to ensure that
+  # the build doesn't break when the version of black on the release channel
+  # upgrades. The specific commit is not special; just a commit from the
+  # nixpkgs-unstable channel that deterministically provides the Black v19.10b0,
+  # which as of this writing is the latest version.
+  - nix run -I nixpkgs=https://github.com/nixos/nixpkgs-channels/archive/0729b8c55e0dfaf302af4c57546871d47a652048.tar.gz nixpkgs.python3Packages.black -c black --check .
