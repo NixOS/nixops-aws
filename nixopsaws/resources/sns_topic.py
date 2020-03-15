@@ -7,7 +7,6 @@ import boto.sns
 import nixops.util
 import nixops.resources
 import nixopsaws.ec2_utils
-from xml.etree import ElementTree
 
 
 class SNSTopicDefinition(nixops.resources.ResourceDefinition):

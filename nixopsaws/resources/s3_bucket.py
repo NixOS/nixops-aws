@@ -2,7 +2,6 @@
 
 # Automatic provisioning of AWS S3 buckets.
 
-import time
 import botocore
 import boto3
 import json

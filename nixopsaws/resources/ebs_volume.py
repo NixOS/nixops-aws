@@ -2,7 +2,6 @@
 
 # Automatic provisioning of AWS EBS volumes.
 
-import time
 import boto.ec2
 import nixops.util
 import nixopsaws.ec2_utils

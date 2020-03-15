@@ -1,6 +1,5 @@
 import nose
 import sys
-import os
 
 if __name__ == "__main__":
     config = nose.config.Config(plugins=nose.plugins.manager.DefaultPluginManager())

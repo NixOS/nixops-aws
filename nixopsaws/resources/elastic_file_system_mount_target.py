@@ -2,7 +2,6 @@
 
 # AWS Elastic File System mount targets.
 
-import uuid
 import boto3
 import botocore
 import nixops.util

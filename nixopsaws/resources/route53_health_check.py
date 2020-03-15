@@ -3,14 +3,12 @@
 # Automatic provisioning of AWS Route53 Health Check.
 
 import os
-import time
 import botocore
 import boto3
 import uuid
 import nixops.util
 import nixops.resources
 import nixopsaws.ec2_utils
-from pprint import pprint
 import copy
 
 # boto3.set_stream_logger(name='botocore')

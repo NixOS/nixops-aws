@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-import os
-import os.path
-import sys
 import re
 import time
 import math
-import shutil
 import calendar
 import boto.ec2
 import boto.ec2.blockdevicemapping
@@ -23,7 +19,6 @@ from nixops.util import (
 )
 import nixopsaws.ec2_utils
 import nixops.known_hosts
-from xml import etree
 import datetime
 import boto3
 

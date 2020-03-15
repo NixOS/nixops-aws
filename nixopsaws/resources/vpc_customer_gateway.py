@@ -2,7 +2,6 @@
 
 # Automatic provisioning of AWS VPC customer gateways.
 
-import os
 
 import boto3
 import botocore

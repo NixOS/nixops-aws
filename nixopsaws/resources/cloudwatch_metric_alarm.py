@@ -3,15 +3,12 @@
 # Automatic provisioning of AWS Cloudwatch Metric Alarms.
 
 import os
-import time
 import botocore
 import boto3
-import uuid
 import nixops.util
 import nixops.resources
 import nixopsaws.ec2_utils
 from nixopsaws.resources.ec2_common import EC2CommonState
-from pprint import pprint
 
 
 class CloudwatchMetricAlarmDefinition(nixops.resources.ResourceDefinition):
