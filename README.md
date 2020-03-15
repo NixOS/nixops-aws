@@ -21,6 +21,8 @@ To start developing on the NixOps AWS plugin, you can run:
   $ ./dev-shell
 ```
 
+Documentation for the `nixops-aws` plugin is in the [nixops repo](https://github.com/NixOS/nixops)
+
 ## Building from source
 
 The command to build NixOps depends on your platform.
