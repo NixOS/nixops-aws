@@ -12,6 +12,7 @@ import ec2_common
 import efs_common
 import time
 
+
 class ElasticFileSystemDefinition(nixops.resources.ResourceDefinition):
     """Definition of an AWS Elastic File System."""
 
@@ -26,12 +27,15 @@ class ElasticFileSystemDefinition(nixops.resources.ResourceDefinition):
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
 
-class ElasticFileSystemState(nixops.resources.ResourceState, \
-                             ec2_common.EC2CommonState, \
-                             efs_common.EFSCommonState):
+
+class ElasticFileSystemState(
+    nixops.resources.ResourceState, ec2_common.EC2CommonState, efs_common.EFSCommonState
+):
     """State of an AWS Elastic File System."""
 
-    state = nixops.util.attr_property("state", nixops.resources.ResourceState.MISSING, int)
+    state = nixops.util.attr_property(
+        "state", nixops.resources.ResourceState.MISSING, int
+    )
     access_key_id = nixops.util.attr_property("ec2.accessKeyId", None)
     region = nixops.util.attr_property("ec2.region", None)
     fs_id = nixops.util.attr_property("ec2.fsId", None)
@@ -49,7 +53,8 @@ class ElasticFileSystemState(nixops.resources.ResourceState, \
 
     def show_type(self):
         s = super(ElasticFileSystemState, self).show_type()
-        if self._exists(): s = "{0} [{1}]".format(s, self.region)
+        if self._exists():
+            s = "{0} [{1}]".format(s, self.region)
         return s
 
     @property
@@ -58,7 +63,9 @@ class ElasticFileSystemState(nixops.resources.ResourceState, \
 
     def create(self, defn, check, allow_reboot, allow_recreate):
 
-        access_key_id = defn.config["accessKeyId"] or nixopsaws.ec2_utils.get_access_key_id()
+        access_key_id = (
+            defn.config["accessKeyId"] or nixopsaws.ec2_utils.get_access_key_id()
+        )
 
         client = self._get_client(access_key_id, defn.config["region"])
 
@@ -75,12 +82,14 @@ class ElasticFileSystemState(nixops.resources.ResourceState, \
             try:
                 client.create_file_system(CreationToken=self.creation_token)
             except botocore.exceptions.ClientError as e:
-                if e.response['Error']['Code'] == 'FileSystemAlreadyExists':
+                if e.response["Error"]["Code"] == "FileSystemAlreadyExists":
                     pass
 
             while True:
-                fss = client.describe_file_systems(CreationToken=self.creation_token)["FileSystems"]
-                assert(len(fss) <= 1)
+                fss = client.describe_file_systems(CreationToken=self.creation_token)[
+                    "FileSystems"
+                ]
+                assert len(fss) <= 1
 
                 if len(fss) == 1:
                     fs = fss[0]
@@ -93,7 +102,11 @@ class ElasticFileSystemState(nixops.resources.ResourceState, \
                             self.creation_token = None
                         break
                     if fs["LifeCycleState"] != "creating":
-                        raise Exception("Elastic File System ‘{0}’ is in unexpected state ‘{1}’".format(fs["LifeCycleState"]))
+                        raise Exception(
+                            "Elastic File System ‘{0}’ is in unexpected state ‘{1}’".format(
+                                fs["LifeCycleState"]
+                            )
+                        )
 
                 self.log_continue(".")
                 time.sleep(1)
@@ -102,7 +115,10 @@ class ElasticFileSystemState(nixops.resources.ResourceState, \
 
         def tag_updater(tags):
             # FIXME: handle removing tags.
-            client.create_tags(FileSystemId=self.fs_id, Tags=[{"Key": k, "Value": tags[k]} for k in tags])
+            client.create_tags(
+                FileSystemId=self.fs_id,
+                Tags=[{"Key": k, "Value": tags[k]} for k in tags],
+            )
 
         self.update_tags_using(tag_updater, user_tags=defn.config["tags"], check=check)
 
@@ -112,11 +128,15 @@ class ElasticFileSystemState(nixops.resources.ResourceState, \
         return "{0} - {1}".format(self.depl.description, self.name)
 
     def destroy(self, wipe=False):
-        assert not self.creation_token # FIXME: handle this case
+        assert not self.creation_token  # FIXME: handle this case
 
         if self.fs_id:
 
-            if not self.depl.logger.confirm("are you sure you want to destroy Elastic File System ‘{0}’?".format(self.name)):
+            if not self.depl.logger.confirm(
+                "are you sure you want to destroy Elastic File System ‘{0}’?".format(
+                    self.name
+                )
+            ):
                 return False
 
             self.log_start("deleting Elastic File System...")
@@ -125,24 +145,30 @@ class ElasticFileSystemState(nixops.resources.ResourceState, \
 
             mts = client.describe_mount_targets(FileSystemId=self.fs_id)["MountTargets"]
             if len(mts) > 0:
-                raise Exception("cannot delete Elastic File System ‘{0}’ because it still has mount targets".format(self.name))
+                raise Exception(
+                    "cannot delete Elastic File System ‘{0}’ because it still has mount targets".format(
+                        self.name
+                    )
+                )
 
             try:
                 client.delete_file_system(FileSystemId=self.fs_id)
             except botocore.exceptions.ClientError as e:
-                if e.response['Error']['Code'] == 'FileSystemNotFound':
+                if e.response["Error"]["Code"] == "FileSystemNotFound":
                     pass
 
             while True:
                 try:
-                    fss = client.describe_file_systems(FileSystemId=self.fs_id)["FileSystems"]
-                    assert(len(fss) == 1)
+                    fss = client.describe_file_systems(FileSystemId=self.fs_id)[
+                        "FileSystems"
+                    ]
+                    assert len(fss) == 1
                     if fss[0]["LifeCycleState"] == "deleted":
                         break
                     self.log_continue(".")
                     time.sleep(1)
                 except botocore.exceptions.ClientError as e:
-                    if e.response['Error']['Code'] == 'FileSystemNotFound':
+                    if e.response["Error"]["Code"] == "FileSystemNotFound":
                         break
                     time.sleep(1)
 
