@@ -2,8 +2,6 @@
 
 # Automatic provisioning of AWS VPC DHCP options.
 
-import os
-import json
 
 import boto3
 import botocore

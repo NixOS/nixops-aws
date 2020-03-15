@@ -2,7 +2,6 @@
 
 # Automatic provisioning of EC2 elastic IP addresses.
 
-import time
 import nixops.util
 import nixops.resources
 import nixopsaws.ec2_utils

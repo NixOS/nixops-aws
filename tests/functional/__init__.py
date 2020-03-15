@@ -1,5 +1,3 @@
-import os
-from os import path
 import nixops.statefile
 from tests import db_file
 

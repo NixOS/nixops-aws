@@ -2,14 +2,11 @@
 
 # Automatic provisioning of AWS IAM roles.
 
-import time
 import boto
 import boto.iam
 import nixops.util
 import nixops.resources
 import nixopsaws.ec2_utils
-from xml.etree import ElementTree
-from pprint import pprint
 from boto.exception import BotoServerError
 
 
