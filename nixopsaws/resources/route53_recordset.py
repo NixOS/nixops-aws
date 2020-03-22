@@ -158,9 +158,7 @@ class Route53RecordSetState(nixops.resources.ResourceState):
                     if defn.zone_name.endswith(".")
                     else (defn.zone_name + ".")
                 )
-                zones = filter(
-                    (lambda zone: zone["Name"] == zone_name), response["HostedZones"]
-                )
+                zones = [z for z in response["HostedZones"] if z["Name"] == zone_name]
                 if len(zones) == 0:
                     raise Exception("Can't find zone id")
                 elif len(zones) > 1:

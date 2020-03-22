@@ -858,7 +858,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
                     self.ssh_pinged = False
 
     def security_groups_to_ids(self, subnetId, groups):
-        sg_names = filter(lambda g: not g.startswith("sg-"), groups)
+        sg_names = [g for g in groups if not g.startswith("sg-")]
         if sg_names != [] and subnetId != "":
             self.connect_vpc()
             vpc_id = self._conn_vpc.get_all_subnets([subnetId])[0].vpc_id

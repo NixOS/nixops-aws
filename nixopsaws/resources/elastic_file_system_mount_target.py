@@ -205,7 +205,7 @@ class ElasticFileSystemMountTargetState(
         conn = nixopsaws.ec2_utils.connect(region, access_key_id)
         conn_vpc = nixopsaws.ec2_utils.connect_vpc(region, access_key_id)
 
-        sg_names = filter(lambda g: not g.startswith("sg-"), groups)
+        sg_names = [g for g in groups if not g.startswith("sg-")]
         if sg_names != [] and subnetId != "":
             vpc_id = conn_vpc.get_all_subnets([subnetId])[0].vpc_id
             groups = [
