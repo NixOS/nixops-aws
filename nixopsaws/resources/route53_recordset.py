@@ -221,7 +221,7 @@ class Route53RecordSetState(nixops.resources.ResourceState):
             else:
                 return v
 
-        defn.record_values = map(resolve_machine_ip, defn.record_values)
+        defn.record_values = [resolve_machine_ip(m) for m in defn.record_values]
 
         changed = (
             self.record_values != defn.record_values
@@ -268,9 +268,7 @@ class Route53RecordSetState(nixops.resources.ResourceState):
                         "Name": obj.domain_name,
                         "Type": obj.record_type,
                         "TTL": int(obj.ttl),
-                        "ResourceRecords": map(
-                            lambda rv: {"Value": rv}, obj.record_values
-                        ),
+                        "ResourceRecords": [{"Value": rv} for rv in obj.record_values],
                     },
                 },
             ]
