@@ -2,7 +2,7 @@
 
 # AWS Elastic File System mount targets.
 
-from __future__ import absolute_import
+
 import boto3
 import botocore
 import nixops.util

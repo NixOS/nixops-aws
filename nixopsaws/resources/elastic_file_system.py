@@ -2,7 +2,7 @@
 
 # AWS Elastic File Systems.
 
-from __future__ import absolute_import
+
 import uuid
 import boto3
 import botocore

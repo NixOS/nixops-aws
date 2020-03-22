@@ -15,7 +15,7 @@ rec {
   build = pkgs.lib.genAttrs [ "x86_64-linux" "i686-linux" "x86_64-darwin" ] (system:
     with import nixpkgs { inherit system; };
 
-    python2Packages.buildPythonApplication rec {
+    python3Packages.buildPythonApplication rec {
       pname = "nixops-aws";
       inherit version;
       namePrefix = "";
@@ -26,8 +26,8 @@ rec {
         substituteAllInPlace setup.py
       '';
 
-      buildInputs = with python2Packages; [ nose coverage ];
-      propagatedBuildInputs = with python2Packages; [ boto boto3 ];
+      buildInputs = with python3Packages; [ nose coverage ];
+      propagatedBuildInputs = with python3Packages; [ boto boto3 ];
 
       # For "nix-build --run-env".
       shellHook = ''
