@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from . import aws_vpn_connection
 from . import aws_vpn_connection_route
 from . import aws_vpn_gateway

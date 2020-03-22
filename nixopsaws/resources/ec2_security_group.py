@@ -194,7 +194,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
                             rules.append(new_rule)
                     self.security_group_rules = rules
                 except boto.exception.EC2ResponseError as e:
-                    if e.error_code == u"InvalidGroup.NotFound":
+                    if e.error_code == "InvalidGroup.NotFound":
                         self.state = self.MISSING
                     else:
                         raise
@@ -228,7 +228,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
             except boto.exception.EC2ResponseError as e:
                 if (
                     self.state != self.UNKNOWN
-                    or e.error_code != u"InvalidGroup.Duplicate"
+                    or e.error_code != "InvalidGroup.Duplicate"
                 ):
                     raise
             self.state = self.STARTING  # ugh
@@ -284,7 +284,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
                             )
                         )
                 except boto.exception.EC2ResponseError as e:
-                    if e.error_code != u"InvalidPermission.Duplicate":
+                    if e.error_code != "InvalidPermission.Duplicate":
                         raise
 
         if old_rules:
@@ -345,7 +345,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
             try:
                 conn.delete_security_group(group["name"])
             except boto.exception.EC2ResponseError as e:
-                if e.error_code != u"InvalidGroup.NotFound":
+                if e.error_code != "InvalidGroup.NotFound":
                     raise
         self.old_security_groups = []
 
@@ -365,7 +365,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
                     error_codes=["DependencyViolation"],
                 )
             except boto.exception.EC2ResponseError as e:
-                if e.error_code != u"InvalidGroup.NotFound":
+                if e.error_code != "InvalidGroup.NotFound":
                     raise
 
             self.state = self.MISSING
