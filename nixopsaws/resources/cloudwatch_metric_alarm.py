@@ -8,7 +8,6 @@ import boto3
 import nixops.util
 import nixops.resources
 import nixopsaws.ec2_utils
-from nixopsaws.resources.ec2_common import EC2CommonState
 
 
 class CloudwatchMetricAlarmDefinition(nixops.resources.ResourceDefinition):

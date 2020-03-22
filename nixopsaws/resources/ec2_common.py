@@ -5,7 +5,6 @@ import boto3
 
 import nixops.util
 import nixops.resources
-from nixops.diff import Diff, Handler
 import nixopsaws.ec2_utils
 
 

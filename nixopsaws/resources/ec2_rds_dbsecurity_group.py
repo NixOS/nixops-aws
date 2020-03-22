@@ -1,12 +1,10 @@
-import boto3
 import botocore.exceptions
 import botocore.errorfactory
 
 import nixops.util
 import nixops.resources
-import nixopsaws.ec2_utils
 from nixopsaws.resources.ec2_common import EC2CommonState
-from nixops.diff import Diff, Handler
+from nixops.diff import Handler
 
 
 class EC2RDSDbSecurityGroupDefinition(nixops.resources.ResourceDefinition):
