@@ -2,10 +2,8 @@ from os import path
 import tempfile
 
 from nose import tools
-from nose.plugins.attrib import attr
-import boto3
 
-from nixops.nix_expr import RawValue, Function, Call, py2nix
+from nixops.nix_expr import py2nix
 import nixops.util
 from tests.functional import generic_deployment_test
 
