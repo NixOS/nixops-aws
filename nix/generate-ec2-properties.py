@@ -1,10 +1,9 @@
-#! /usr/bin/env python2
+#!/usr/bin/env python
 import json
-from pprint import pprint
 
 # FIXME: AWS support adviced against the use of this index file for anything other than pricing
-# This file also do not provide a way to confidently check if an instance use nvme or not
-# and there is currently no API that can provide such information. So manuall fixes is needed
+# This file also does not provide a way to confidently check if an instance use nvme or not
+# and there is currently no API that can provide such information. So manual fixes are needed
 # after running this script.
 # A feature request is in place to provide an endpoint that can cover our need.
 # curl -O https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/index.json
@@ -41,7 +40,7 @@ for p in data["products"].keys():
             + ";};"
         )
 
-print "{"
+print("{")
 for instanceType in sorted(instanceTypes.keys()):
-    print instanceTypes[instanceType]
-print "}"
+    print(instanceTypes[instanceType])
+print("}")
