@@ -862,12 +862,10 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
         if sg_names != [] and subnetId != "":
             self.connect_vpc()
             vpc_id = self._conn_vpc.get_all_subnets([subnetId])[0].vpc_id
-            groups = map(
-                lambda g: nixopsaws.ec2_utils.name_to_security_group(
-                    self._conn, g, vpc_id
-                ),
-                groups,
-            )
+            groups = [
+                nixopsaws.ec2_utils.name_to_security_group(self._conn, g, vpc_id)
+                for g in groups
+            ]
 
         return groups
 

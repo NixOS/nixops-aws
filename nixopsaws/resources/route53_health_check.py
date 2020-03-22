@@ -134,9 +134,9 @@ class Route53HealthCheckState(nixops.resources.ResourceState):
             }
 
         if defn.type == "CALCULATED":
-            cfg["ChildHealthChecks"] = map(
-                self.resolve_health_check, defn.child_health_checks
-            )
+            cfg["ChildHealthChecks"] = [
+                self.resolve_health_check(c) for c in defn.child_health_checks
+            ]
             cfg["HealthThreshold"] = defn.health_threshold
         else:
             cfg["RequestInterval"] = defn.request_interval
