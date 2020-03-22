@@ -75,7 +75,7 @@ class EC2Definition(MachineDefinition):
         # convert sd to xvd because they are equal from aws perspective
         self.block_device_mapping = {
             device_name_user_entered_to_stored(k): v
-            for k, v in config["ec2"]["blockDeviceMapping"].iteritems()
+            for k, v in config["ec2"]["blockDeviceMapping"].items()
         }
 
         self.elastic_ipv4 = config["ec2"]["elasticIPv4"]
@@ -222,7 +222,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
             return self.private_key_file
         if self._ssh_private_key_file:
             return self._ssh_private_key_file
-        for r in self.depl.active_resources.itervalues():
+        for r in self.depl.active_resources.values():
             if (
                 isinstance(r, nixopsaws.resources.ec2_keypair.EC2KeyPairState)
                 and r.state == nixopsaws.resources.ec2_keypair.EC2KeyPairState.UP
@@ -1248,7 +1248,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
             # later.
             args["BlockDeviceMappings"] = []
 
-            for device_stored, v in defn.block_device_mapping.iteritems():
+            for device_stored, v in defn.block_device_mapping.items():
                 device_real = device_name_stored_to_real(device_stored)
                 # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/device_naming.html
                 ebs_disk = not v["disk"].startswith("ephemeral")
@@ -1287,7 +1287,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
             # If we're attaching any EBS volumes, then make sure that
             # we create the instance in the right placement zone.
             zone = defn.zone or None
-            for device_stored, v in defn.block_device_mapping.iteritems():
+            for device_stored, v in defn.block_device_mapping.items():
                 if not v["disk"].startswith("vol-"):
                     continue
                 # Make note of the placement zone of the volume.
@@ -1308,7 +1308,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
 
             # Do we want an EBS-optimized instance?
             prefer_ebs_optimized = False
-            for device_stored, v in defn.block_device_mapping.iteritems():
+            for device_stored, v in defn.block_device_mapping.items():
                 if v["volumeType"] != "standard":
                     prefer_ebs_optimized = True
 
@@ -1581,7 +1581,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
                 self.update_block_device_mapping(device_stored, None)
 
         # Create missing volumes.
-        for device_stored, v in defn.block_device_mapping.iteritems():
+        for device_stored, v in defn.block_device_mapping.items():
             device_real = device_name_stored_to_real(device_stored)
 
             volume = None
