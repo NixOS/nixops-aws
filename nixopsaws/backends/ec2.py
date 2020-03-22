@@ -1521,9 +1521,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
                 capture_stdout=True,
             ).rstrip()
             self.public_host_key = new_key
-            nixops.known_hosts.update(
-                None, self._ip_for_ssh_key(), self.public_host_key
-            )
+            nixops.known_hosts.add(self._ip_for_ssh_key(), self.public_host_key)
 
         # Add disks that were in the original device mapping of image.
         if self.first_boot:
@@ -1898,7 +1896,7 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
 
         self.log_end("")
 
-        nixops.known_hosts.update(self.public_ipv4, None, self.public_host_key)
+        nixops.known_hosts.remove(self.public_ipv4, self.public_host_key)
 
         # Destroy volumes created for this instance.
         for device_stored, v in self.block_device_mapping.items():
