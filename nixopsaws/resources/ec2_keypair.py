@@ -98,7 +98,7 @@ class EC2KeyPairState(nixops.resources.ResourceState):
             # work around that until we figure out what is causing this.
             try:
                 kp = self._conn.get_key_pair(defn.keypair_name)
-            except IndexError as e:
+            except IndexError:
                 kp = None
 
             # Don't re-upload the key if it exists and we're just checking.
@@ -106,7 +106,7 @@ class EC2KeyPairState(nixops.resources.ResourceState):
                 if kp:
                     self._conn.delete_key_pair(defn.keypair_name)
                 self.log("uploading EC2 key pair ‘{0}’...".format(defn.keypair_name))
-                self._conn.import_key_pair(defn.keypair_name, self.public_key)
+                self._conn.import_key_pair(defn.keypair_name, self.public_key.encode())
 
             with self.depl._db:
                 self.state = self.UP
@@ -146,7 +146,7 @@ class EC2KeyPairState(nixops.resources.ResourceState):
         self.connect()
         try:
             kp = self._conn.get_key_pair(self.keypair_name)
-        except IndexError as e:
+        except IndexError:
             kp = None
         if kp is None:
             self.state = self.MISSING
