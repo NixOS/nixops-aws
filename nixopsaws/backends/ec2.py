@@ -1790,10 +1790,8 @@ class EC2State(MachineState, nixopsaws.resources.ec2_common.EC2CommonState):
             raise Exception("hosted zone for {0} not found".format(hosted_zone))
 
         # use hosted zone with longest match
-        zones = sorted(
-            zones, cmp=lambda a, b: cmp(len(a.Name), len(b.Name)), reverse=True
-        )
-        zoneid = zones[0]["Id"].split("/")[2]
+        longest_zone = max(zones, key=lambda x: len(x.Name))
+        zoneid = longest_zone["Id"].split("/")[2]
         dns_name = "{0}.".format(self.dns_hostname)
 
         prev_a_rrs = [
