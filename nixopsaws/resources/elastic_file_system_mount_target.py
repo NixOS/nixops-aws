@@ -3,12 +3,10 @@
 # AWS Elastic File System mount targets.
 
 
-import boto3
 import botocore
 import nixops.util
 import nixopsaws.ec2_utils
 import nixops.resources
-from . import ec2_common
 from . import efs_common
 from . import ec2_security_group
 from . import elastic_file_system

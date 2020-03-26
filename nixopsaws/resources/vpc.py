@@ -2,15 +2,13 @@
 
 # Automatic provisioning of AWS VPCs.
 
-import boto3
 import botocore
 
 import nixops.util
 import nixops.resources
 from nixopsaws.resources.ec2_common import EC2CommonState
 import nixopsaws.ec2_utils
-from nixops.state import StateDict
-from nixops.diff import Diff, Handler
+from nixops.diff import Handler
 
 
 class VPCDefinition(nixops.resources.ResourceDefinition):

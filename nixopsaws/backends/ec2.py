@@ -8,8 +8,6 @@ import boto.ec2.blockdevicemapping
 import boto.ec2.networkinterface
 from nixops.backends import MachineDefinition, MachineState
 from nixops.nix_expr import Function, Call, RawValue
-from nixopsaws.resources.ebs_volume import EBSVolumeState
-from nixopsaws.resources.elastic_ip import ElasticIPState
 import nixopsaws.resources.ec2_common
 import nixopsaws.resources
 from nixops.util import (
@@ -20,7 +18,6 @@ from nixops.util import (
 import nixopsaws.ec2_utils
 import nixops.known_hosts
 import datetime
-import boto3
 
 
 class EC2InstanceDisappeared(Exception):

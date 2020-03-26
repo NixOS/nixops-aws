@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import boto3
-import botocore
 
 from nixops.state import StateDict
-from nixops.diff import Diff, Handler
+from nixops.diff import Handler
 import nixops.util
 import nixops.resources
 from nixopsaws.resources.ec2_common import EC2CommonState

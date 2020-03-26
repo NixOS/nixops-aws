@@ -4,7 +4,6 @@
 
 
 import uuid
-import boto3
 import botocore
 import nixops.util
 import nixopsaws.ec2_utils
