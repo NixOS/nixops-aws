@@ -7,7 +7,7 @@ let
   pkgs = import nixpkgs { system = "x86_64-linux"; };
   version = "1.7" +
             (if officialRelease then ""
-             else if nixopsSrc ? lastModified then "pre${builtins.substring 0 8 nixopsSrc.lastModified}.${nixopsSrc.shortRev}"
+             else if nixopsSrc ? lastModifiedDate then "pre${builtins.substring 0 8 nixopsSrc.lastModifiedDate}.${nixopsSrc.shortRev}"
              else "pre${toString nixopsSrc.revCount}_${nixopsSrc.shortRev}");
 in
 
