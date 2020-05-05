@@ -13,7 +13,7 @@ jobs:
       - name: Nix
         uses: cachix/install-nix-action@v8
       - name: Build
-        run: 'nix-build -I nixpkgs=channel:nixos-19.09 --quiet release.nix -A build.x86_64-linux'
+        run: 'nix-build -I nixpkgs=channel:nixos-20.03 --quiet release.nix -A nixops-aws.x86_64-linux'
   # Run black v19.10b0 and ensure no diff, using a pinned channel to ensure the
   # build doesn't break when the version of black on the release channel
   # upgrades. The specific commit is not special; just a commit from the
