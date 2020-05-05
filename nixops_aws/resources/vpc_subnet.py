@@ -80,7 +80,9 @@ class VPCSubnetState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         return "resources.vpcSubnets."
 
     def create_after(self, resources, defn):
-        return {r for r in resources if isinstance(r, nixops_aws.resources.vpc.VPCState)}
+        return {
+            r for r in resources if isinstance(r, nixops_aws.resources.vpc.VPCState)
+        }
 
     def create(self, defn, check, allow_reboot, allow_recreate):
         nixops.resources.DiffEngineResourceState.create(

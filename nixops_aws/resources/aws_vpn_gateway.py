@@ -63,7 +63,9 @@ class AWSVPNGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         return "resources.awsVPNGateways."
 
     def create_after(self, resources, defn):
-        return {r for r in resources if isinstance(r, nixops_aws.resources.vpc.VPCState)}
+        return {
+            r for r in resources if isinstance(r, nixops_aws.resources.vpc.VPCState)
+        }
 
     def realize_create_vpn_gtw(self, allow_recreate):
         config = self.get_defn()

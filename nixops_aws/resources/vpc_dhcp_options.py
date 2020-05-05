@@ -83,7 +83,9 @@ class VPCDhcpOptionsState(nixops.resources.DiffEngineResourceState, EC2CommonSta
         return "resources.vpcDhcpOptions."
 
     def create_after(self, resources, defn):
-        return {r for r in resources if isinstance(r, nixops_aws.resources.vpc.VPCState)}
+        return {
+            r for r in resources if isinstance(r, nixops_aws.resources.vpc.VPCState)
+        }
 
     def get_dhcp_config_option(self, key, values):
         val = values if isinstance(values, list) else [str(values)]
