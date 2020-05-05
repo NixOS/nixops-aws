@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "nixops_aws"
+version = "1.0"
+description = "NixOps AWS plugin"
+authors = ["adisbladis <adisbladis@gmail.com>"]
+license = "LGPL-3.0-only"
+include = [ "nixops_aws/nix/*.nix" ]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+boto = "^2.49.0"
+boto3 = "^1.12.19"
+nixops = {git = "https://github.com/NixOS/nixops.git", rev = "ab0780d7c152f2b4c85529326deab4610a15c428"}
+
+[tool.poetry.dev-dependencies]
+nose = "^1.3.7"
+mypy = "^0.770"
+
+[tool.poetry.plugins."nixops"]
+aws = "nixops_aws.plugin"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
