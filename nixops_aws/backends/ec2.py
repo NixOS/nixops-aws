@@ -1667,6 +1667,18 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         for device_stored, v in self.block_device_mapping.items():
             device_real = device_name_stored_to_real(device_stored)
 
+            if not (
+                (
+                    "disk" in v
+                    and not (
+                        v["disk"].startswith("ephemeral")
+                        or v["disk"].startswith("res-")
+                        or v["disk"].startswith("vol-")
+                    )
+                )
+                or "partOfImage" in v
+            ):
+                continue
             volume_tags = {}
             volume_tags.update(common_tags)
             volume_tags.update(defn.tags)
