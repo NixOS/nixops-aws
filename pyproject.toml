@@ -10,7 +10,7 @@ include = [ "nixops_aws/nix/*.nix" ]
 python = "^3.7"
 boto = "^2.49.0"
 boto3 = "^1.12.19"
-nixops = {git = "https://github.com/NixOS/nixops.git", rev = "ab0780d7c152f2b4c85529326deab4610a15c428"}
+nixops = {git = "https://github.com/NixOS/nixops.git", rev = "master"}
 
 [tool.poetry.dev-dependencies]
 nose = "^1.3.7"
