@@ -3,7 +3,7 @@
 # Automatic provisioning of AWS VPCs.
 
 import botocore
-
+import time
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
