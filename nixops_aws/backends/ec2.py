@@ -18,6 +18,7 @@ from nixops.util import (
 import nixops_aws.ec2_utils
 import nixops.known_hosts
 import datetime
+from typing import Dict, Tuple, Any, Union
 
 
 class EC2InstanceDisappeared(Exception):
@@ -89,7 +90,7 @@ class EC2Definition(MachineDefinition):
     def host_key_type(self):
         return (
             "ed25519"
-            if nixops.util.parse_nixos_version(self.config["nixosRelease"])
+            if nixops.util.parse_nixos_version(self.config.nixosRelease)
             >= ["15", "09"]
             else "dsa"
         )
@@ -261,7 +262,9 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         }
 
     def get_physical_backup_spec(self, backupid):
-        val = {}
+        module_val: Union[Dict[Tuple[str, ...], Dict[str, Dict[str, Call]]], RawValue] = {}
+
+        val: Dict[str, Dict[str, Call]] = {}
         if backupid in self.backups:
             for device_stored, snap in self.backups[backupid].items():
                 device_real = device_name_stored_to_real(device_stored)
@@ -274,10 +277,10 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                     val[device_real] = {
                         "disk": Call(RawValue("pkgs.lib.mkOverride 10"), snap)
                     }
-            val = {("deployment", "ec2", "blockDeviceMapping"): val}
+            module_val = {("deployment", "ec2", "blockDeviceMapping"): val}
         else:
-            val = RawValue("{{}} /* No backup found for id '{0}' */".format(backupid))
-        return Function("{ config, pkgs, ... }", val)
+            module_val = RawValue("{{}} /* No backup found for id '{0}' */".format(backupid))
+        return Function("{ config, pkgs, ... }", module_val)
 
     def get_keys(self):
         keys = MachineState.get_keys(self)
