@@ -336,8 +336,8 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
 
     def after_activation(self, defn):
         region = self.region
-        self._connect()
-        conn = self._conn
+
+        conn = self._connect()
         for group in self.old_security_groups:
             if group["region"] != region:
                 region = group["region"]
