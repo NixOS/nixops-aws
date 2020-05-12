@@ -11,10 +11,10 @@ from typing import Optional
 
 
 class SQSQueueOptions(nixops.resources.ResourceOptions):
-    queue_name: str
+    name: str
     region: str
-    access_key_id: Optional[str]
-    visibility_timeout: str
+    accessKeyId: Optional[str]
+    visibilityTimeout: str
 
 
 class SQSQueueDefinition(nixops.resources.ResourceDefinition):
@@ -32,14 +32,13 @@ class SQSQueueDefinition(nixops.resources.ResourceDefinition):
 
     def __init__(self, name: str, config: nixops.resources.ResourceEval):
         super().__init__(name, config)
-        self.config  # SQSQueueOptions instance (validated)
         self.queue_name = self.config.name
         self.region = self.config.region
-        self.access_key_id = self.config.access_key_id
+        self.access_key_id = self.config.accessKeyId
         self.visibility_timeout = self.config.visibilityTimeout
 
     def show_type(self):
-        return "{0} [{1}]".format(self.get_type(), self.config.region)
+        return "{0} [{1}]".format(self.get_type(), self.region)
 
 
 class SQSQueueState(nixops.resources.ResourceState):
