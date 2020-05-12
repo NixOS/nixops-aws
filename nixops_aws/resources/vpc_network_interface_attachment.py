@@ -108,7 +108,7 @@ class VPCNetworkInterfaceAttachmentState(
                 self.log_continue(".")
                 time.sleep(1)
             else:
-                raise Exception("eni {} doesn't have any attachment {}".format(eni_id))
+                raise Exception("eni {} doesn't have any attachment".format(eni_id))
 
         self.log_end(" done")
 
@@ -176,7 +176,7 @@ class VPCNetworkInterfaceAttachmentState(
                 elif response["Attachment"]["Status"] != "detaching":
                     raise Exception(
                         "eni attachment {0} in an unexpected state {1}".format(
-                            eni_id, response["Attachment"]["Status"]
+                            self._state['networkInterfaceId'], response["Attachment"]["Status"]
                         )
                     )
                 self.log_continue(".")

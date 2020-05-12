@@ -115,7 +115,7 @@ class IAMRoleState(nixops.resources.ResourceState):
                 self.log("removing role policy")
                 self._connect().delete_role_policy(self.role_name, self.role_name)
             except IamPermissionException as e:
-                self.error(str(e))
+                self.warn(str(e))
                 raise
             except IamNotFound:
                 self.warn("role policy already destroyed")

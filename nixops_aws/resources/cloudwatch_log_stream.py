@@ -114,7 +114,7 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState):
                     if log_stream_name == log_stream["logStreamName"]:
                         return True, log_stream["arn"]
             if "nextToken" in response:
-                self.lookup_cloudwatch_log_group(
+                self.lookup_cloudwatch_log_stream(
                     log_group_name=log_group_name,
                     log_stream_name=log_stream_name,
                     next_token=response["nextToken"],

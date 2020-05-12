@@ -107,7 +107,7 @@ class CloudWatchLogGroupState(nixops.resources.ResourceState):
                         return True, log["arn"]
             if "nextToken" in response:
                 self.lookup_cloudwatch_log_group(
-                    log_group_name_prefix=log_group_name,
+                    log_group_name=log_group_name,
                     next_token=response["nextToken"],
                 )
         return False, None
