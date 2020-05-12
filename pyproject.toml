@@ -10,7 +10,7 @@ include = [ "nixops_aws/nix/*.nix" ]
 python = "^3.7"
 boto = "^2.49.0"
 boto3 = "^1.13.7"
-nixops = {git = "https://github.com/NixOS/nixops.git", rev = "master"}
+nixops = {path = "../nixops"}
 boto3-stubs = "^1.13.7"
 
 [tool.poetry.dev-dependencies]

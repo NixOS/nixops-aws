@@ -349,6 +349,7 @@ version = "0.4.3"
 [[package]]
 category = "main"
 description = ""
+develop = true
 name = "nixops"
 optional = false
 python-versions = "^3.7"
@@ -360,9 +361,10 @@ pluggy = "^0.13.1"
 typeguard = "^2.7.1"
 
 [package.source]
-reference = "890722355db83bb9894276c4f236ad49183fc8c2"
-type = "git"
-url = "https://github.com/NixOS/nixops.git"
+reference = ""
+type = "directory"
+url = "../nixops"
+
 [[package]]
 category = "dev"
 description = "nose extends unittest to make testing easier"
@@ -481,7 +483,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "dd1adac4caa8f787f226acbf85f84270bea3957da4998df430010cdf1a9a6d00"
+content-hash = "525f9027bbc7a3ca10c01a30cf09d7d261c8668b136820a0031ab515cc25ac6f"
 python-versions = "^3.7"
 
 [metadata.files]
