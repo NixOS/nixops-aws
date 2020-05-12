@@ -342,9 +342,9 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         )
         return self._conn_vpc
 
-    def connect_route53(self):
+    def _connect_route53(self):
         if self._conn_route53:
-            return
+            return self._conn_route53
 
         # Get the secret access key from the environment or from ~/.ec2-keys.
         (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
@@ -352,6 +352,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         )
 
         self._conn_route53 = boto.connect_route53(access_key_id, secret_access_key)
+        return self._conn_route53
 
     def _get_spot_instance_request_by_id(self, request_id, allow_missing=False):
         """Get spot instance request object by id."""
@@ -1756,7 +1757,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         self.connect_route53()
 
         hosted_zone = ".".join(self.dns_hostname.split(".")[1:])
-        zones = self._retry_route53(lambda: self._conn_route53.get_all_hosted_zones())
+        zones = self._retry_route53(lambda: self._connect_route53().get_all_hosted_zones())
 
         def testzone(hosted_zone, zone):
             """returns True if there is a subcomponent match"""
@@ -1781,7 +1782,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         prev_a_rrs = [
             prev
             for prev in self._retry_route53(
-                lambda: self._conn_route53.get_all_rrsets(
+                lambda: self._connect_route53().get_all_rrsets(
                     hosted_zone_id=zoneid, type="A", name=dns_name
                 )
             )
@@ -1791,7 +1792,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         prev_cname_rrs = [
             prev
             for prev in self._retry_route53(
-                lambda: self._conn_route53.get_all_rrsets(
+                lambda: self._connect_route53().get_all_rrsets(
                     hosted_zone_id=zoneid, type="CNAME", name=self.dns_hostname
                 )
             )
