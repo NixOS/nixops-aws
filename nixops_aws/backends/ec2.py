@@ -334,7 +334,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         )
         return self._conn_boto3
 
-    def connect_vpc(self):
+    def _connect_vpc(self):
         if self._conn_vpc:
             return self._conn_vpc
         self._conn_vpc = nixops_aws.ec2_utils.connect_vpc(
@@ -851,8 +851,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
     def security_groups_to_ids(self, subnetId, groups):
         sg_names = [g for g in groups if not g.startswith("sg-")]
         if sg_names != [] and subnetId != "":
-            self.connect_vpc()
-            vpc_id = self._conn_vpc.get_all_subnets([subnetId])[0].vpc_id
+            vpc_id = self._connect_vpc().get_all_subnets([subnetId])[0].vpc_id
             groups = [
                 nixops_aws.ec2_utils.name_to_security_group(self._conn, g, vpc_id)
                 for g in groups
