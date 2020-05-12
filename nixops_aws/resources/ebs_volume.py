@@ -78,7 +78,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
     def _get_vol(self, config):
         self.connect_boto3(config["region"])
         try:
-            _vol = self._conn_boto3.describe_volumes(VolumeIds=[config["volumeId"]])[
+            _vol = self._connect_boto3().describe_volumes(VolumeIds=[config["volumeId"]])[
                 "Volumes"
             ][0]
         except botocore.exceptions.ClientError as error:

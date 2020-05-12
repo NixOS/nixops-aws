@@ -326,7 +326,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         self._conn = nixops_aws.ec2_utils.connect(self.region, self.access_key_id)
         return self._conn
 
-    def connect_boto3(self):
+    def _connect_boto3(self):
         if self._conn_boto3:
             return self._conn_boto3
         self._conn_boto3 = nixops_aws.ec2_utils.connect_ec2_boto3(
@@ -964,7 +964,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
 
         args["ClientToken"] = self.client_token
 
-        reservation = self._retry(lambda: self._conn_boto3.run_instances(**args))
+        reservation = self._retry(lambda: self._connect_boto3().run_instances(**args))
 
         if not defn.spot_instance_price:
             # On demand instance, no need to any more checks, return it.
@@ -1215,14 +1215,14 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                 self.region = defn.region
 
             # Figure out whether this AMI is EBS-backed.
-            amis = self._conn_boto3.describe_images(ImageIds=[defn.ami])
+            amis = self._connect_boto3().describe_images(ImageIds=[defn.ami])
             if len(amis) == 0:
                 raise Exception(
                     "AMI ‘{0}’ does not exist in region ‘{1}’".format(
                         defn.ami, self.region
                     )
                 )
-            ami = self._conn_boto3.describe_images(ImageIds=[defn.ami])["Images"][0]
+            ami = self._connect_boto3().describe_images(ImageIds=[defn.ami])["Images"][0]
             self.root_device_type = ami["RootDeviceType"]
 
             # Check if we need to resize the root disk
@@ -1413,7 +1413,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
             self.instance_profile != defn.instance_profile or check
         ):
             assocs = self._retry(
-                lambda: self._conn_boto3.describe_iam_instance_profile_associations(
+                lambda: self._connect_boto3().describe_iam_instance_profile_associations(
                     Filters=[{"Name": "instance-id", "Values": [self.vm_id]}]
                 )["IamInstanceProfileAssociations"]
             )
@@ -1426,13 +1426,13 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                         assocs[0]["IamInstanceProfile"]["Arn"]
                     )
                 )
-                self._conn_boto3.disassociate_iam_instance_profile(
+                self._connect_boto3().disassociate_iam_instance_profile(
                     AssociationId=assocs[0]["AssociationId"]
                 )
                 nixops.util.check_wait(
                     lambda: len(
                         self._retry(
-                            lambda: self._conn_boto3.describe_iam_instance_profile_associations(
+                            lambda: self._connect_boto3().describe_iam_instance_profile_associations(
                                 Filters=[
                                     {"Name": "instance-id", "Values": [self.vm_id]}
                                 ]
@@ -1453,7 +1453,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                     "associating instance profile {}".format(defn.instance_profile)
                 )
                 self._retry(
-                    lambda: self._conn_boto3.associate_iam_instance_profile(
+                    lambda: self._connect_boto3().associate_iam_instance_profile(
                         IamInstanceProfile=iip, InstanceId=self.vm_id
                     )
                 )

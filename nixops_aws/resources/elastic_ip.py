@@ -97,7 +97,7 @@ class ElasticIPState(nixops.resources.ResourceState):
                     defn.config["region"], domain
                 )
             )
-            address = self._conn_boto3.allocate_address(Domain=domain)
+            address = self._connect_boto3().allocate_address(Domain=domain)
 
             # FIXME: if we crash before the next step, we forget the
             # address we just created.  Doesn't seem to be anything we
@@ -115,7 +115,7 @@ class ElasticIPState(nixops.resources.ResourceState):
 
     def describe_eip(self):
         try:
-            response = self._conn_boto3.describe_addresses(PublicIps=[self.public_ipv4])
+            response = self._connect_boto3().describe_addresses(PublicIps=[self.public_ipv4])
         except botocore.exceptions.ClientError as error:
             if error.response["Error"]["Code"] == "InvalidAddress.NotFound":
                 self.warn("public IP {} was deleted".format(self.public_ipv4))
@@ -146,14 +146,14 @@ class ElasticIPState(nixops.resources.ResourceState):
                         )
                     )
                     if vpc:
-                        self._conn_boto3.disassociate_address(
+                        self._connect_boto3().disassociate_address(
                             AssociationId=eip["AssociationId"]
                         )
                 self.log("releasing elastic IP {}".format(eip["PublicIp"]))
                 if vpc == True:
-                    self._conn_boto3.release_address(AllocationId=eip["AllocationId"])
+                    self._connect_boto3().release_address(AllocationId=eip["AllocationId"])
                 else:
-                    self._conn_boto3.release_address(PublicIp=eip["PublicIp"])
+                    self._connect_boto3().release_address(PublicIp=eip["PublicIp"])
 
             with self.depl._db:
                 self.state = self.MISSING
