@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import botocore
 from nixops.state import StateDict
 from nixops.diff import Handler
 import nixops.util
