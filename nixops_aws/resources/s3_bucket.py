@@ -8,10 +8,31 @@ import json
 import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
+from typing import Union
+from typing_extensions import Literal
+
+class S3BucketWebsiteOptions(nixops.resources.ResourceOptions):
+    enabled: bool
+    suffix: str
+    errorDocument: str
+
+
+class S3BucketOptions(nixops.resources.ResourceOptions):
+    name: str
+    region: str
+    accessKeyId: str
+    arn: str
+    policy: str
+    lifeCycle: str
+    versioning: Union[Literal["Suspended"], Literal["Enabled"]]
+    persistOnDestroy: bool
+    website: S3BucketWebsiteOptions
 
 
 class S3BucketDefinition(nixops.resources.ResourceDefinition):
     """Definition of an S3 bucket."""
+
+    config: S3BucketOptions
 
     @classmethod
     def get_type(cls):
@@ -23,18 +44,16 @@ class S3BucketDefinition(nixops.resources.ResourceDefinition):
 
     def __init__(self, xml, config={}):
         nixops.resources.ResourceDefinition.__init__(self, xml, config)
-        self.bucket_name = xml.find("attrs/attr[@name='name']/string").get("value")
-        self.region = xml.find("attrs/attr[@name='region']/string").get("value")
-        self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(
-            "value"
-        )
-        self.policy = xml.find("attrs/attr[@name='policy']/string").get("value")
-        self.lifecycle = xml.find("attrs/attr[@name='lifeCycle']/string").get("value")
-        self.versioning = xml.find("attrs/attr[@name='versioning']/string").get("value")
-        self.website_enabled = self.config["website"]["enabled"]
-        self.website_suffix = self.config["website"]["suffix"]
-        self.website_error_document = self.config["website"]["errorDocument"]
-        self.persist_on_destroy = self.config["persistOnDestroy"]
+        self.bucket_name = self.config.name
+        self.region = self.config.region
+        self.access_key_id = self.config.accessKeyId
+        self.policy = self.config.policy
+        self.lifecycle = self.config.lifeCycle
+        self.versioning = self.config.versioning
+        self.website_enabled = self.config.website.enabled
+        self.website_suffix = self.config.website.suffix
+        self.website_error_document = self.config.website.errorDocument
+        self.persist_on_destroy = self.config.persistOnDestroy
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
