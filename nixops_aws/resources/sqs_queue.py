@@ -20,16 +20,12 @@ class SQSQueueDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "sqsQueues"
 
-    def __init__(self, xml):
-        nixops.resources.ResourceDefinition.__init__(self, xml)
-        self.queue_name = xml.find("attrs/attr[@name='name']/string").get("value")
-        self.region = xml.find("attrs/attr[@name='region']/string").get("value")
-        self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(
-            "value"
-        )
-        self.visibility_timeout = xml.find(
-            "attrs/attr[@name='visibilityTimeout']/int"
-        ).get("value")
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
+        super().__init__(name, config)
+        self.queue_name = config['name']
+        self.region = config['region']
+        self.access_key_id = config.get('accessKeyId')
+        self.visibility_timeout = config['visibilityTimeout']
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
