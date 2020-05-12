@@ -6,6 +6,7 @@ import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
+from . import aws_vpn_connection
 from nixops.diff import Handler
 from nixops.state import StateDict
 
@@ -68,7 +69,7 @@ class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonS
             r
             for r in resources
             if isinstance(
-                r, nixops_aws.resources.aws_vpn_connection.AWSVPNConnectionState
+                r, aws_vpn_connection.AWSVPNConnectionState
             )
         }
 
