@@ -18,7 +18,7 @@ from nixops.util import (
 import nixops_aws.ec2_utils
 import nixops.known_hosts
 import datetime
-from typing import Dict, Tuple, Any, Union
+from typing import Dict, Tuple, Any, Union, List
 
 
 class EC2InstanceDisappeared(Exception):
@@ -419,7 +419,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         return snapshots[0]
 
     def _wait_for_ip(self):
-        self.log_start("waiting for IP address... ".format(self.name))
+        self.log_start("waiting for IP address... ")
 
         def _instance_ip_ready(ins):
             ready = True
@@ -485,7 +485,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
     def get_backups(self):
         if not self.region:
             return {}
-        backups = {}
+        backups: Dict[str, Dict[str, Union[str, List[str]]]] = {}
         current_volumes = set(
             [v["volumeId"] for v in self.block_device_mapping.values()]
         )
@@ -592,7 +592,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
             if devices == [] or device_real in devices:
                 # detach disks
                 volume = nixops_aws.ec2_utils.get_volume_by_id(
-                    self.connect(), v["volumeId"]
+                    self._connect(), v["volumeId"]
                 )
                 if volume and volume.update() == "in-use":
                     self.log("detaching volume from ‘{0}’".format(self.name))
@@ -687,7 +687,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
     def attach_volume(self, device_stored, volume_id):
         device_real = device_name_stored_to_real(device_stored)
 
-        volume = nixops_aws.ec2_utils.get_volume_by_id(self.connect(), volume_id)
+        volume = nixops_aws.ec2_utils.get_volume_by_id(self._connect(), volume_id)
         if not volume:
             raise Exception(
                 "volume {0} doesn't exist, run check to update the state of the volume".format(
@@ -779,7 +779,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
             if elastic_ipv4 != "":
                 # wait until machine is in running state
                 self.log_start(
-                    "waiting for machine to be in running state... ".format(self.name)
+                    "waiting for machine to be in running state... "
                 )
                 while True:
                     self.log_continue("[{0}] ".format(instance.state))
@@ -1137,8 +1137,6 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                 )
             )
 
-        self.connect_boto3()
-
         # Stop the instance (if allowed) to change instance attributes
         # such as the type.
         if (
@@ -1231,12 +1229,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
             # Check if we need to resize the root disk
             resize_root = defn.root_disk_size != 0 and ami["RootDeviceType"] == "ebs"
 
-            args = dict()
-
-            # Set the initial block device mapping to the ephemeral
-            # devices defined in the spec.  These cannot be changed
-            # later.
-            args["BlockDeviceMappings"] = []
+            block_device_mappings: List[Dict[str, Any]] = []
 
             for device_stored, v in defn.block_device_mapping.items():
                 device_real = device_name_stored_to_real(device_stored)
@@ -1260,8 +1253,15 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                         DeviceName=device_name_to_boto_expected(device_real),
                         VirtualName=v["disk"],
                     )
-                    args["BlockDeviceMappings"].append(ephemeral_mapping)
+                    block_device_mappings.append(ephemeral_mapping)
                     self.update_block_device_mapping(device_stored, v)
+
+            args: Dict[str, List[Dict[str, Any]]] = {}
+
+            # Set the initial block device mapping to the ephemeral
+            # devices defined in the spec.  These cannot be changed
+            # later.
+            args["BlockDeviceMappings"] = block_device_mappings
 
             root_device = ami["RootDeviceName"]
             if resize_root:
@@ -1757,8 +1757,6 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
             )
         )
 
-        self.connect_route53()
-
         hosted_zone = ".".join(self.dns_hostname.split(".")[1:])
         zones = self._retry_route53(lambda: self._connect_route53().get_all_hosted_zones())
 
@@ -1838,7 +1836,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                 raise Exception("not destroying EBS volume ‘{0}’".format(volume_id))
         self.log("destroying EBS volume ‘{0}’...".format(volume_id))
         volume = nixops_aws.ec2_utils.get_volume_by_id(
-            self.connect(), volume_id, allow_missing=True
+            self._connect(), volume_id, allow_missing=True
         )
         if not volume:
             return
@@ -1856,9 +1854,9 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
             return False
 
         if wipe:
-            log.warn("wipe is not supported")
+            self.warn("wipe is not supported")
 
-        self.log_start("destroying EC2 machine... ".format(self.name))
+        self.log_start("destroying EC2 machine... ")
 
         # Find the instance, either by its ID or by its client token.
         # The latter allows us to destroy instances that were "leaked"
@@ -2022,7 +2020,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                         )
                     )
                     volume = nixops_aws.ec2_utils.get_volume_by_id(
-                        self.connect(), v["volumeId"], allow_missing=True
+                        self._connect(), v["volumeId"], allow_missing=True
                     )
                     if not volume:
                         res.messages.append(
