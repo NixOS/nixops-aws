@@ -8,10 +8,12 @@ import botocore
 
 import nixops.util
 import nixops.resources
+from nixops_aws.backends.ec2 import EC2State
 from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
+from . import vpc_network_interface
 
 
 class VPCNetworkInterfaceAttachmentDefinition(nixops.resources.ResourceDefinition):
@@ -77,9 +79,9 @@ class VPCNetworkInterfaceAttachmentState(
             r
             for r in resources
             if isinstance(
-                r, nixops_aws.resources.vpc_network_interface.VPCNetworkInterfaceState
+                r, vpc_network_interface.VPCNetworkInterfaceState
             )
-            or isinstance(r, nixops_aws.backends.ec2.EC2State)
+            or isinstance(r, EC2State)
         }
 
     def ensure_state_up(self):

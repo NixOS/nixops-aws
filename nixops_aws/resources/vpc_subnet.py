@@ -3,13 +3,13 @@
 # Automatic provisioning of AWS VPC subnets.
 
 import botocore
-
+import time
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
 from nixops.diff import Handler
-
+from . import vpc
 
 class VPCSubnetDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC subnet."""
@@ -81,7 +81,7 @@ class VPCSubnetState(nixops.resources.DiffEngineResourceState, EC2CommonState):
 
     def create_after(self, resources, defn):
         return {
-            r for r in resources if isinstance(r, nixops_aws.resources.vpc.VPCState)
+            r for r in resources if isinstance(r, vpc.VPCState)
         }
 
     def create(self, defn, check, allow_reboot, allow_recreate):

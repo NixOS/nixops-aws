@@ -7,7 +7,7 @@ import boto.logs
 import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
-
+from . import cloudwatch_log_group
 
 class CloudWatchLogStreamDefinition(nixops.resources.ResourceDefinition):
     """Definition of a cloudwatch log stream."""
@@ -128,7 +128,7 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState):
             r
             for r in resources
             if isinstance(
-                r, nixops_aws.resources.cloudwatch_log_group.CloudWatchLogGroupState
+                r, cloudwatch_log_group.CloudWatchLogGroupState
             )
         }
 

@@ -13,7 +13,7 @@ from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
-
+from . import vpc_subnet, elastic_ip
 
 class VPCNatGatewayDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC NAT gateway"""
@@ -78,8 +78,8 @@ class VPCNatGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         return {
             r
             for r in resources
-            if isinstance(r, nixops_aws.resources.vpc_subnet.VPCSubnetState)
-            or isinstance(r, nixops_aws.resources.elastic_ip.ElasticIPState)
+            if isinstance(r, vpc_subnet.VPCSubnetState)
+            or isinstance(r, elastic_ip.ElasticIPState)
         }
 
     def realize_create_gtw(self, allow_recreate):

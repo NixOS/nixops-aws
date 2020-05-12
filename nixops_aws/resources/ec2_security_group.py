@@ -6,7 +6,7 @@ import boto.ec2.securitygroup
 import nixops.resources
 import nixops.util
 import nixops_aws.ec2_utils
-
+from . import vpc, elastic_ip
 
 class EC2SecurityGroupDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 security group."""
@@ -116,8 +116,8 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
         return {
             r
             for r in resources
-            if isinstance(r, nixops_aws.resources.vpc.VPCState)
-            or isinstance(r, nixops_aws.resources.elastic_ip.ElasticIPState)
+            if isinstance(r, vpc.VPCState)
+            or isinstance(r, elastic_ip.ElasticIPState)
         }
 
     def _connect(self):

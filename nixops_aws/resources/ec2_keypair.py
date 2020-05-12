@@ -5,7 +5,7 @@
 import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
-
+from nixops_aws.backends import ec2
 
 class EC2KeyPairDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 key pair."""
@@ -116,7 +116,7 @@ class EC2KeyPairState(nixops.resources.ResourceState):
         def keypair_used():
             for m in self.depl.active_resources.values():
                 if (
-                    isinstance(m, nixops_aws.backends.ec2.EC2State)
+                    isinstance(m, ec2.EC2State)
                     and m.key_pair == self.keypair_name
                 ):
                     return m

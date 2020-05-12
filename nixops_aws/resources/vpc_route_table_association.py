@@ -10,7 +10,7 @@ from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
-
+from . import vpc_route_table
 
 class VPCRouteTableAssociationDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC route table association"""
@@ -74,7 +74,7 @@ class VPCRouteTableAssociationState(
         return {
             r
             for r in resources
-            if isinstance(r, nixops_aws.resources.vpc_route_table.VPCRouteTableState)
+            if isinstance(r, vpc_route_table.VPCRouteTableState)
         }
 
     def realize_associate_route_table(self, allow_recreate):

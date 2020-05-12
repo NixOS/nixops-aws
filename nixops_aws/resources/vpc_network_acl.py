@@ -9,7 +9,7 @@ from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
-
+from . import vpc, vpc_subnet
 
 class VPCNetworkAcldefinition(nixops.resources.ResourceDefinition):
     """definition of a vpc network ACL."""
@@ -82,8 +82,8 @@ class VPCNetworkAclstate(nixops.resources.DiffEngineResourceState, EC2CommonStat
         return {
             r
             for r in resources
-            if isinstance(r, nixops_aws.resources.vpc.VPCState)
-            or isinstance(r, nixops_aws.resources.vpc_subnet.VPCSubnetState)
+            if isinstance(r, vpc.VPCState)
+            or isinstance(r, vpc_subnet.VPCSubnetState)
         }
 
     def realize_create_network_acl(self, allow_recreate):

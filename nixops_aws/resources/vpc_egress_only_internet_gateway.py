@@ -6,6 +6,7 @@ from nixops.diff import Handler
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
+from . import vpc, elastic_ip
 import nixops_aws.ec2_utils
 
 
@@ -68,8 +69,8 @@ class VPCEgressOnlyInternetGatewayState(
         return {
             r
             for r in resources
-            if isinstance(r, nixops_aws.resources.vpc.VPCState)
-            or isinstance(r, nixops_aws.resources.elastic_ip.ElasticIPState)
+            if isinstance(r, vpc.VPCState)
+            or isinstance(r, elastic_ip.ElasticIPState)
         }
 
     def realize_create_gtw(self, allow_recreate):

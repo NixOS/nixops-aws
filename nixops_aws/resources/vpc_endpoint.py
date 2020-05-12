@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import uuid
-
+import botocore
 from nixops.state import StateDict
 from nixops.diff import Handler
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
+from . import vpc, vpc_route_table
 import nixops_aws.ec2_utils
 
 
@@ -73,8 +74,8 @@ class VPCEndpointState(nixops.resources.DiffEngineResourceState, EC2CommonState)
         return {
             r
             for r in resources
-            if isinstance(r, nixops_aws.resources.vpc.VPCState)
-            or isinstance(r, nixops_aws.resources.vpc_route_table.VPCRouteTableState)
+            if isinstance(r, vpc.VPCState)
+            or isinstance(r, vpc_route_table.VPCRouteTableState)
         }
 
     def realize_create_endpoint(self, allow_recreate):

@@ -8,7 +8,7 @@ import nixops.util
 import nixops_aws.ec2_utils
 import time
 from uuid import uuid4
-
+from . import ec2_rds_dbsecurity_group
 
 class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 RDS Database Instance."""
@@ -130,7 +130,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
             for r in resources
             if isinstance(
                 r,
-                nixops_aws.resources.ec2_rds_dbsecurity_group.EC2RDSDbSecurityGroupState,
+                ec2_rds_dbsecurity_group.EC2RDSDbSecurityGroupState,
             )
         }
 

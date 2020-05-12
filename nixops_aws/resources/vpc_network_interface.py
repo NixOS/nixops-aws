@@ -10,7 +10,7 @@ from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
-
+from . import vpc_subnet
 
 class VPCNetworkInterfaceDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC network interface"""
@@ -28,8 +28,7 @@ class VPCNetworkInterfaceDefinition(nixops.resources.ResourceDefinition):
 
 
 class VPCNetworkInterfaceState(
-    nixops.resources.DiffEngineResourceState, EC2CommonState
-):
+    nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a VPC network interface"""
 
     state = nixops.util.attr_property(
@@ -88,7 +87,7 @@ class VPCNetworkInterfaceState(
         return {
             r
             for r in resources
-            if isinstance(r, nixops_aws.resources.vpc_subnet.VPCSubnetState)
+            if isinstance(r, vpc_subnet.VPCSubnetState)
         }
 
     def realize_create_eni(self, allow_recreate):

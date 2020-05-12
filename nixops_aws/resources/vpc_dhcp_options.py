@@ -9,6 +9,7 @@ import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
+from . import vpc
 from nixops.state import StateDict
 from nixops.diff import Handler
 
@@ -84,7 +85,7 @@ class VPCDhcpOptionsState(nixops.resources.DiffEngineResourceState, EC2CommonSta
 
     def create_after(self, resources, defn):
         return {
-            r for r in resources if isinstance(r, nixops_aws.resources.vpc.VPCState)
+            r for r in resources if isinstance(r, vpc.VPCState)
         }
 
     def get_dhcp_config_option(self, key, values):

@@ -10,6 +10,7 @@ from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
+from . import vpc_route_table, vpc_internet_gateway, vpc_nat_gateway
 
 
 class VPCRouteDefinition(nixops.resources.ResourceDefinition):
@@ -86,11 +87,11 @@ class VPCRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         return {
             r
             for r in resources
-            if isinstance(r, nixops_aws.resources.vpc_route_table.VPCRouteTableState)
+            if isinstance(r, vpc_route_table.VPCRouteTableState)
             or isinstance(
-                r, nixops_aws.resources.vpc_internet_gateway.VPCInternetGatewayState
+                r, vpc_internet_gateway.VPCInternetGatewayState
             )
-            or isinstance(r, nixops_aws.resources.vpc_nat_gateway.VPCNatGatewayState)
+            or isinstance(r, vpc_nat_gateway.VPCNatGatewayState)
         }
 
     def realize_create_route(self, allow_recreate):
