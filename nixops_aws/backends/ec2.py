@@ -320,7 +320,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
             return m.private_ipv4
         return MachineState.address_to(self, m)
 
-    def connect(self):
+    def _connect(self):
         if self._conn:
             return self._conn
         self._conn = nixops_aws.ec2_utils.connect(self.region, self.access_key_id)
@@ -355,9 +355,8 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
 
     def _get_spot_instance_request_by_id(self, request_id, allow_missing=False):
         """Get spot instance request object by id."""
-        self.connect()
         try:
-            result = self._conn.get_all_spot_instance_requests([request_id])
+            result = self._connect().get_all_spot_instance_requests([request_id])
         except boto.exception.EC2ResponseError as e:
             if (
                 allow_missing
@@ -381,9 +380,8 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         assert instance_id
 
         if not self._cached_instance:
-            self.connect()
             try:
-                instances = self._conn.get_only_instances([instance_id])
+                instances = self._connect().get_only_instances([instance_id])
             except boto.exception.EC2ResponseError as e:
                 if allow_missing and e.error_code == "InvalidInstanceID.NotFound":
                     instances = []
@@ -411,8 +409,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
 
     def _get_snapshot_by_id(self, snapshot_id):
         """Get snapshot object by instance id."""
-        self.connect()
-        snapshots = self._conn.get_all_snapshots([snapshot_id])
+        snapshots = self._connect().get_all_snapshots([snapshot_id])
         if len(snapshots) != 1:
             raise Exception("unable to find snapshot ‘{0}’".format(snapshot_id))
         return snapshots[0]
@@ -484,7 +481,6 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
     def get_backups(self):
         if not self.region:
             return {}
-        self.connect()
         backups = {}
         current_volumes = set(
             [v["volumeId"] for v in self.block_device_mapping.values()]
@@ -524,7 +520,6 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
 
     def remove_backup(self, backup_id, keep_physical=False):
         self.log("removing backup {0}".format(backup_id))
-        self.connect()
         _backups = self.backups
         if not backup_id in _backups.keys():
             self.warn("backup {0} not found, skipping".format(backup_id))
@@ -546,7 +541,6 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
             self.backups = _backups
 
     def backup(self, defn, backup_id, devices=[]):
-        self.connect()
 
         self.log("backing up machine ‘{0}’ using id ‘{1}’".format(self.name, backup_id))
         backup = {}
@@ -557,7 +551,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
 
             if devices == [] or device_real in devices:
                 snapshot = self._retry(
-                    lambda: self._conn.create_snapshot(volume_id=v["volumeId"])
+                    lambda: self._connect().create_snapshot(volume_id=v["volumeId"])
                 )
                 self.log(
                     "+ created snapshot of volume ‘{0}’: ‘{1}’".format(
@@ -573,7 +567,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                 )
 
                 self._retry(
-                    lambda: self._conn.create_tags([snapshot.id], snapshot_tags)
+                    lambda: self._connect().create_tags([snapshot.id], snapshot_tags)
                 )
                 backup[device_stored] = snapshot.id
 
@@ -606,7 +600,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
 
                 self.wait_for_snapshot_to_become_completed(snapshot_id)
 
-                new_volume = self._conn.create_volume(
+                new_volume = self._connect().create_volume(
                     size=0, snapshot=snapshot_id, zone=self.zone
                 )
 
@@ -738,7 +732,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         if self.vm_id != volume.attach_data.instance_id:
             # Attach it.
             device_that_boto_expects = device_name_to_boto_expected(device_stored)
-            self._conn.attach_volume(volume_id, self.vm_id, device_that_boto_expects)
+            self._connect().attach_volume(volume_id, self.vm_id, device_that_boto_expects)
 
         def check_attached():
             volume.update()
@@ -797,7 +791,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                     instance = self._get_instance(update=True)
                 self.log_end("")
 
-                addresses = self._conn.get_all_addresses(addresses=[elastic_ipv4])
+                addresses = self._connect().get_all_addresses(addresses=[elastic_ipv4])
                 if (
                     addresses[0].instance_id != ""
                     and addresses[0].instance_id is not None
@@ -836,12 +830,12 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                     self.ssh_pinged = False
 
             elif self.elastic_ipv4 != None:
-                addresses = self._conn.get_all_addresses(addresses=[self.elastic_ipv4])
+                addresses = self._connect().get_all_addresses(addresses=[self.elastic_ipv4])
                 if len(addresses) == 1 and addresses[0].instance_id == self.vm_id:
                     self.log(
                         "disassociating IP address ‘{0}’...".format(self.elastic_ipv4)
                     )
-                    self._conn.disassociate_address(public_ip=self.elastic_ipv4)
+                    self._connect().disassociate_address(public_ip=self.elastic_ipv4)
                 else:
                     self.log(
                         "address ‘{0}’ was not associated with instance ‘{1}’".format(
@@ -986,7 +980,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         tags.update(defn.tags)
         tags.update(self.get_common_tags())
         self._retry(
-            lambda: self._conn.create_tags([self.spot_instance_request_id], tags)
+            lambda: self._connect().create_tags([self.spot_instance_request_id], tags)
         )
 
         return self._wait_for_spot_request_fulfillment(self.spot_instance_request_id)
@@ -1051,7 +1045,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                 assert v.get("volumeId", None)
 
                 self.log("detaching device ‘{0}’...".format(device_real))
-                volumes = self._conn.get_all_volumes(
+                volumes = self._connect().get_all_volumes(
                     [],
                     filters={
                         "attachment.instance-id": self.vm_id,
@@ -1082,7 +1076,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                         self.run_command(
                             "umount -l {0}".format(device_real), check=False
                         )
-                    if not self._conn.detach_volume(
+                    if not self._connect().detach_volume(
                         volumes[0].id, instance_id=self.vm_id, device=device_stored
                     ):
                         raise Exception(
@@ -1140,7 +1134,6 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                 )
             )
 
-        self.connect()
         self.connect_boto3()
 
         # Stop the instance (if allowed) to change instance attributes
@@ -1220,7 +1213,6 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
             if not self.client_token and not self.spot_instance_request_id:
                 self._reset_state()
                 self.region = defn.region
-                self.connect()
 
             # Figure out whether this AMI is EBS-backed.
             amis = self._conn_boto3.describe_images(ImageIds=[defn.ami])
@@ -1583,7 +1575,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                     continue
                 self.log("creating EBS volume of {0} GiB...".format(v["size"]))
                 ebs_encrypt = v.get("encryptionType", "luks") == "ebs"
-                volume = self._conn.create_volume(
+                volume = self._connect().create_volume(
                     size=v["size"],
                     zone=self.zone,
                     volume_type=v["volumeType"],
@@ -1627,7 +1619,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                 if device_stored in self.block_device_mapping:
                     continue
                 self.log("creating volume from snapshot ‘{0}’...".format(v["disk"]))
-                volume = self._conn.create_volume(
+                volume = self._connect().create_volume(
                     size=v["size"],
                     snapshot=v["disk"],
                     zone=self.zone,
@@ -1688,7 +1680,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
             volume_tags["Name"] = "{0} [{1} - {2}]".format(
                 self.depl.description, self.name, device_real
             )
-            self._retry(lambda: self._conn.create_tags([v["volumeId"]], volume_tags))
+            self._retry(lambda: self._connect().create_tags([v["volumeId"]], volume_tags))
 
         # Attach missing volumes.
 
@@ -1869,12 +1861,11 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         # The latter allows us to destroy instances that were "leaked"
         # in create() due to it being interrupted after the instance
         # was created but before it registered the ID in the database.
-        self.connect()
         instance = None
         if self.vm_id:
             instance = self._get_instance(allow_missing=True)
         else:
-            reservations = self._conn.get_all_instances(
+            reservations = self._connect().get_all_instances(
                 filters={"client-token": self.client_token}
             )
             if len(reservations) > 0:
@@ -1994,7 +1985,6 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
             res.exists = False
             return
 
-        self.connect()
         instance = self._get_instance(allow_missing=True)
         old_state = self.state
         # self.log("instance state is ‘{0}’".format(instance.state if instance else "gone"))
@@ -2069,7 +2059,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
             self.state = self.STOPPED
 
         # check for scheduled events
-        instance_status = self._conn.get_all_instance_status(instance_ids=[instance.id])
+        instance_status = self._connect().get_all_instance_status(instance_ids=[instance.id])
         for ist in instance_status:
             if ist.events:
                 for e in ist.events:
@@ -2092,8 +2082,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                     self.name
                 )
             )
-        self.connect()
-        return self._conn.get_console_output(self.vm_id).output or "(not available)"
+        return self._connect().get_console_output(self.vm_id).output or "(not available)"
 
     def next_charge_time(self):
         if not self.start_time:

@@ -182,7 +182,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
     def _try_fetch_dbinstance(self, instance_id):
         dbinstance = None
         try:
-            dbinstance = self._conn.get_all_dbinstances(instance_id=instance_id)[0]
+            dbinstance = self._connect().get_all_dbinstances(instance_id=instance_id)[0]
         except boto.exception.BotoServerError as bse:
             if bse.error_code == "DBInstanceNotFound":
                 dbinstance = None
@@ -367,7 +367,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
                     security_groups = self.fetch_security_group_resources(
                         defn.rds_dbinstance_security_groups
                     )
-                    dbinstance = self._conn.create_dbinstance(
+                    dbinstance = self._connect().create_dbinstance(
                         defn.rds_dbinstance_id,
                         defn.rds_dbinstance_allocated_storage,
                         defn.rds_dbinstance_instance_class,
@@ -459,7 +459,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
                     uuid4().hex,
                 )
                 self.logger.log("saving final snapshot as %s" % final_snapshot_id)
-                self._conn.delete_dbinstance(
+                self._connect().delete_dbinstance(
                     self.rds_dbinstance_id, final_snapshot_id=final_snapshot_id
                 )
 

@@ -104,7 +104,7 @@ class EC2PlacementGroupState(nixops.resources.ResourceState):
                 self._connect()
 
                 try:
-                    grp = self._conn.get_all_placement_groups(
+                    grp = self._connect().get_all_placement_groups(
                         [defn.placement_group_name]
                     )[0]
                     self.state = self.UP
@@ -123,7 +123,7 @@ class EC2PlacementGroupState(nixops.resources.ResourceState):
                         self.placement_group_name
                     )
                 )
-                created = self._conn.create_placement_group(
+                created = self._connect().create_placement_group(
                     self.placement_group_name, self.placement_group_strategy
                 )
             except boto.exception.EC2ResponseError as e:
@@ -158,6 +158,6 @@ class EC2PlacementGroupState(nixops.resources.ResourceState):
                 )
             )
             self._connect()
-            self._conn.delete_placement_group(self.placement_group_name)
+            self._connect().delete_placement_group(self.placement_group_name)
             self.state = self.MISSING
         return True

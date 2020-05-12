@@ -140,7 +140,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
                 self._get_vol(defn.config)
             else:
                 if defn.config["size"] == 0 and defn.config["snapshot"] != "":
-                    snapshots = self._conn.get_all_snapshots(
+                    snapshots = self._connect().get_all_snapshots(
                         snapshot_ids=[defn.config["snapshot"]]
                     )
                     assert len(snapshots) == 1
@@ -162,7 +162,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
                         "please set a zone where the volume will be created"
                     )
 
-                volume = self._conn.create_volume(
+                volume = self._connect().create_volume(
                     zone=defn.config["zone"],
                     size=defn.config["size"],
                     snapshot=defn.config["snapshot"],

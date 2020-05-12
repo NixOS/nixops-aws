@@ -63,9 +63,9 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState):
     def get_definition_prefix(self):
         return "resources.cloudwatchLogStreams."
 
-    def connect(self):
+    def _connect(self):
         if self._conn:
-            return
+            return self._conn
         assert self.region
         (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
             self.access_key_id
@@ -75,16 +75,16 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState):
             aws_access_key_id=access_key_id,
             aws_secret_access_key=secret_access_key,
         )
+        return self._conn
 
     def _destroy(self):
         if self.state != self.UP:
             return
-        self.connect()
         self.log(
             "destroying cloudwatch log stream ‘{0}’...".format(self.log_stream_name)
         )
         try:
-            self._conn.delete_log_stream(
+            self._connect().delete_log_stream(
                 log_group_name=self.log_group_name, log_stream_name=self.log_stream_name
             )
         except boto.logs.exceptions.ResourceNotFoundException as e:
@@ -104,7 +104,7 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState):
         self, log_group_name, log_stream_name, next_token=None
     ):
         if log_stream_name:
-            response = self._conn.describe_log_streams(
+            response = self._connect().describe_log_streams(
                 log_group_name=log_group_name,
                 log_stream_name_prefix=log_stream_name,
                 next_token=next_token,
@@ -151,7 +151,6 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState):
             self._conn = None
 
         self.region = defn.config["region"]
-        self.connect()
         exist, arn = self.lookup_cloudwatch_log_stream(
             log_group_name=self.log_group_name, log_stream_name=self.log_stream_name
         )
@@ -162,7 +161,7 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState):
                     defn.config["name"], defn.config["logGroupName"]
                 )
             )
-            log_group = self._conn.create_log_stream(
+            log_group = self._connect().create_log_stream(
                 log_stream_name=defn.config["name"],
                 log_group_name=defn.config["logGroupName"],
             )

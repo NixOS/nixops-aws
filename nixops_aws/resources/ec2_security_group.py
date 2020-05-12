@@ -161,11 +161,11 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
 
                 try:
                     if self.vpc_id:
-                        grp = self._conn.get_all_security_groups(
+                        grp = self._connect().get_all_security_groups(
                             group_ids=[self.security_group_id]
                         )[0]
                     else:
-                        grp = self._conn.get_all_security_groups(
+                        grp = self._connect().get_all_security_groups(
                             [defn.security_group_name]
                         )[0]
                     self.state = self.UP
@@ -216,7 +216,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
                         self.security_group_name
                     )
                 )
-                grp = self._conn.create_security_group(
+                grp = self._connect().create_security_group(
                     self.security_group_name,
                     self.security_group_description,
                     defn.vpc_id,
@@ -326,11 +326,11 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
 
     def get_security_group(self):
         if self.vpc_id:
-            return self._conn.get_all_security_groups(
+            return self._connect().get_all_security_groups(
                 group_ids=[self.security_group_id]
             )[0]
         else:
-            return self._conn.get_all_security_groups(
+            return self._connect().get_all_security_groups(
                 groupnames=[self.security_group_name]
             )[0]
 
@@ -359,7 +359,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
             self._connect()
             try:
                 nixops_aws.ec2_utils.retry(
-                    lambda: self._conn.delete_security_group(
+                    lambda: self._connect().delete_security_group(
                         group_id=self.security_group_id
                     ),
                     error_codes=["DependencyViolation"],

@@ -73,9 +73,9 @@ class S3BucketState(nixops.resources.ResourceState):
     def get_definition_prefix(self):
         return "resources.s3Buckets."
 
-    def connect(self):
+    def _connect(self):
         if self._conn:
-            return
+            return self._conn
         (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
             self.access_key_id
         )
@@ -84,6 +84,7 @@ class S3BucketState(nixops.resources.ResourceState):
             aws_access_key_id=access_key_id,
             aws_secret_access_key=secret_access_key,
         )
+        return self._conn
 
     def create(self, defn, check, allow_reboot, allow_recreate):
 
@@ -102,8 +103,7 @@ class S3BucketState(nixops.resources.ResourceState):
                 )
             )
 
-        self.connect()
-        s3client = self._conn.client("s3")
+        s3client = self._connect().client("s3")
         if check or self.state != self.UP:
 
             self.log("creating S3 bucket ‘{0}’...".format(defn.bucket_name))
@@ -213,10 +213,9 @@ class S3BucketState(nixops.resources.ResourceState):
                 )
                 return True
 
-            self.connect()
             try:
                 self.log("destroying S3 bucket ‘{0}’...".format(self.bucket_name))
-                bucket = self._conn.resource("s3").Bucket(self.bucket_name)
+                bucket = self._connect().resource("s3").Bucket(self.bucket_name)
                 try:
                     bucket.delete()
                 except botocore.exceptions.ClientError as e:
