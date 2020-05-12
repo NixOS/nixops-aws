@@ -7,10 +7,20 @@ import boto.sqs
 import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
+from typing import Optional
+
+
+class SQSQueueOptions(nixops.resources.ResourceOptions):
+    queue_name: str
+    region: str
+    access_key_id: Optional[str]
+    visibility_timeout: str
 
 
 class SQSQueueDefinition(nixops.resources.ResourceDefinition):
     """Definition of an SQS queue."""
+
+    config: SQSQueueOptions
 
     @classmethod
     def get_type(cls):
@@ -22,13 +32,14 @@ class SQSQueueDefinition(nixops.resources.ResourceDefinition):
 
     def __init__(self, name: str, config: nixops.resources.ResourceEval):
         super().__init__(name, config)
-        self.queue_name = config['name']
-        self.region = config['region']
-        self.access_key_id = config.get('accessKeyId')
-        self.visibility_timeout = config['visibilityTimeout']
+        self.config  # SQSQueueOptions instance (validated)
+        self.queue_name = self.config.name
+        self.region = self.config.region
+        self.access_key_id = self.config.access_key_id
+        self.visibility_timeout = self.config.visibilityTimeout
 
     def show_type(self):
-        return "{0} [{1}]".format(self.get_type(), self.region)
+        return "{0} [{1}]".format(self.get_type(), self.config.region)
 
 
 class SQSQueueState(nixops.resources.ResourceState):
