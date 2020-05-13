@@ -111,7 +111,7 @@ class EC2PlacementGroupState(nixops.resources.ResourceState):
                     self.placement_group_strategy = grp.strategy
                 except boto.exception.EC2ResponseError as e:
                     if e.error_code == "InvalidGroup.NotFound":
-                        self.state = self.Missing
+                        self.state = self.MISSING
                     else:
                         raise
 
