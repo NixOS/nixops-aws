@@ -1,9 +1,10 @@
 import botocore.exceptions
 import botocore.errorfactory
 import boto3
-from mypy_boto3_rds import RDSClient
+import mypy_boto3_rds
 import nixops.util
 import nixops.resources
+import nixops_aws.ec2_utils
 from nixops_aws.resources.ec2_common import EC2CommonState
 from nixops.diff import Handler
 from typing import Optional
