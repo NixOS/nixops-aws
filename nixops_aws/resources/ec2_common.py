@@ -4,11 +4,16 @@ import getpass
 import boto3
 import mypy_boto3_ec2
 import nixops.util
+import nixops.deployment
 import nixops.resources
 import nixops_aws.ec2_utils
+from nixops.state import StateDict
 from typing import Optional
 
 class EC2CommonState:
+    depl: Deployment
+    name: str
+    _state: StateDict
     _client: Optional[mypy_boto3_ec2.EC2Client]
 
     COMMON_EC2_RESERVED = ["accessKeyId", "ec2.tags"]
@@ -45,7 +50,7 @@ class EC2CommonState:
     def update_tags(self, id, user_tags={}, check=False):
         def updater(tags):
             # FIXME: handle removing tags.
-            self._retry(lambda: self._connect().create_tags([id], tags))
+            self._retry(lambda: self.get_client().create_tags([id], tags))
 
         self.update_tags_using(updater, user_tags=user_tags, check=check)
 
