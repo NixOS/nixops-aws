@@ -11,7 +11,7 @@ from nixops.state import StateDict
 from typing import Optional
 
 class EC2CommonState:
-    depl: Deployment
+    depl: nixops.deployment.Deployment
     name: str
     _state: StateDict
     _client: Optional[mypy_boto3_ec2.EC2Client]
