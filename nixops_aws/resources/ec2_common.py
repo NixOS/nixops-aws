@@ -2,13 +2,14 @@ import socket
 import getpass
 
 import boto3
-
+import mypy_boto3_ec2
 import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
-
+from typing import Optional
 
 class EC2CommonState:
+    _client: Optional[mypy_boto3_ec2.EC2Client]
 
     COMMON_EC2_RESERVED = ["accessKeyId", "ec2.tags"]
 
@@ -48,9 +49,9 @@ class EC2CommonState:
 
         self.update_tags_using(updater, user_tags=user_tags, check=check)
 
-    def get_client(self, service="ec2"):
+    def get_client(self):
         """
-        Generic method to get a cached AWS client or create it.
+        Generic method to get a cached EC2 AWS client or create it.
         """
         new_access_key_id = (
             self.get_defn()["accessKeyId"] if self.depl.definitions else None
@@ -69,7 +70,7 @@ class EC2CommonState:
             self.access_key_id
         )
         self._client = boto3.session.Session().client(
-            service_name=service,
+            service_name="ec2",
             region_name=self._state["region"],
             aws_access_key_id=access_key_id,
             aws_secret_access_key=secret_access_key,

@@ -46,4 +46,3 @@
     awsVPNConnectionRoutes = evalResources ./aws-vpn-connection-route.nix (zipAttrs resourcesByType.awsVPNConnectionRoutes or []);
   };
 }
-

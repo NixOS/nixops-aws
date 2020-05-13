@@ -13,4 +13,3 @@ with lib;
   shorten_uuid = uuid: replaceChars ["-"] [""] uuid;
 
 }
-
