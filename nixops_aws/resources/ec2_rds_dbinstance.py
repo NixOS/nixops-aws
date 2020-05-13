@@ -353,7 +353,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
                         raise Exception(
                             "RDS instance is UP but does not exist, set --allow-recreate to recreate"
                         )
-                    self.state = MISSING
+                    self.state = self.MISSING
 
                 if not dbinstance and (
                     self.state == self.MISSING or self.state == self.UNKNOWN
