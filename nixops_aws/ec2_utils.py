@@ -3,9 +3,7 @@
 import os
 import time
 import random
-
 import nixops.util
-
 import boto3
 import boto.ec2
 import boto.vpc
@@ -14,11 +12,11 @@ from boto.exception import SQSError
 from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
 from boto.pyami.config import Config
-
 import botocore
+from typing import Tuple
 
 
-def fetch_aws_secret_key(access_key_id):
+def fetch_aws_secret_key(access_key_id) -> Tuple[str, str]:
     """
         Fetch the secret access key corresponding to the given access key ID from ~/.ec2-keys,
         or from ~/.aws/credentials, or from the environment (in that priority).
