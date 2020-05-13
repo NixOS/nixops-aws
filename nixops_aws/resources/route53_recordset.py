@@ -7,6 +7,7 @@ import boto3
 import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
+from . import route53_hosted_zone, route53_health_check
 
 # boto3.set_stream_logger(name='botocore')
 
@@ -23,7 +24,7 @@ class Route53RecordSetDefinition(nixops.resources.ResourceDefinition):
         return "route53RecordSets"
 
     def __init__(self, xml, config):
-        nixops.resources.ResourceDefinition.__init__(self, xml)
+        nixops.resources.ResourceDefinition.__init__(self, xml, config)
         self.access_key_id = config["accessKeyId"]
 
         self.zone_id = config["zoneId"]
@@ -336,10 +337,10 @@ class Route53RecordSetState(nixops.resources.ResourceState):
             r
             for r in resources
             if isinstance(
-                r, nixops_aws.resources.route53_hosted_zone.Route53HostedZoneState
+                r, route53_hosted_zone.Route53HostedZoneState
             )
             or isinstance(
-                r, nixops_aws.resources.route53_health_check.Route53HealthCheckState
+                r, route53_health_check.Route53HealthCheckState
             )
             or isinstance(r, nixops.backends.MachineState)
         }
