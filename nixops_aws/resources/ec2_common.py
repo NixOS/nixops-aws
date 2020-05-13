@@ -66,12 +66,13 @@ class EC2CommonState:
             if self._client:
                 return self._client
         assert self._state["region"]
+        region: str = str(self._state["region"])
         (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
             self.access_key_id
         )
-        self._client = boto3.session.Session().client(
+        self._client: mypy_boto3_ec2.EC2Client = boto3.session.Session().client(
             service_name="ec2",
-            region_name=self._state["region"],
+            region_name=region,
             aws_access_key_id=access_key_id,
             aws_secret_access_key=secret_access_key,
         )
