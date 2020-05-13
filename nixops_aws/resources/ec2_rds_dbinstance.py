@@ -21,8 +21,8 @@ class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "rdsDbInstances"
 
-    def __init__(self, xml):
-        super(EC2RDSDbInstanceDefinition, self).__init__(xml)
+    def __init__(self, xml, config):
+        super(EC2RDSDbInstanceDefinition, self).__init__(xml, config)
         # rds specific params
         self.rds_dbinstance_id = xml.find("attrs/attr[@name='id']/string").get("value")
         self.rds_dbinstance_allocated_storage = int(

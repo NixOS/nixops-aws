@@ -18,8 +18,8 @@ class EC2KeyPairDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "ec2KeyPairs"
 
-    def __init__(self, xml):
-        nixops.resources.ResourceDefinition.__init__(self, xml)
+    def __init__(self, xml, config):
+        nixops.resources.ResourceDefinition.__init__(self, xml, config)
         self.keypair_name = xml.find("attrs/attr[@name='name']/string").get("value")
         self.region = xml.find("attrs/attr[@name='region']/string").get("value")
         self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(

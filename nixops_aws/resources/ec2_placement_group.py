@@ -19,8 +19,8 @@ class EC2PlacementGroupDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "ec2PlacementGroups"
 
-    def __init__(self, xml):
-        super(EC2PlacementGroupDefinition, self).__init__(xml)
+    def __init__(self, xml, config):
+        super(EC2PlacementGroupDefinition, self).__init__(xml, config)
         self.placement_group_name = xml.find("attrs/attr[@name='name']/string").get(
             "value"
         )
