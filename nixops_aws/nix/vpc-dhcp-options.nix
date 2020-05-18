@@ -12,7 +12,7 @@ with lib;
       type = types.str;
       description = "Name of the DHCP options set.";
     };
-    
+
     vpcId = mkOption {
       type = types.either types.str (resource "vpc");
       apply = x: if builtins.isString x then x else "res-" + x._name + "." + x._type;
@@ -25,7 +25,7 @@ with lib;
       default = null;
       type = types.nullOr (types.listOf types.str);
       description = ''
-        The IP addresses of up to 4 domain name servers, or AmazonProvidedDNS. 
+        The IP addresses of up to 4 domain name servers, or AmazonProvidedDNS.
       '';
     };
 
@@ -34,7 +34,7 @@ with lib;
       type = types.nullOr types.str;
       description = ''
         If you're using AmazonProvidedDNS in us-east-1, specify ec2.internal.
-        If you're using another region specify region.compute.internal (e.g 
+        If you're using another region specify region.compute.internal (e.g
         ap-northeast-1.compute.internal). Otherwise specify a domain name e.g
         MyCompany.com. This value is used to complete unqualified DNS hostnames.
       '';
@@ -44,7 +44,7 @@ with lib;
       default = null;
       type = types.nullOr (types.listOf types.str);
       description = ''
-        The IP addresses of up to 4 Network Time Protocol (NTP) servers. 
+        The IP addresses of up to 4 Network Time Protocol (NTP) servers.
       '';
     };
 
@@ -52,7 +52,7 @@ with lib;
       default = null;
       type = types.nullOr (types.listOf types.str);
       description = ''
-        The IP addresses of up to 4 NetBIOS name servers. 
+        The IP addresses of up to 4 NetBIOS name servers.
       '';
     };
 
