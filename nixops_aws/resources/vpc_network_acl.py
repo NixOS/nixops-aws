@@ -11,7 +11,7 @@ from nixops.diff import Handler
 from nixops.state import StateDict
 from . import vpc, vpc_subnet
 
-class VPCNetworkAcldefinition(nixops.resources.ResourceDefinition):
+class VPCNetworkAclDefinition(nixops.resources.ResourceDefinition):
     """definition of a vpc network ACL."""
 
     @classmethod
@@ -26,7 +26,7 @@ class VPCNetworkAcldefinition(nixops.resources.ResourceDefinition):
         return "{0}".format(self.get_type())
 
 
-class VPCNetworkAclstate(nixops.resources.DiffEngineResourceState, EC2CommonState):
+class VPCNetworkAclState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """state of a vpc Network ACL."""
 
     state = nixops.util.attr_property(
@@ -63,7 +63,7 @@ class VPCNetworkAclstate(nixops.resources.DiffEngineResourceState, EC2CommonStat
         )
 
     def show_type(self):
-        s = super(VPCNetworkAclstate, self).show_type()
+        s = super(VPCNetworkAclState, self).show_type()
         if self._state.get("region", None):
             s = "{0} [{1}]".format(s, self._state["region"])
         return s

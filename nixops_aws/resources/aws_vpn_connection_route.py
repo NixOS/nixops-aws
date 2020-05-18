@@ -26,7 +26,7 @@ class AWSVPNConnectionRouteDefinition(nixops.resources.ResourceDefinition):
         return "{0}".format(self.get_type())
 
 
-class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonState):
+class AWSVPNConnectionRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a VPN connection route"""
 
     state = nixops.util.attr_property(
@@ -49,7 +49,7 @@ class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonS
         )
 
     def show_type(self):
-        s = super(AWSVPNConnectionState, self).show_type()
+        s = super(AWSVPNConnectionRouteState, self).show_type()
         if self.region:
             s = "{0} [{1}]".format(s, self.region)
         return s
