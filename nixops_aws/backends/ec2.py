@@ -96,7 +96,7 @@ class EC2Definition(MachineDefinition):
         )
 
 
-class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
+class EC2State(MachineState[EC2Definition], nixops_aws.resources.ec2_common.EC2CommonState):
     """State of an EC2 machine."""
 
     @classmethod
@@ -152,7 +152,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
     virtualization_type = nixops.util.attr_property("ec2.virtualizationType", None)
 
     def __init__(self, depl, name, id):
-        MachineState.__init__(self, depl, name, id)
+        super().__init__(depl, name, id)
         self._conn = None
         self._conn_vpc = None
         self._conn_route53 = None
@@ -283,7 +283,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
         return Function("{ config, pkgs, ... }", module_val)
 
     def get_keys(self):
-        keys = MachineState.get_keys(self)
+        keys = super().get_keys()
         # Ugly: we have to add the generated keys because they're not
         # there in the first evaluation (though they are present in
         # the final nix-build). Had to hardcode the default here to
@@ -321,7 +321,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
     def address_to(self, m):
         if isinstance(m, EC2State):  # FIXME: only if we're in the same region
             return m.private_ipv4
-        return MachineState.address_to(self, m)
+        return super().address_to(m)
 
     def _connect(self):
         if self._conn:
@@ -1096,19 +1096,17 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
 
                 self.update_block_device_mapping(device_stored, None)
 
-    def create(self, defn, check, allow_reboot, allow_recreate):
-        assert isinstance(defn, EC2Definition)
-
+    def create(self, defn: EC2Definition, check, allow_reboot, allow_recreate):
         if self.state != self.UP:
             check = True
 
         self.set_common_state(defn)
 
         if defn.subnet_id.startswith("res-"):
-            res = self.depl.get_typed_resource(
+            subnet_res: nixops_aws.resources.vpc_subnet.VPCSubnetState = self.depl.get_typed_resource(    # type: ignore
                 defn.subnet_id[4:].split(".")[0], "vpc-subnet"
             )
-            defn.subnet_id = res._state["subnetId"]
+            defn.subnet_id = subnet_res._state["subnetId"]
 
         # Figure out the access key.
         self.access_key_id = (
@@ -1601,22 +1599,22 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
 
             elif v["disk"].startswith("res-"):
                 res_name = v["disk"][4:]
-                res = self.depl.get_typed_resource(res_name, "ebs-volume")
-                if res.state != self.UP:
+                ebs_res: nixops_aws.resources.ebs_volume.EBSVolumeState = self.depl.get_typed_resource(res_name, "ebs-volume")  # type: ignore
+                if ebs_res.state != self.UP:
                     raise Exception(
                         "EBS volume ‘{0}’ has not been created yet".format(res_name)
                     )
-                assert res.volume_id
+                assert ebs_res.volume_id
                 if device_stored in self.block_device_mapping:
                     cur_volume_id = self.block_device_mapping[device_stored]["volumeId"]
-                    if cur_volume_id != res.volume_id:
+                    if cur_volume_id != ebs_res.volume_id:
                         raise Exception(
                             "cannot attach EBS volume ‘{0}’ to ‘{1}’ because volume ‘{2}’ is already attached there".format(
                                 res_name, device_real, cur_volume_id
                             )
                         )
                     continue
-                v["volumeId"] = res.volume_id
+                v["volumeId"] = ebs_res.volume_id
 
             elif v["disk"].startswith("snap-"):
                 if device_stored in self.block_device_mapping:
@@ -2049,7 +2047,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                 self.private_ipv4 = instance.private_ip_address
                 self.public_ipv4 = instance.ip_address
 
-            MachineState._check(self, res)
+            super()._check(res)
 
         elif instance.state == "stopping":
             res.is_up = False

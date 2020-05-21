@@ -10,6 +10,7 @@ import nixops_aws.ec2_utils
 from nixops.state import StateDict
 from typing import Optional
 
+
 class EC2CommonState:
     depl: nixops.deployment.Deployment
     name: str
