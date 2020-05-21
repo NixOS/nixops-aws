@@ -18,7 +18,14 @@ This repo contains the NixOps AWS Plugin.
 To start developing on the NixOps AWS plugin, you can run:
 
 ```bash
-  $ ./dev-shell
+  $ nix-shell
+  $ poetry install
+  $ poetry shell
+```
+To view active plugins:
+
+```bash
+nixops list-plugins
 ```
 
 Documentation for the `nixops-aws` plugin is in the [nixops repo](https://github.com/NixOS/nixops)
@@ -28,9 +35,11 @@ and is checked in PR validation. See the `black` target in [ci.yaml](./github/wo
 
 ## Building from source
 
-The command to build NixOps depends on your platform.
+You can build the Nix package by simply invoking nix-build on the project root:
 
-See the main NixOps repo instructions for how to built NixOps
+```bash
+$ nix-build
+```
+See the main NixOps repo for more up-to-date instructions for how to built NixOps
 with this AWS plugin.
 
-This document is a work in progress.
