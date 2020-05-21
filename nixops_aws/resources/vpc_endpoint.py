@@ -10,7 +10,7 @@ from nixops_aws.resources.ec2_common import EC2CommonState
 from . import vpc, vpc_route_table
 import nixops_aws.ec2_utils
 from .vpc import VPCState
-from vpc_route_table import VPCRouteTableState
+from .vpc_route_table import VPCRouteTableState
 
 
 class VPCEndpointDefinition(nixops.resources.ResourceDefinition):
