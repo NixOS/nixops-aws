@@ -7,6 +7,7 @@ import nixops.resources
 import nixops_aws.ec2_utils
 from nixops_aws.backends import ec2
 
+
 class EC2KeyPairDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 key pair."""
 
@@ -18,13 +19,11 @@ class EC2KeyPairDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "ec2KeyPairs"
 
-    def __init__(self, xml, config):
-        nixops.resources.ResourceDefinition.__init__(self, xml, config)
-        self.keypair_name = xml.find("attrs/attr[@name='name']/string").get("value")
-        self.region = xml.find("attrs/attr[@name='region']/string").get("value")
-        self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(
-            "value"
-        )
+    def __init__(self, name, config):
+        nixops.resources.ResourceDefinition.__init__(self, name, config)
+        self.keypair_name = config['name']
+        self.region = config['region']
+        self.access_key_id = config['accessKeyId']
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)

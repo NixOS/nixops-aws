@@ -21,8 +21,8 @@ class CloudwatchMetricAlarmDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "cloudwatchMetricAlarms"
 
-    def __init__(self, xml, config):
-        nixops.resources.ResourceDefinition.__init__(self, xml, config)
+    def __init__(self, name, config):
+        nixops.resources.ResourceDefinition.__init__(self, name, config)
         self.access_key_id = config["accessKeyId"]
         self.region = config["region"]
         self.alarm_name = config["name"]

@@ -29,16 +29,12 @@ class IAMRoleDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "iamRoles"
 
-    def __init__(self, xml, config):
-        nixops.resources.ResourceDefinition.__init__(self, xml, config)
-        self.role_name = xml.find("attrs/attr[@name='name']/string").get("value")
-        self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(
-            "value"
-        )
-        self.policy = xml.find("attrs/attr[@name='policy']/string").get("value")
-        self.assume_role_policy = xml.find(
-            "attrs/attr[@name='assumeRolePolicy']/string"
-        ).get("value")
+    def __init__(self, name, config):
+        nixops.resources.ResourceDefinition.__init__(self, name, config)
+        self.role_name = config['name']
+        self.access_key_id = config['accessKeyId']
+        self.policy = config['policy']
+        self.assume_role_policy = config['assumeRolePolicy']
 
     def show_type(self):
         return "{0}".format(self.get_type())

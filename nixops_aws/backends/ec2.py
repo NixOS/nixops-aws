@@ -39,8 +39,8 @@ class EC2Definition(MachineDefinition):
     def get_type(cls):
         return "ec2"
 
-    def __init__(self, xml, config):
-        MachineDefinition.__init__(self, xml, config)
+    def __init__(self, name, config):
+        MachineDefinition.__init__(self, name, config)
 
         self.access_key_id = config["ec2"]["accessKeyId"]
         self.region = config["ec2"]["region"]

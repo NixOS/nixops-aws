@@ -19,18 +19,12 @@ class EC2PlacementGroupDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "ec2PlacementGroups"
 
-    def __init__(self, xml, config):
-        super(EC2PlacementGroupDefinition, self).__init__(xml, config)
-        self.placement_group_name = xml.find("attrs/attr[@name='name']/string").get(
-            "value"
-        )
-        self.placement_group_strategy = xml.find(
-            "attrs/attr[@name='strategy']/string"
-        ).get("value")
-        self.region = xml.find("attrs/attr[@name='region']/string").get("value")
-        self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(
-            "value"
-        )
+    def __init__(self, name, config):
+        super(EC2PlacementGroupDefinition, self).__init__(name, config)
+        self.placement_group_name = config['name']
+        self.placement_group_strategy = config['strategy']
+        self.region = config['region']
+        self.access_key_id = config['accessKeyId']
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)

@@ -10,6 +10,7 @@ import time
 from uuid import uuid4
 from . import ec2_rds_dbsecurity_group
 
+
 class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 RDS Database Instance."""
 
@@ -21,46 +22,31 @@ class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "rdsDbInstances"
 
-    def __init__(self, xml, config):
-        super(EC2RDSDbInstanceDefinition, self).__init__(xml, config)
+    def __init__(self, name, config):
+        super(EC2RDSDbInstanceDefinition, self).__init__(name, config)
         # rds specific params
-        self.rds_dbinstance_id = xml.find("attrs/attr[@name='id']/string").get("value")
+
+        self.rds_dbinstance_id = config['id']
         self.rds_dbinstance_allocated_storage = int(
-            xml.find("attrs/attr[@name='allocatedStorage']/int").get("value")
+            config['allocatedStorage']
         )
-        self.rds_dbinstance_instance_class = xml.find(
-            "attrs/attr[@name='instanceClass']/string"
-        ).get("value")
-        self.rds_dbinstance_master_username = xml.find(
-            "attrs/attr[@name='masterUsername']/string"
-        ).get("value")
-        self.rds_dbinstance_master_password = xml.find(
-            "attrs/attr[@name='masterPassword']/string"
-        ).get("value")
+        self.rds_dbinstance_instance_class = config['instanceClass']
+        self.rds_dbinstance_master_username = config['masterUsername']
+        self.rds_dbinstance_master_password = config['masterPassword']
         self.rds_dbinstance_port = int(
-            xml.find("attrs/attr[@name='port']/int").get("value")
+            config['port']
         )
-        self.rds_dbinstance_engine = xml.find("attrs/attr[@name='engine']/string").get(
-            "value"
-        )
-        self.rds_dbinstance_db_name = xml.find("attrs/attr[@name='dbName']/string").get(
-            "value"
-        )
-        self.rds_dbinstance_multi_az = (
-            xml.find("attrs/attr[@name='multiAZ']/bool").get("value") == "true"
-        )
+        self.rds_dbinstance_engine = config['engine']
+        self.rds_dbinstance_db_name = config['dbName']
+        self.rds_dbinstance_multi_az = config['multiAZ']
         self.rds_dbinstance_security_groups = []
-        for sg in xml.findall("attrs/attr[@name='securityGroups']/list"):
-            for sg_str in sg.findall("string"):
-                sg_name = sg_str.get("value")
-                self.rds_dbinstance_security_groups.append(sg_name)
+        for sg_name in config["securityGroups"]:
+            self.rds_dbinstance_security_groups.append(sg_name)
         # TODO: implement remainder of boto.rds.RDSConnection.create_dbinstance parameters
 
         # common params
-        self.region = xml.find("attrs/attr[@name='region']/string").get("value")
-        self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(
-            "value"
-        )
+        self.region = config['region']
+        self.access_key_id = config['accessKeyId']
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)

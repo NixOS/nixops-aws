@@ -19,50 +19,42 @@ class EC2SecurityGroupDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "ec2SecurityGroups"
 
-    def __init__(self, xml, config):
-        super(EC2SecurityGroupDefinition, self).__init__(xml, config)
-        self.security_group_name = xml.find("attrs/attr[@name='name']/string").get(
-            "value"
-        )
-        self.security_group_description = xml.find(
-            "attrs/attr[@name='description']/string"
-        ).get("value")
-        self.region = xml.find("attrs/attr[@name='region']/string").get("value")
-        self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(
-            "value"
-        )
+    def __init__(self, name, config):
+        super(EC2SecurityGroupDefinition, self).__init__(name, config)
+        self.security_group_name = config["name"]
+        self.security_group_description = config["description"]
+        self.region = config["region"]
+        self.access_key_id = config["accessKeyId"]
 
         self.vpc_id = None
-        if not xml.find("attrs/attr[@name='vpcId']/string") is None:
-            self.vpc_id = xml.find("attrs/attr[@name='vpcId']/string").get("value")
+        if config.get("vpcId"):
+            self.vpc_id = config.get("vpcId")
 
         self.security_group_rules = []
-        for rule_xml in xml.findall("attrs/attr[@name='rules']/list/attrs"):
-            ip_protocol = rule_xml.find("attr[@name='protocol']/string").get("value")
+        for rule in config["rules"]:
+            ip_protocol = rule['protocol']
             if ip_protocol == "icmp":
                 from_port = int(
-                    rule_xml.find("attr[@name='typeNumber']/int").get("value")
+                    rule["typeNumber"]
                 )
                 to_port = int(
-                    rule_xml.find("attr[@name='codeNumber']/int").get("value")
+                    rule["codeNumber"]
                 )
             else:
                 from_port = int(
-                    rule_xml.find("attr[@name='fromPort']/int").get("value")
+                    rule["fromPort"]
                 )
-                to_port = int(rule_xml.find("attr[@name='toPort']/int").get("value"))
-            cidr_ip_xml = rule_xml.find("attr[@name='sourceIp']/string")
-            if not cidr_ip_xml is None:
+                to_port = int(
+                    rule["toPort"]
+                )
+            cidr_ip = config.get('sourceIp')
+            if cidr_ip is not None:
                 self.security_group_rules.append(
-                    [ip_protocol, from_port, to_port, cidr_ip_xml.get("value")]
+                    [ip_protocol, from_port, to_port, cidr_ip]
                 )
             else:
-                group_name = rule_xml.find(
-                    "attr[@name='sourceGroup']/attrs/attr[@name='groupName']/string"
-                ).get("value")
-                owner_id = rule_xml.find(
-                    "attr[@name='sourceGroup']/attrs/attr[@name='ownerId']/string"
-                ).get("value")
+                group_name = config["sourceGroup"]["groupName"]
+                owner_id = config["sourceGroup"]["ownerId"]
                 self.security_group_rules.append(
                     [ip_protocol, from_port, to_port, group_name, owner_id]
                 )

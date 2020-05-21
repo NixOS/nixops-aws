@@ -23,8 +23,8 @@ class Route53RecordSetDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "route53RecordSets"
 
-    def __init__(self, xml, config):
-        nixops.resources.ResourceDefinition.__init__(self, xml, config)
+    def __init__(self, name, config):
+        nixops.resources.ResourceDefinition.__init__(self, name, config)
         self.access_key_id = config["accessKeyId"]
 
         self.zone_id = config["zoneId"]

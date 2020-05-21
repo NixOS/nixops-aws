@@ -24,8 +24,8 @@ class Route53HostedZoneDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "route53HostedZones"
 
-    def __init__(self, xml, config):
-        nixops.resources.ResourceDefinition.__init__(self, xml, config)
+    def __init__(self, name, config):
+        nixops.resources.ResourceDefinition.__init__(self, name, config)
         self.access_key_id = config["accessKeyId"]
         self.comment = config["comment"]
         self.private_zone = config["privateZone"]

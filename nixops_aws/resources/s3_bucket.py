@@ -42,8 +42,8 @@ class S3BucketDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "s3Buckets"
 
-    def __init__(self, xml, config={}):
-        nixops.resources.ResourceDefinition.__init__(self, xml, config)
+    def __init__(self, name, config):
+        nixops.resources.ResourceDefinition.__init__(self, name, config)
         self.bucket_name = self.config.name
         self.region = self.config.region
         self.access_key_id = self.config.accessKeyId
