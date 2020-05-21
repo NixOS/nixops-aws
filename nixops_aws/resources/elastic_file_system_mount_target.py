@@ -26,7 +26,7 @@ class ElasticFileSystemMountTargetDefinition(nixops.resources.ResourceDefinition
         return "elasticFileSystemMountTargets"
 
     def show_type(self):
-        return "{0} [{1}]".format(self.get_type(), self.region)
+        return "{0} [{1}]".format(self.get_type(), self.config["region"])
 
 
 class ElasticFileSystemMountTargetState(
@@ -83,7 +83,7 @@ class ElasticFileSystemMountTargetState(
             defn.config["accessKeyId"] or nixops_aws.ec2_utils.get_access_key_id()
         )
         region = defn.config["region"]
-        client = self._get_client(access_key_id, region)
+        client = self._get_efs_client(access_key_id, region)
 
         if self.state == self.MISSING:
 
@@ -172,7 +172,7 @@ class ElasticFileSystemMountTargetState(
 
             self.log_start("deleting Elastic File System mount target...")
 
-            client = self._get_client()
+            client = self._get_efs_client()
 
             try:
                 client.delete_mount_target(MountTargetId=self.fsmt_id)

@@ -25,7 +25,9 @@ class ElasticFileSystemDefinition(nixops.resources.ResourceDefinition):
         return "elasticFileSystems"
 
     def show_type(self):
-        return "{0} [{1}]".format(self.get_type(), self.region)
+        # This will be typed very soon, for now make mypy quiet
+        region = self.config.region  # type: ignore
+        return "{0} [{1}]".format(self.get_type(), region)
 
 
 class ElasticFileSystemState(
@@ -67,7 +69,7 @@ class ElasticFileSystemState(
             defn.config["accessKeyId"] or nixops_aws.ec2_utils.get_access_key_id()
         )
 
-        client = self._get_client(access_key_id, defn.config["region"])
+        client = self._get_efs_client(access_key_id, defn.config["region"])
 
         if self.state == self.MISSING:
 
@@ -142,7 +144,7 @@ class ElasticFileSystemState(
 
             self.log_start("deleting Elastic File System...")
 
-            client = self._get_client()
+            client = self._get_efs_client()
 
             mts = client.describe_mount_targets(FileSystemId=self.fs_id)["MountTargets"]
             if len(mts) > 0:
