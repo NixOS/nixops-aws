@@ -10,6 +10,7 @@ import nixops.util
 import nixops.resources
 from nixops_aws.backends.ec2 import EC2State
 from nixops_aws.resources.ec2_common import EC2CommonState
+from nixops_aws.resources.vpc_network_interface import VPCNetworkInterfaceState
 import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
@@ -131,15 +132,15 @@ class VPCNetworkInterfaceAttachmentState(
         self._state["region"] = config["region"]
         vm_id = config["instanceId"]
         if vm_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vm_id[4:].split(".")[0], "ec2")
-            vm_id = res.vm_id
+            ec2_res: EC2State = self.depl.get_typed_resource(vm_id[4:].split(".")[0], "ec2")  # type: ignore
+            vm_id = ec2_res.vm_id
 
         eni_id = config["networkInterfaceId"]
         if eni_id.startswith("res-"):
-            res = self.depl.get_typed_resource(
+            vpc_network_interface_res: VPCNetworkInterfaceState = self.depl.get_typed_resource(  # type: ignore
                 eni_id[4:].split(".")[0], "vpc-network-interface"
             )
-            eni_id = res._state["networkInterfaceId"]
+            eni_id = vpc_network_interface_res._state["networkInterfaceId"]
 
         self.log(
             "attaching network interface {0} to instance {1}".format(eni_id, vm_id)
