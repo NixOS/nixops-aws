@@ -114,11 +114,9 @@ class EC2KeyPairState(nixops.resources.ResourceState):
     def destroy(self, wipe=False):
         def keypair_used():
             for m in self.depl.active_resources.values():
-                if (
-                    isinstance(m, ec2.EC2State)
-                    and m.key_pair == self.keypair_name
-                ):
-                    return m
+                if type(m) is ec2.EC2State:
+                    if m.key_pair == self.keypair_name:  # type: ignore
+                        return m
             return None
 
         m = keypair_used()
