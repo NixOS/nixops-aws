@@ -110,10 +110,10 @@ class VPCNatGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonStat
             allocation_id = res.allocation_id
 
         if subnet_id.startswith("res-"):
-            res = self.depl.get_typed_resource(
+            res_vpc_subnet = self.depl.get_typed_resource(
                 subnet_id[4:].split(".")[0], "vpc-subnet", VPCSubnetState
             )
-            subnet_id = res._state["subnetId"]
+            subnet_id = res_vpc_subnet._state["subnetId"]
 
         if not self._state.get("creationToken", None):
             self._state["creationToken"] = str(uuid.uuid4())

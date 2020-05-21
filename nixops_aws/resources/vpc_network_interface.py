@@ -148,11 +148,11 @@ class VPCNetworkInterfaceState(
         groups = []
         for grp in config["securityGroups"]:
             if grp.startswith("res-"):
-                res = self.depl.get_typed_resource(
+                res_sg = self.depl.get_typed_resource(
                     grp[4:].split(".")[0], "ec2-security-group", EC2SecurityGroupState
                 )
-                assert res.vpc_id
-                groups.append(res.security_group_id)
+                assert res_sg.vpc_id
+                groups.append(res_sg.security_group_id)
             else:
                 groups.append(grp)
 

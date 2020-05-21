@@ -95,17 +95,17 @@ class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonS
         self._state["region"] = config["region"]
         customer_gtw_id = config["customerGatewayId"]
         if customer_gtw_id.startswith("res-"):
-            res = self.depl.get_typed_resource(
+            res_vpc_customer_gw = self.depl.get_typed_resource(
                 customer_gtw_id[4:].split(".")[0], "vpc-customer-gateway", VPCCustomerGatewayState
             )
-            customer_gtw_id = res._state["customerGatewayId"]
+            customer_gtw_id = res_vpc_customer_gw._state["customerGatewayId"]
 
         vpn_gateway_id = config["vpnGatewayId"]
         if vpn_gateway_id.startswith("res-"):
-            res = self.depl.get_typed_resource(
+            res_vpn_gateway = self.depl.get_typed_resource(
                 vpn_gateway_id[4:].split(".")[0], "aws-vpn-gateway", AWSVPNGatewayState
             )
-            vpn_gateway_id = res._state["vpnGatewayId"]
+            vpn_gateway_id = res_vpn_gateway._state["vpnGatewayId"]
 
         self.log(
             "creating vpn connection between customer gateway {0} and vpn gateway {1}".format(

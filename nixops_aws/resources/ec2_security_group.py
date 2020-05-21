@@ -198,8 +198,8 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
         resolved_security_group_rules = []
         for rule in defn.security_group_rules:
             if rule[-1].startswith("res-"):
-                res = self.depl.get_typed_resource(rule[-1][4:], "elastic-ip", ElasticIPState)
-                rule[-1] = res.public_ipv4 + "/32"
+                res_ip = self.depl.get_typed_resource(rule[-1][4:], "elastic-ip", ElasticIPState)
+                rule[-1] = res_ip.public_ipv4 + "/32"
             resolved_security_group_rules.append(rule)
 
         security_group_was_created = False

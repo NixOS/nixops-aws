@@ -105,10 +105,10 @@ class VPCRouteTableAssociationState(
 
         subnet_id = config["subnetId"]
         if subnet_id.startswith("res-"):
-            res = self.depl.get_typed_resource(
+            res_vpc_subnet = self.depl.get_typed_resource(
                 subnet_id[4:].split(".")[0], "vpc-subnet", VPCSubnetState
             )
-            subnet_id = res._state["subnetId"]
+            subnet_id = res_vpc_subnet._state["subnetId"]
 
         self.log(
             "associating route table {0} to subnet {1}".format(
