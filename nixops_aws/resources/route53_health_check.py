@@ -10,6 +10,7 @@ import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
 import copy
+from nixops_aws.backends.ec2 import EC2State
 
 # boto3.set_stream_logger(name='botocore')
 
@@ -102,7 +103,7 @@ class Route53HealthCheckState(nixops.resources.ResourceState):
     def build_config(self, defn):
         def resolve_machine_ip(v):
             if v.startswith("res-"):
-                m = self.depl.get_machine(v[4:])
+                m = self.depl.get_machine(v[4:], EC2State)
                 if not m.public_ipv4:
                     raise Exception(
                         "cannot create health check for a machine that has not yet been created"

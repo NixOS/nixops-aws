@@ -9,6 +9,7 @@ import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
 from .sns_topic import SNSTopicState
+from nixops_aws.backends.ec2 import EC2State
 
 
 class CloudwatchMetricAlarmDefinition(nixops.resources.ResourceDefinition):
@@ -117,7 +118,7 @@ class CloudwatchMetricAlarmState(nixops.resources.ResourceState):
             if kv["Name"] == "InstanceId":
                 v = kv["Value"]
                 if v.startswith("machine-"):
-                    m = self.depl.get_machine(v[8:])
+                    m = self.depl.get_machine(v[8:], EC2State)
                     if not m.vm_id:
                         raise Exception(
                             "cannot create action that refers to a machine that does not exist yet"

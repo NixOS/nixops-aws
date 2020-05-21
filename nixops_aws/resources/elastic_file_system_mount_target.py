@@ -26,7 +26,8 @@ class ElasticFileSystemMountTargetDefinition(nixops.resources.ResourceDefinition
         return "elasticFileSystemMountTargets"
 
     def show_type(self):
-        return "{0} [{1}]".format(self.get_type(), self.config["region"])
+        region = self.config.region  # type: ignore
+        return "{0} [{1}]".format(self.get_type(), region)
 
 
 class ElasticFileSystemMountTargetState(

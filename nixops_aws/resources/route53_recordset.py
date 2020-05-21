@@ -10,6 +10,7 @@ import nixops_aws.ec2_utils
 from . import route53_hosted_zone, route53_health_check
 from .route53_hosted_zone import Route53HostedZoneState
 from .route53_health_check import Route53HealthCheckState
+from nixops_aws.backends.ec2 import EC2State
 
 # boto3.set_stream_logger(name='botocore')
 
@@ -213,7 +214,7 @@ class Route53RecordSetState(nixops.resources.ResourceState):
 
         def resolve_machine_ip(v):
             if v.startswith("res-"):
-                m = self.depl.get_machine(v[4:])
+                m = self.depl.get_machine(v[4:], EC2State)
                 if not m.public_ipv4:
                     raise Exception(
                         "cannot create record set for a machine that has not yet been created"
