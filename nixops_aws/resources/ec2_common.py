@@ -59,8 +59,12 @@ class EC2CommonState:
         """
         Generic method to get a cached EC2 AWS client or create it.
         """
+
+        # Because of the weird inheritance going on, ignore the undefined get_defn() on self
+        defn: Dict = self.get_defn()  # type: ignore
+
         new_access_key_id = (
-            self.get_defn()["accessKeyId"] if self.depl.definitions else None
+            defn["accessKeyId"] if self.depl.definitions else None
         ) or nixops_aws.ec2_utils.get_access_key_id()
         if new_access_key_id is not None:
             self.access_key_id = new_access_key_id

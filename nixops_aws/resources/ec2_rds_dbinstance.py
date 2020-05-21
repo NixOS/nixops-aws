@@ -9,6 +9,7 @@ import nixops_aws.ec2_utils
 import time
 from uuid import uuid4
 from . import ec2_rds_dbsecurity_group
+from .ec2_rds_dbsecurity_group import EC2RDSDbSecurityGroupState
 
 
 class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
@@ -268,7 +269,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
         for sg in config:
             if sg.startswith("res-"):
                 res = self.depl.get_typed_resource(
-                    sg[4:].split(".")[0], "ec2-rds-dbsecurity-group"
+                    sg[4:].split(".")[0], "ec2-rds-dbsecurity-group", EC2RDSDbSecurityGroupState
                 )
                 security_groups.append(res._state["groupName"])
             else:

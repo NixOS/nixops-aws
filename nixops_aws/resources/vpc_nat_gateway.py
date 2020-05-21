@@ -14,6 +14,9 @@ import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
 from . import vpc_subnet, elastic_ip
+from .elastic_ip import ElasticIPState
+from .vpc_subnet import VPCSubnetState
+
 
 class VPCNatGatewayDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC NAT gateway"""
@@ -102,13 +105,13 @@ class VPCNatGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonStat
 
         if allocation_id.startswith("res-"):
             res = self.depl.get_typed_resource(
-                allocation_id[4:].split(".")[0], "elastic-ip"
+                allocation_id[4:].split(".")[0], "elastic-ip", ElasticIPState
             )
             allocation_id = res.allocation_id
 
         if subnet_id.startswith("res-"):
             res = self.depl.get_typed_resource(
-                subnet_id[4:].split(".")[0], "vpc-subnet"
+                subnet_id[4:].split(".")[0], "vpc-subnet", VPCSubnetState
             )
             subnet_id = res._state["subnetId"]
 

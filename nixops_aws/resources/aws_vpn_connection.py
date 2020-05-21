@@ -7,6 +7,8 @@ import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
+from .vpc_customer_gateway import VPCCustomerGatewayState
+from .aws_vpn_gateway import AWSVPNGatewayState
 
 
 class AWSVPNConnectionDefinition(nixops.resources.ResourceDefinition):
@@ -94,14 +96,14 @@ class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonS
         customer_gtw_id = config["customerGatewayId"]
         if customer_gtw_id.startswith("res-"):
             res = self.depl.get_typed_resource(
-                customer_gtw_id[4:].split(".")[0], "vpc-customer-gateway"
+                customer_gtw_id[4:].split(".")[0], "vpc-customer-gateway", VPCCustomerGatewayState
             )
             customer_gtw_id = res._state["customerGatewayId"]
 
         vpn_gateway_id = config["vpnGatewayId"]
         if vpn_gateway_id.startswith("res-"):
             res = self.depl.get_typed_resource(
-                vpn_gateway_id[4:].split(".")[0], "aws-vpn-gateway"
+                vpn_gateway_id[4:].split(".")[0], "aws-vpn-gateway", AWSVPNGatewayState
             )
             vpn_gateway_id = res._state["vpnGatewayId"]
 

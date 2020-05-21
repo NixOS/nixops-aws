@@ -11,6 +11,7 @@ from . import efs_common
 from . import ec2_security_group
 from . import elastic_file_system
 import time
+from .elastic_file_system import ElasticFileSystemState
 
 
 class ElasticFileSystemMountTargetDefinition(nixops.resources.ResourceDefinition):
@@ -92,7 +93,7 @@ class ElasticFileSystemMountTargetState(
             fs_id = defn.config["fileSystem"]
             if fs_id.startswith("res-"):
                 file_system = self.depl.get_typed_resource(
-                    fs_id[4:], "elastic-file-system"
+                    fs_id[4:], "elastic-file-system", ElasticFileSystemState
                 )
                 if not file_system.fs_id:
                     raise Exception(

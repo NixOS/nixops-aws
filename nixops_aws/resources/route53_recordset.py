@@ -8,6 +8,8 @@ import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
 from . import route53_hosted_zone, route53_health_check
+from .route53_hosted_zone import Route53HostedZoneState
+from .route53_health_check import Route53HealthCheckState
 
 # boto3.set_stream_logger(name='botocore')
 
@@ -127,7 +129,7 @@ class Route53RecordSetState(nixops.resources.ResourceState):
             else:
                 if zone_id.startswith("res-"):
                     hs = self.depl.get_typed_resource(
-                        zone_id[4:], "aws-route53-hosted-zone"
+                        zone_id[4:], "aws-route53-hosted-zone", Route53HostedZoneState
                     )
                     if not hs.zone_id:
                         raise Exception(
@@ -286,7 +288,7 @@ class Route53RecordSetState(nixops.resources.ResourceState):
 
         def resolve_health_check(v):
             if v.startswith("res-"):
-                hc = self.depl.get_typed_resource(v[4:], "aws-route53-health-check")
+                hc = self.depl.get_typed_resource(v[4:], "aws-route53-health-check", Route53HealthCheckState)
                 if not hc.health_check_id:
                     raise Exception(
                         "cannot refer to a health check resource that has not yet been created"

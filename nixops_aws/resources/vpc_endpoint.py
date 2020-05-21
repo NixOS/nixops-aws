@@ -9,6 +9,8 @@ import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 from . import vpc, vpc_route_table
 import nixops_aws.ec2_utils
+from .vpc import VPCState
+from vpc_route_table import VPCRouteTableState
 
 
 class VPCEndpointDefinition(nixops.resources.ResourceDefinition):
@@ -96,7 +98,7 @@ class VPCEndpointState(nixops.resources.DiffEngineResourceState, EC2CommonState)
         vpc_id = config["vpcId"]
 
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc")
+            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc", VPCState)
             vpc_id = res._state["vpcId"]
 
         if not self._state.get("creationToken", None):
@@ -123,7 +125,7 @@ class VPCEndpointState(nixops.resources.DiffEngineResourceState, EC2CommonState)
         for rtb in config["routeTableIds"]:
             if rtb.startswith("res-"):
                 res = self.depl.get_typed_resource(
-                    rtb[4:].split(".")[0], "vpc-route-table"
+                    rtb[4:].split(".")[0], "vpc-route-table", VPCRouteTableState
                 )
                 new_rtbs.append(res._state["routeTableId"])
             else:

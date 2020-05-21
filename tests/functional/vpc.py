@@ -6,6 +6,8 @@ from nose import tools
 from nixops.nix_expr import py2nix
 import nixops.util
 from tests.functional import generic_deployment_test
+from nixops_aws.resources import vpc
+
 
 parent_dir = path.dirname(__file__)
 
@@ -20,7 +22,7 @@ class TestVPC(generic_deployment_test.GenericDeploymentTest):
 
     def test_deploy_vpc(self):
         self.depl.deploy()
-        vpc_resource = self.depl.get_typed_resource("vpc-test", "vpc")
+        vpc_resource = self.depl.get_typed_resource("vpc-test", "vpc", vpc.VPCState)
         vpc = vpc_resource.get_client().describe_vpcs(
             VpcIds=[vpc_resource._state["vpcId"]]
         )
@@ -41,7 +43,7 @@ class TestVPC(generic_deployment_test.GenericDeploymentTest):
         self.compose_expressions([CFG_IPV6])
         self.depl.deploy(plan_only=True)
         self.depl.deploy()
-        vpc_resource = self.depl.get_typed_resource("vpc-test", "vpc")
+        vpc_resource = self.depl.get_typed_resource("vpc-test", "vpc", vpc.VPCState)
         vpc = vpc_resource.get_client().describe_vpcs(
             VpcIds=[vpc_resource._state["vpcId"]]
         )
@@ -58,7 +60,7 @@ class TestVPC(generic_deployment_test.GenericDeploymentTest):
         self.compose_expressions([CFG_SUBNET])
         self.depl.deploy(plan_only=True)
         self.depl.deploy()
-        subnet_resource = self.depl.get_typed_resource("subnet-test", "vpc-subnet")
+        subnet_resource = self.depl.get_typed_resource("subnet-test", "vpc-subnet", vpc.VPCSubnetState)
         subnet = subnet_resource.get_client().describe_subnets(
             SubnetIds=[subnet_resource._state["subnetId"]]
         )

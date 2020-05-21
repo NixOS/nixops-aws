@@ -132,13 +132,13 @@ class VPCNetworkInterfaceAttachmentState(
         self._state["region"] = config["region"]
         vm_id = config["instanceId"]
         if vm_id.startswith("res-"):
-            ec2_res: EC2State = self.depl.get_typed_resource(vm_id[4:].split(".")[0], "ec2")  # type: ignore
+            ec2_res = self.depl.get_typed_resource(vm_id[4:].split(".")[0], "ec2", EC2State)
             vm_id = ec2_res.vm_id
 
         eni_id = config["networkInterfaceId"]
         if eni_id.startswith("res-"):
-            vpc_network_interface_res: VPCNetworkInterfaceState = self.depl.get_typed_resource(  # type: ignore
-                eni_id[4:].split(".")[0], "vpc-network-interface"
+            vpc_network_interface_res = self.depl.get_typed_resource(
+                eni_id[4:].split(".")[0], "vpc-network-interface", VPCNetworkInterfaceState
             )
             eni_id = vpc_network_interface_res._state["networkInterfaceId"]
 

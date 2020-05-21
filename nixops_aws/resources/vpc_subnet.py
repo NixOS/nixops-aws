@@ -10,6 +10,7 @@ from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from . import vpc
+from .vpc import VPCState
 
 class VPCSubnetDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC subnet."""
@@ -158,7 +159,7 @@ class VPCSubnetState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         vpc_id = config["vpcId"]
 
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc")
+            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc", VPCState)
             vpc_id = res._state["vpcId"]
 
         zone = config["zone"] if config["zone"] else ""

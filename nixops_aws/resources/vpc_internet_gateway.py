@@ -10,6 +10,7 @@ import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
 from . import vpc, elastic_ip
+from .vpc import VPCState
 
 class VPCInternetGatewayDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC internet gateway."""
@@ -91,7 +92,7 @@ class VPCInternetGatewayState(nixops.resources.DiffEngineResourceState, EC2Commo
 
         vpc_id = config["vpcId"]
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc")
+            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc", VPCState)
             vpc_id = res._state["vpcId"]
 
         self.log("creating internet gateway in region {}".format(self._state["region"]))

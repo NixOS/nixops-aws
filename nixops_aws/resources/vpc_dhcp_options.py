@@ -12,6 +12,7 @@ import nixops_aws.ec2_utils
 from . import vpc
 from nixops.state import StateDict
 from nixops.diff import Handler
+from .vpc import VPCState
 
 
 class VPCDhcpOptionsDefinition(nixops.resources.ResourceDefinition):
@@ -122,7 +123,7 @@ class VPCDhcpOptionsState(nixops.resources.DiffEngineResourceState, EC2CommonSta
         self._state["region"] = config["region"]
         vpc_id = config["vpcId"]
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc")
+            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc", VPCState)
             vpc_id = res._state["vpcId"]
 
         dhcp_config = self.generate_dhcp_configuration(config)

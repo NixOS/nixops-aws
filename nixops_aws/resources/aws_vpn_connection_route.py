@@ -10,6 +10,8 @@ from . import aws_vpn_connection
 from nixops.diff import Handler
 from nixops.state import StateDict
 
+from .aws_vpn_connection import AWSVPNConnectionState
+
 
 class AWSVPNConnectionRouteDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPN connection route"""
@@ -91,7 +93,7 @@ class AWSVPNConnectionRouteState(nixops.resources.DiffEngineResourceState, EC2Co
         vpn_conn_id = config["vpnConnectionId"]
         if vpn_conn_id.startswith("res-"):
             res = self.depl.get_typed_resource(
-                vpn_conn_id[4:].split(".")[0], "aws-vpn-connection"
+                vpn_conn_id[4:].split(".")[0], "aws-vpn-connection", AWSVPNConnectionState
             )
             vpn_conn_id = res._state["vpnConnectionId"]
 

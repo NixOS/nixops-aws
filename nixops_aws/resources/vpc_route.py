@@ -11,6 +11,8 @@ import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
 from . import vpc_route_table, vpc_internet_gateway, vpc_nat_gateway
+from vpc_route_table import VPCRouteTableState
+from typing import Any
 
 
 class VPCRouteDefinition(nixops.resources.ResourceDefinition):
@@ -113,7 +115,7 @@ class VPCRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         rtb_id = config["routeTableId"]
         if rtb_id.startswith("res-"):
             res = self.depl.get_typed_resource(
-                rtb_id[4:].split(".")[0], "vpc-route-table"
+                rtb_id[4:].split(".")[0], "vpc-route-table", VPCRouteTableState
             )
             rtb_id = res._state["routeTableId"]
 
@@ -148,7 +150,7 @@ class VPCRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
                 name = cfg[4:].split(".")[0]
                 res_type = cfg.split(".")[1]
                 attr = cfg.split(".")[2] if len(cfg.split(".")) > 2 else option
-                res = self.depl.get_typed_resource(name, res_type)
+                res = self.depl.get_typed_resource(name, res_type, Any)  # TODO: Type this?
                 return res._state[attr]
             else:
                 return cfg

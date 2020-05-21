@@ -8,6 +8,7 @@ import boto3
 import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
+from .sns_topic import SNSTopicState
 
 
 class CloudwatchMetricAlarmDefinition(nixops.resources.ResourceDefinition):
@@ -130,7 +131,7 @@ class CloudwatchMetricAlarmState(nixops.resources.ResourceState):
 
         def resolve_action(a):
             if a.startswith("res-"):
-                topic = self.depl.get_typed_resource(a[4:], "sns-topic")
+                topic = self.depl.get_typed_resource(a[4:], "sns-topic", SNSTopicState)
                 if not topic.arn:
                     raise Exception(
                         "cannot create action, as SNS topic {} has not yet been created".format(

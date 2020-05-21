@@ -11,6 +11,9 @@ import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
 from . import vpc_route_table
+from .vpc_route_table import VPCRouteTableState
+from .vpc_subnet import VPCSubnetState
+
 
 class VPCRouteTableAssociationDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC route table association"""
@@ -96,14 +99,14 @@ class VPCRouteTableAssociationState(
         route_table_id = config["routeTableId"]
         if route_table_id.startswith("res-"):
             res = self.depl.get_typed_resource(
-                route_table_id[4:].split(".")[0], "vpc-route-table"
+                route_table_id[4:].split(".")[0], "vpc-route-table", VPCRouteTableState
             )
             route_table_id = res._state["routeTableId"]
 
         subnet_id = config["subnetId"]
         if subnet_id.startswith("res-"):
             res = self.depl.get_typed_resource(
-                subnet_id[4:].split(".")[0], "vpc-subnet"
+                subnet_id[4:].split(".")[0], "vpc-subnet", VPCSubnetState
             )
             subnet_id = res._state["subnetId"]
 

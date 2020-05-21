@@ -8,6 +8,7 @@ import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 from . import vpc, elastic_ip
 import nixops_aws.ec2_utils
+from .vpc import VPCState
 
 
 class VPCEgressOnlyInternetGatewayDefinition(nixops.resources.ResourceDefinition):
@@ -91,7 +92,7 @@ class VPCEgressOnlyInternetGatewayState(
 
         vpc_id = config["vpcId"]
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc")
+            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc", VPCState)
             vpc_id = res._state["vpcId"]
 
         self.log(

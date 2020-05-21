@@ -11,6 +11,8 @@ import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
 from . import vpc, vpc_subnet
+from .vpc import VPCState
+from .aws_vpn_gateway import AWSVPNGatewayState
 
 
 class VPCRouteTableDefinition(nixops.resources.ResourceDefinition):
@@ -104,7 +106,7 @@ class VPCRouteTableState(nixops.resources.DiffEngineResourceState, EC2CommonStat
 
         vpc_id = config["vpcId"]
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc")
+            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc", VPCState)
             vpc_id = res._state["vpcId"]
 
         self.log("creating route table in vpc {}".format(vpc_id))
@@ -123,7 +125,7 @@ class VPCRouteTableState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         for vgw in config["propagatingVgws"]:
             if vgw.startswith("res-"):
                 res = self.depl.get_typed_resource(
-                    vgw[4:].split(".")[0], "aws-vpn-gateway"
+                    vgw[4:].split(".")[0], "aws-vpn-gateway", AWSVPNGatewayState
                 )
                 new_vgws.append(res._state["vpnGatewayId"])
             else:

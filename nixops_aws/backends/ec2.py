@@ -19,6 +19,8 @@ import nixops_aws.ec2_utils
 import nixops.known_hosts
 import datetime
 from typing import Dict, Tuple, Any, Union, List
+from nixops_aws.resources.ec2_common import EC2CommonState
+from nixops_aws.resources.elastic_ipv4 import ElasticIPState
 
 
 class EC2InstanceDisappeared(Exception):
@@ -96,7 +98,7 @@ class EC2Definition(MachineDefinition):
         )
 
 
-class EC2State(MachineState[EC2Definition], nixops_aws.resources.ec2_common.EC2CommonState):
+class EC2State(MachineState[EC2Definition], EC2CommonState):
     """State of an EC2 machine."""
 
     @classmethod
@@ -1103,8 +1105,8 @@ class EC2State(MachineState[EC2Definition], nixops_aws.resources.ec2_common.EC2C
         self.set_common_state(defn)
 
         if defn.subnet_id.startswith("res-"):
-            subnet_res: nixops_aws.resources.vpc_subnet.VPCSubnetState = self.depl.get_typed_resource(    # type: ignore
-                defn.subnet_id[4:].split(".")[0], "vpc-subnet"
+            subnet_res = self.depl.get_typed_resource(
+                defn.subnet_id[4:].split(".")[0], "vpc-subnet", nixops_aws.resources.vpc_subnet.VPCSubnetState
             )
             defn.subnet_id = subnet_res._state["subnetId"]
 
@@ -1476,7 +1478,7 @@ class EC2State(MachineState[EC2Definition], nixops_aws.resources.ec2_common.EC2C
         # Assign the elastic IP.  If necessary, dereference the resource.
         elastic_ipv4 = defn.elastic_ipv4
         if elastic_ipv4.startswith("res-"):
-            res = self.depl.get_typed_resource(elastic_ipv4[4:], "elastic-ip")
+            res = self.depl.get_typed_resource(elastic_ipv4[4:], "elastic-ip", ElasticIPState)
             elastic_ipv4 = res.public_ipv4
         self._assign_elastic_ip(elastic_ipv4, check)
 
@@ -1599,7 +1601,7 @@ class EC2State(MachineState[EC2Definition], nixops_aws.resources.ec2_common.EC2C
 
             elif v["disk"].startswith("res-"):
                 res_name = v["disk"][4:]
-                ebs_res: nixops_aws.resources.ebs_volume.EBSVolumeState = self.depl.get_typed_resource(res_name, "ebs-volume")  # type: ignore
+                ebs_res = self.depl.get_typed_resource(res_name, "ebs-volume", nixops_aws.resources.ebs_volume.EBSVolumeState)
                 if ebs_res.state != self.UP:
                     raise Exception(
                         "EBS volume ‘{0}’ has not been created yet".format(res_name)

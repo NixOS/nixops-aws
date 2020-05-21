@@ -90,7 +90,7 @@ class Route53HealthCheckState(nixops.resources.ResourceState):
 
     def resolve_health_check(self, id):
         if id.startswith("res-"):
-            hc = self.depl.get_typed_resource(id[4:], "aws-route53-health-check")
+            hc = self.depl.get_typed_resource(id[4:], "aws-route53-health-check", Route53HealthCheckState)
             if not hc.health_check_id:
                 raise Exception(
                     "cannot create calculated health check for not-yet children."

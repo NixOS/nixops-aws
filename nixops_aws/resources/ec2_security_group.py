@@ -7,6 +7,9 @@ import nixops.resources
 import nixops.util
 import nixops_aws.ec2_utils
 from . import vpc, elastic_ip
+from .vpc import VPCState
+from .elastic_ip import ElasticIPState
+
 
 class EC2SecurityGroupDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 security group."""
@@ -134,7 +137,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
 
         if defn.vpc_id is not None:
             if defn.vpc_id.startswith("res-"):
-                res = self.depl.get_typed_resource(defn.vpc_id[4:].split(".")[0], "vpc")
+                res = self.depl.get_typed_resource(defn.vpc_id[4:].split(".")[0], "vpc", VPCState)
                 defn.vpc_id = res._state["vpcId"]
 
         with self.depl._db:
@@ -195,7 +198,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
         resolved_security_group_rules = []
         for rule in defn.security_group_rules:
             if rule[-1].startswith("res-"):
-                res = self.depl.get_typed_resource(rule[-1][4:], "elastic-ip")
+                res = self.depl.get_typed_resource(rule[-1][4:], "elastic-ip", ElasticIPState)
                 rule[-1] = res.public_ipv4 + "/32"
             resolved_security_group_rules.append(rule)
 
