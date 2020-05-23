@@ -147,7 +147,6 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
     )
     spot_instance_price = nixops.util.attr_property("ec2.spotInstancePrice", None)
     subnet_id = nixops.util.attr_property("ec2.subnetId", None)
-    first_boot = nixops.util.attr_property("ec2.firstBoot", True, type=bool)
     virtualization_type = nixops.util.attr_property("ec2.virtualizationType", None)
 
     def __init__(self, depl, name, id):
@@ -1521,14 +1520,12 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
             nixops.known_hosts.add(self._ip_for_ssh_key(), self.public_host_key)
 
         # Add disks that were in the original device mapping of image.
-        if self.first_boot:
-            for device_stored, dm in self._get_instance().block_device_mapping.items():
-                if device_stored not in self.block_device_mapping and dm.volume_id:
-                    bdm = {"volumeId": dm.volume_id, "partOfImage": True}
-                    self.update_block_device_mapping(
-                        device_stored, bdm
-                    )  # TODO: it stores root device as sd though its really attached as nvme
-            self.first_boot = False
+        for device_stored, dm in self._get_instance().block_device_mapping.items():
+            if device_stored not in self.block_device_mapping and dm.volume_id:
+                bdm = {"volumeId": dm.volume_id, "partOfImage": True}
+                self.update_block_device_mapping(
+                    device_stored, bdm
+                )  # TODO: it stores root device as sd though its really attached as nvme
 
         # Detect if volumes were manually detached.  If so, reattach
         # them.
@@ -1666,7 +1663,7 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
                     self._conn, volume.id, self.logger
                 )
 
-        # Always apply tags to the volumes we just created.
+        # Always apply tags to the volumes created
         for device_stored, v in self.block_device_mapping.items():
             device_real = device_name_stored_to_real(device_stored)
 
@@ -1686,12 +1683,11 @@ class EC2State(MachineState, nixops_aws.resources.ec2_common.EC2CommonState):
             volume_tags.update(common_tags)
             volume_tags.update(defn.tags)
             volume_tags["Name"] = "{0} [{1} - {2}]".format(
-                self.depl.description, self.name, device_real
+                self.depl.name, self.name, device_real
             )
-            self._retry(lambda: self._conn.create_tags([v["volumeId"]], volume_tags))
+            self.update_tags(v["volumeId"], user_tags=volume_tags, check=check)
 
         # Attach missing volumes.
-
         for device_stored, v in self.sorted_block_device_mapping():
             if v.get("needsAttach", False):
                 self.attach_volume(device_stored, v["volumeId"])
