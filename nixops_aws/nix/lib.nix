@@ -1,15 +1,13 @@
 lib:
 
-with lib;
-
 {
 
-  resource = type: mkOptionType {
+  resource = type: lib.mkOptionType {
     name = "resource of type ‘${type}’";
     check = x: x._type or "" == type;
-    merge = mergeOneOption;
+    merge = lib.mergeOneOption;
   };
 
-  shorten_uuid = uuid: replaceChars ["-"] [""] uuid;
+  shorten_uuid = uuid: lib.replaceChars ["-"] [""] uuid;
 
 }
