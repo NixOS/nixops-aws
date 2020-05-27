@@ -9,6 +9,8 @@ import nixops.resources
 import nixops_aws.ec2_utils
 from boto.exception import BotoServerError
 
+from .types.iam_role import IamRoleOptions
+
 
 class IamPermissionException(BotoServerError):
     pass
@@ -21,6 +23,8 @@ class IamNotFound(BotoServerError):
 class IAMRoleDefinition(nixops.resources.ResourceDefinition):
     """Definition of an IAM Role."""
 
+    config: IamRoleOptions
+
     @classmethod
     def get_type(cls):
         return "iam-role"
@@ -31,10 +35,10 @@ class IAMRoleDefinition(nixops.resources.ResourceDefinition):
 
     def __init__(self, name, config):
         nixops.resources.ResourceDefinition.__init__(self, name, config)
-        self.role_name = config['name']
-        self.access_key_id = config['accessKeyId']
-        self.policy = config['policy']
-        self.assume_role_policy = config['assumeRolePolicy']
+        self.role_name = config.name
+        self.access_key_id = config.accessKeyId
+        self.policy = config.policy
+        self.assume_role_policy = config.assumeRolePolicy
 
     def show_type(self):
         return "{0}".format(self.get_type())
