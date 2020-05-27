@@ -482,7 +482,21 @@ typing-extensions = "^3.7.4"
 reference = "68aa76845573a8e6613286a730f0a2c9e394af97"
 type = "git"
 url = "https://github.com/NixOS/nixops.git"
+[[package]]
+category = "main"
+description = ""
+name = "nixos-modules-contrib"
+optional = false
+python-versions = "^3.7"
+version = "0.1.0"
 
+[package.dependencies]
+nixops = "rev master"
+
+[package.source]
+reference = "c37f078188cbdc1ea1349becc04e763791fca2c3"
+type = "git"
+url = "https://github.com/nix-community/nixos-modules-contrib.git"
 [[package]]
 category = "dev"
 description = "nose extends unittest to make testing easier"
@@ -625,7 +639,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "1a29706d649f47b0af5c9defc12a4eac2925ede5fdd5ede07ad2ae5a9f56078f"
+content-hash = "8a9db283196cccd410837af90c4c6a5f31f5c95632278645de9a6397db34fbb2"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -709,6 +723,7 @@ mypy-extensions = [
     {file = "mypy_extensions-0.4.3.tar.gz", hash = "sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8"},
 ]
 nixops = []
+nixos-modules-contrib = []
 nose = [
     {file = "nose-1.3.7-py2-none-any.whl", hash = "sha256:dadcddc0aefbf99eea214e0f1232b94f2fa9bd98fa8353711dacb112bfcbbb2a"},
     {file = "nose-1.3.7-py3-none-any.whl", hash = "sha256:9ff7c6cc443f8c51994b34a667bbcf45afd6d945be7477b52e97516fd17c53ac"},
