@@ -14,9 +14,13 @@ from . import vpc_route_table, vpc_internet_gateway, vpc_nat_gateway
 from .vpc_route_table import VPCRouteTableState
 from typing import Any
 
+from .types.vpc_route import VpcRouteOptions
+
 
 class VPCRouteDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC route"""
+
+    config: VpcRouteOptions
 
     @classmethod
     def get_type(cls):
