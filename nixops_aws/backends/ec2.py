@@ -92,8 +92,7 @@ class EC2Definition(MachineDefinition):
     def host_key_type(self):
         return (
             "ed25519"
-            if nixops.util.parse_nixos_version(self.config.nixosRelease)
-            >= ["15", "09"]
+            if nixops.util.parse_nixos_version(self.config.nixosRelease) >= ["15", "09"]
             else "dsa"
         )
 
@@ -229,8 +228,10 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
             kp_r: nixops_aws.resources.ec2_keypair.EC2KeyPairState
             kp_r = r  # type: ignore
 
-            if (kp_r.state == nixops_aws.resources.ec2_keypair.EC2KeyPairState.UP
-                and kp_r.keypair_name == self.key_pair):
+            if (
+                kp_r.state == nixops_aws.resources.ec2_keypair.EC2KeyPairState.UP
+                and kp_r.keypair_name == self.key_pair
+            ):
                 return self.write_ssh_private_key(kp_r.private_key)
         return None
 
@@ -267,7 +268,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
         }
 
     def get_physical_backup_spec(self, backupid):
-        module_val: Union[Dict[Tuple[str, ...], Dict[str, Dict[str, Call]]], RawValue] = {}
+        module_val: Union[
+            Dict[Tuple[str, ...], Dict[str, Dict[str, Call]]], RawValue
+        ] = {}
 
         val: Dict[str, Dict[str, Call]] = {}
         if backupid in self.backups:
@@ -284,7 +287,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
                     }
             module_val = {("deployment", "ec2", "blockDeviceMapping"): val}
         else:
-            module_val = RawValue("{{}} /* No backup found for id '{0}' */".format(backupid))
+            module_val = RawValue(
+                "{{}} /* No backup found for id '{0}' */".format(backupid)
+            )
         return Function("{ config, pkgs, ... }", module_val)
 
     def get_keys(self):
@@ -741,7 +746,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
         if self.vm_id != volume.attach_data.instance_id:
             # Attach it.
             device_that_boto_expects = device_name_to_boto_expected(device_stored)
-            self._connect().attach_volume(volume_id, self.vm_id, device_that_boto_expects)
+            self._connect().attach_volume(
+                volume_id, self.vm_id, device_that_boto_expects
+            )
 
         def check_attached():
             volume.update()
@@ -783,9 +790,7 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
         ):
             if elastic_ipv4 != "":
                 # wait until machine is in running state
-                self.log_start(
-                    "waiting for machine to be in running state... "
-                )
+                self.log_start("waiting for machine to be in running state... ")
                 while True:
                     self.log_continue("[{0}] ".format(instance.state))
                     if instance.state == "running":
@@ -839,7 +844,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
                     self.ssh_pinged = False
 
             elif self.elastic_ipv4 != None:
-                addresses = self._connect().get_all_addresses(addresses=[self.elastic_ipv4])
+                addresses = self._connect().get_all_addresses(
+                    addresses=[self.elastic_ipv4]
+                )
                 if len(addresses) == 1 and addresses[0].instance_id == self.vm_id:
                     self.log(
                         "disassociating IP address ‘{0}’...".format(self.elastic_ipv4)
@@ -1109,7 +1116,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
 
         if defn.subnet_id.startswith("res-"):
             subnet_res = self.depl.get_typed_resource(
-                defn.subnet_id[4:].split(".")[0], "vpc-subnet", nixops_aws.resources.vpc_subnet.VPCSubnetState
+                defn.subnet_id[4:].split(".")[0],
+                "vpc-subnet",
+                nixops_aws.resources.vpc_subnet.VPCSubnetState,
             )
             defn.subnet_id = subnet_res._state["subnetId"]
 
@@ -1226,7 +1235,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
                         defn.ami, self.region
                     )
                 )
-            ami = self._connect_boto3().describe_images(ImageIds=[defn.ami])["Images"][0]
+            ami = self._connect_boto3().describe_images(ImageIds=[defn.ami])["Images"][
+                0
+            ]
             self.root_device_type = ami["RootDeviceType"]
 
             # Check if we need to resize the root disk
@@ -1421,7 +1432,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
             assocs = self._retry(
                 lambda: self._connect_boto3().describe_iam_instance_profile_associations(
                     Filters=[{"Name": "instance-id", "Values": [self.vm_id]}]
-                )["IamInstanceProfileAssociations"]
+                )[
+                    "IamInstanceProfileAssociations"
+                ]
             )
             if (
                 len(assocs) > 0
@@ -1481,7 +1494,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
         # Assign the elastic IP.  If necessary, dereference the resource.
         elastic_ipv4 = defn.elastic_ipv4
         if elastic_ipv4.startswith("res-"):
-            res = self.depl.get_typed_resource(elastic_ipv4[4:], "elastic-ip", ElasticIPState)
+            res = self.depl.get_typed_resource(
+                elastic_ipv4[4:], "elastic-ip", ElasticIPState
+            )
             elastic_ipv4 = res.public_ipv4
         self._assign_elastic_ip(elastic_ipv4, check)
 
@@ -1604,7 +1619,11 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
 
             elif v["disk"].startswith("res-"):
                 res_name = v["disk"][4:]
-                ebs_res = self.depl.get_typed_resource(res_name, "ebs-volume", nixops_aws.resources.ebs_volume.EBSVolumeState)
+                ebs_res = self.depl.get_typed_resource(
+                    res_name,
+                    "ebs-volume",
+                    nixops_aws.resources.ebs_volume.EBSVolumeState,
+                )
                 if ebs_res.state != self.UP:
                     raise Exception(
                         "EBS volume ‘{0}’ has not been created yet".format(res_name)
@@ -1686,7 +1705,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
             volume_tags["Name"] = "{0} [{1} - {2}]".format(
                 self.depl.description, self.name, device_real
             )
-            self._retry(lambda: self._connect().create_tags([v["volumeId"]], volume_tags))
+            self._retry(
+                lambda: self._connect().create_tags([v["volumeId"]], volume_tags)
+            )
 
         # Attach missing volumes.
 
@@ -1761,7 +1782,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
         )
 
         hosted_zone = ".".join(self.dns_hostname.split(".")[1:])
-        zones = self._retry_route53(lambda: self._connect_route53().get_all_hosted_zones())
+        zones = self._retry_route53(
+            lambda: self._connect_route53().get_all_hosted_zones()
+        )
 
         def testzone(hosted_zone, zone):
             """returns True if there is a subcomponent match"""
@@ -2063,7 +2086,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
             self.state = self.STOPPED
 
         # check for scheduled events
-        instance_status = self._connect().get_all_instance_status(instance_ids=[instance.id])
+        instance_status = self._connect().get_all_instance_status(
+            instance_ids=[instance.id]
+        )
         for ist in instance_status:
             if ist.events:
                 for e in ist.events:
@@ -2086,7 +2111,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
                     self.name
                 )
             )
-        return self._connect().get_console_output(self.vm_id).output or "(not available)"
+        return (
+            self._connect().get_console_output(self.vm_id).output or "(not available)"
+        )
 
     def next_charge_time(self):
         if not self.start_time:
