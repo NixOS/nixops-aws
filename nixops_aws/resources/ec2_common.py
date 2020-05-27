@@ -51,7 +51,7 @@ class EC2CommonState:
     def update_tags(self, id, user_tags={}, check=False):
         def updater(tags):
             # FIXME: handle removing tags.
-            self._retry(lambda: self.get_client().create_tags([id], tags))
+            self._retry(lambda: self._conn.create_tags([id], tags))
 
         self.update_tags_using(updater, user_tags=user_tags, check=check)
 
