@@ -113,8 +113,9 @@ class EC2SecurityGroupState(nixops.resources.ResourceState[EC2SecurityGroupDefin
 
     def _connect(self):
         if self._conn:
-            return
+            return self._conn
         self._conn = nixops_aws.ec2_utils.connect(self.region, self.access_key_id)
+        return self._conn
 
     def create(self, defn, check, allow_reboot, allow_recreate):
         def retry_notfound(f):
