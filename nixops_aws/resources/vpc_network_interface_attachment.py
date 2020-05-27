@@ -16,9 +16,13 @@ from nixops.diff import Handler
 from nixops.state import StateDict
 from . import vpc_network_interface
 
+from .types.vpc_network_interface_attachment import VpcNetworkInterfaceAttachmentOptions
+
 
 class VPCNetworkInterfaceAttachmentDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC network interface attachment"""
+
+    config: VpcNetworkInterfaceAttachmentOptions
 
     @classmethod
     def get_type(cls):
