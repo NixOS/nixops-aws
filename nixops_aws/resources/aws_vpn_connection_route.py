@@ -32,7 +32,9 @@ class AWSVPNConnectionRouteDefinition(nixops.resources.ResourceDefinition):
         return "{0}".format(self.get_type())
 
 
-class AWSVPNConnectionRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
+class AWSVPNConnectionRouteState(
+    nixops.resources.DiffEngineResourceState, EC2CommonState
+):
     """State of a VPN connection route"""
 
     state = nixops.util.attr_property(
@@ -74,9 +76,7 @@ class AWSVPNConnectionRouteState(nixops.resources.DiffEngineResourceState, EC2Co
         return {
             r
             for r in resources
-            if isinstance(
-                r, aws_vpn_connection.AWSVPNConnectionState
-            )
+            if isinstance(r, aws_vpn_connection.AWSVPNConnectionState)
         }
 
     def realize_create_vpn_route(self, allow_recreate):
@@ -97,7 +97,9 @@ class AWSVPNConnectionRouteState(nixops.resources.DiffEngineResourceState, EC2Co
         vpn_conn_id = config["vpnConnectionId"]
         if vpn_conn_id.startswith("res-"):
             res = self.depl.get_typed_resource(
-                vpn_conn_id[4:].split(".")[0], "aws-vpn-connection", AWSVPNConnectionState
+                vpn_conn_id[4:].split(".")[0],
+                "aws-vpn-connection",
+                AWSVPNConnectionState,
             )
             vpn_conn_id = res._state["vpnConnectionId"]
 
