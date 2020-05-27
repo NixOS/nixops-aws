@@ -115,10 +115,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
         return {
             r
             for r in resources
-            if isinstance(
-                r,
-                ec2_rds_dbsecurity_group.EC2RDSDbSecurityGroupState,
-            )
+            if isinstance(r, ec2_rds_dbsecurity_group.EC2RDSDbSecurityGroupState,)
         }
 
     def _connect(self):
@@ -269,7 +266,9 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
         for sg in config:
             if sg.startswith("res-"):
                 res = self.depl.get_typed_resource(
-                    sg[4:].split(".")[0], "ec2-rds-dbsecurity-group", EC2RDSDbSecurityGroupState
+                    sg[4:].split(".")[0],
+                    "ec2-rds-dbsecurity-group",
+                    EC2RDSDbSecurityGroupState,
                 )
                 security_groups.append(res._state["groupName"])
             else:
