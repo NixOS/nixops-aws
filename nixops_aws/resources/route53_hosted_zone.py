@@ -12,9 +12,13 @@ import nixops_aws.ec2_utils
 
 # boto3.set_stream_logger(name='botocore')
 
+from .types.route53_hosted_zone import Route53HostedZoneOptions
+
 
 class Route53HostedZoneDefinition(nixops.resources.ResourceDefinition):
     """Definition of an Route53 Hosted Zone."""
+
+    config: Route53HostedZoneOptions
 
     @classmethod
     def get_type(cls):
@@ -26,12 +30,13 @@ class Route53HostedZoneDefinition(nixops.resources.ResourceDefinition):
 
     def __init__(self, name, config):
         nixops.resources.ResourceDefinition.__init__(self, name, config)
-        self.access_key_id = config["accessKeyId"]
-        self.comment = config["comment"]
-        self.private_zone = config["privateZone"]
-        self.zone_name = config["name"]
-        self.associated_vpcs = config["associatedVPCs"]
+        self.access_key_id = config.accessKeyId
+        self.comment = config.comment
+        self.private_zone = config.privateZone
+        self.zone_name = config.name
+        self.associated_vpcs = config.associatedVPCs
         for vpc in self.associated_vpcs:
+            # TODO: Does this work with new types?
             vpc.pop("_module")
 
 
