@@ -50,7 +50,7 @@ class Ec2Options(ResourceOptions):
     instanceProfile: str
     instanceType: str
     keyPair: str
-    physicalProperties: Mapping[str, int]
+    physicalProperties: Mapping[str, Union[int, str, bool]]
     placementGroup: str
     privateKey: str
     region: str
@@ -68,7 +68,7 @@ class Ec2Options(ResourceOptions):
     tenancy: Union[Literal["default"], Literal["dedicated"], Literal["host"]]
     usePrivateIpAddress: bool
     zone: str
-    fileSystems: Mapping[str, FilesystemsOptions]
+    fileSystems: Optional[Mapping[str, FilesystemsOptions]]
 
 
 class EC2MachineOptions(MachineOptions):
