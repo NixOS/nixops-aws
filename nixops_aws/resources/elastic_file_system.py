@@ -109,8 +109,7 @@ class ElasticFileSystemState(
                     if fs["LifeCycleState"] != "creating":
                         raise Exception(
                             "Elastic File System ‘{0}’ is in unexpected state ‘{1}’".format(
-                                fs['FileSystemId'],
-                                fs["LifeCycleState"]
+                                fs["FileSystemId"], fs["LifeCycleState"]
                             )
                         )
 
