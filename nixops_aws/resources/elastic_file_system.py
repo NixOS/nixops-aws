@@ -12,9 +12,13 @@ from . import ec2_common
 from . import efs_common
 import time
 
+from .types.elastic_file_system import ElasticFileSystemOptions
+
 
 class ElasticFileSystemDefinition(nixops.resources.ResourceDefinition):
     """Definition of an AWS Elastic File System."""
+
+    config: ElasticFileSystemOptions
 
     @classmethod
     def get_type(cls):
@@ -25,8 +29,7 @@ class ElasticFileSystemDefinition(nixops.resources.ResourceDefinition):
         return "elasticFileSystems"
 
     def show_type(self):
-        # This will be typed very soon, for now make mypy quiet
-        region = self.config.region  # type: ignore
+        region = self.config.region
         return "{0} [{1}]".format(self.get_type(), region)
 
 
