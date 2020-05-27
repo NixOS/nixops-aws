@@ -27,4 +27,4 @@ jobs:
       - name: Nix
         uses: cachix/install-nix-action@v8
       - name: Black
-        run: 'nix run -I nixpkgs=https://github.com/nixos/nixpkgs-channels/archive/0729b8c55e0dfaf302af4c57546871d47a652048.tar.gz nixpkgs.python3Packages.black -c black --check .'
+        run: 'nix-shell ./shell.nix --run "black --check ."'
