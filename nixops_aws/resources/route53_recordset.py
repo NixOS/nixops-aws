@@ -293,7 +293,9 @@ class Route53RecordSetState(nixops.resources.ResourceState[Route53RecordSetDefin
 
         def resolve_health_check(v):
             if v.startswith("res-"):
-                hc = self.depl.get_typed_resource(v[4:], "aws-route53-health-check", Route53HealthCheckState)
+                hc = self.depl.get_typed_resource(
+                    v[4:], "aws-route53-health-check", Route53HealthCheckState
+                )
                 if not hc.health_check_id:
                     raise Exception(
                         "cannot refer to a health check resource that has not yet been created"
@@ -343,11 +345,7 @@ class Route53RecordSetState(nixops.resources.ResourceState[Route53RecordSetDefin
         return {
             r
             for r in resources
-            if isinstance(
-                r, route53_hosted_zone.Route53HostedZoneState
-            )
-            or isinstance(
-                r, route53_health_check.Route53HealthCheckState
-            )
+            if isinstance(r, route53_hosted_zone.Route53HostedZoneState)
+            or isinstance(r, route53_health_check.Route53HealthCheckState)
             or isinstance(r, nixops.backends.MachineState)
         }
