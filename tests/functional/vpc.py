@@ -60,7 +60,9 @@ class TestVPC(generic_deployment_test.GenericDeploymentTest):
         self.compose_expressions([CFG_SUBNET])
         self.depl.deploy(plan_only=True)
         self.depl.deploy()
-        subnet_resource = self.depl.get_typed_resource("subnet-test", "vpc-subnet", vpc.VPCSubnetState)
+        subnet_resource = self.depl.get_typed_resource(
+            "subnet-test", "vpc-subnet", vpc.VPCSubnetState
+        )
         subnet = subnet_resource.get_client().describe_subnets(
             SubnetIds=[subnet_resource._state["subnetId"]]
         )
