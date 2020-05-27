@@ -9,9 +9,13 @@ import nixops.resources
 import botocore.exceptions
 from . import ec2_common
 
+from .types.ebs_volume import EbsVolumeOptions
+
 
 class EBSVolumeDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EBS volume."""
+
+    config: EbsVolumeOptions
 
     @classmethod
     def get_type(cls):
