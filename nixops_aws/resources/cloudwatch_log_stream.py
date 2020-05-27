@@ -29,7 +29,7 @@ class CloudWatchLogStreamDefinition(nixops.resources.ResourceDefinition):
         return "{0}".format(self.get_type())
 
 
-class CloudWatchLogStreamState(nixops.resources.ResourceState):
+class CloudWatchLogStreamState(nixops.resources.ResourceState[CloudWatchLogStreamDefinition]):
     """State of the cloudwatch log group"""
 
     state = nixops.util.attr_property(

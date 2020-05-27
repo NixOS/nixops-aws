@@ -63,7 +63,7 @@ class EC2SecurityGroupDefinition(nixops.resources.ResourceDefinition):
         return "{0} [{1}]".format(self.get_type(), self.region)
 
 
-class EC2SecurityGroupState(nixops.resources.ResourceState):
+class EC2SecurityGroupState(nixops.resources.ResourceState[EC2SecurityGroupDefinition]):
     """State of an EC2 security group."""
 
     region = nixops.util.attr_property("ec2.region", None)

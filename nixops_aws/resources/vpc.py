@@ -9,6 +9,7 @@ import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
 from nixops.diff import Handler
+import nixops_aws.resources
 
 from .types.vpc import VpcOptions
 

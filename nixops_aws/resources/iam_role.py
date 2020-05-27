@@ -6,6 +6,7 @@ import boto
 import boto.iam
 import nixops.util
 import nixops.resources
+import nixops_aws.resources
 import nixops_aws.ec2_utils
 from boto.exception import BotoServerError
 
@@ -44,7 +45,7 @@ class IAMRoleDefinition(nixops.resources.ResourceDefinition):
         return "{0}".format(self.get_type())
 
 
-class IAMRoleState(nixops.resources.ResourceState):
+class IAMRoleState(nixops.resources.ResourceState[IAMRoleDefinition]):
     """State of an IAM Role."""
 
     state = nixops.util.attr_property(

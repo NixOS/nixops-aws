@@ -27,7 +27,7 @@ class ElasticIPDefinition(nixops.resources.ResourceDefinition):
         return "{0}".format(self.get_type())
 
 
-class ElasticIPState(nixops.resources.ResourceState):
+class ElasticIPState(nixops.resources.ResourceState[ElasticIPDefinition]):
     """State of an EC2 elastic IP address."""
 
     state = nixops.util.attr_property(

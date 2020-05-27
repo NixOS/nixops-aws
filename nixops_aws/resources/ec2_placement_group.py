@@ -34,7 +34,7 @@ class EC2PlacementGroupDefinition(nixops.resources.ResourceDefinition):
         return "{0} [{1}]".format(self.get_type(), self.region)
 
 
-class EC2PlacementGroupState(nixops.resources.ResourceState):
+class EC2PlacementGroupState(nixops.resources.ResourceState[EC2PlacementGroupDefinition]):
     """State of an EC2 placement group."""
 
     region = nixops.util.attr_property("ec2.region", None)

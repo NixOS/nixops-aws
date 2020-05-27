@@ -53,7 +53,7 @@ class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
         return "{0} [{1}]".format(self.get_type(), self.region)
 
 
-class EC2RDSDbInstanceState(nixops.resources.ResourceState):
+class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefinition]):
     """State of an RDS Database Instance."""
 
     region = nixops.util.attr_property("ec2.region", None)

@@ -51,7 +51,7 @@ class Route53RecordSetDefinition(nixops.resources.ResourceDefinition):
         return "{0}".format(self.get_type())
 
 
-class Route53RecordSetState(nixops.resources.ResourceState):
+class Route53RecordSetState(nixops.resources.ResourceState[Route53RecordSetDefinition]):
     """State of a Route53 Recordset."""
 
     state = nixops.util.attr_property(

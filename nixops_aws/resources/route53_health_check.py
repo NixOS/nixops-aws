@@ -52,7 +52,7 @@ class Route53HealthCheckDefinition(nixops.resources.ResourceDefinition):
         self.health_threshold = config.healthThreshold
 
 
-class Route53HealthCheckState(nixops.resources.ResourceState):
+class Route53HealthCheckState(nixops.resources.ResourceState[Route53HealthCheckDefinition]):
     """State of a Route53 Health Check."""
 
     state = nixops.util.attr_property(

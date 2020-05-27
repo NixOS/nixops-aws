@@ -44,7 +44,7 @@ class S3BucketDefinition(nixops.resources.ResourceDefinition):
         return "{0} [{1}]".format(self.get_type(), self.region)
 
 
-class S3BucketState(nixops.resources.ResourceState):
+class S3BucketState(nixops.resources.ResourceState[S3BucketDefinition]):
     """State of an S3 bucket."""
 
     state = nixops.util.attr_property(
