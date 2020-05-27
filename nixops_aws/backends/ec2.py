@@ -21,6 +21,7 @@ import datetime
 from typing import Dict, Tuple, Any, Union, List
 from nixops_aws.resources.ec2_common import EC2CommonState
 from nixops_aws.resources.elastic_ip import ElasticIPState
+from .options import EC2MachineOptions
 
 
 class EC2InstanceDisappeared(Exception):
@@ -37,54 +38,63 @@ class EC2InstanceDisappeared(Exception):
 class EC2Definition(MachineDefinition):
     """Definition of an EC2 machine."""
 
+    config: EC2MachineOptions
+
     @classmethod
     def get_type(cls):
         return "ec2"
 
     def __init__(self, name, config):
-        MachineDefinition.__init__(self, name, config)
+        super().__init__(name, config)
 
-        self.access_key_id = config["ec2"]["accessKeyId"]
-        self.region = config["ec2"]["region"]
-        self.zone = config["ec2"]["zone"]
-        self.tenancy = config["ec2"]["tenancy"]
-        self.ami = config["ec2"]["ami"]
+        self.access_key_id = self.config.ec2.accessKeyId
+        self.region = self.config.ec2.region
+        self.zone = self.config.ec2.zone
+        self.tenancy = self.config.ec2.tenancy
+        self.ami = self.config.ec2.ami
         if self.ami == "":
             raise Exception("no AMI defined for EC2 machine ‘{0}’".format(self.name))
-        self.instance_type = config["ec2"]["instanceType"]
-        self.key_pair = config["ec2"]["keyPair"]
-        self.private_key = config["ec2"]["privateKey"]
-        self.security_groups = config["ec2"]["securityGroups"]
-        self.placement_group = config["ec2"]["placementGroup"]
-        self.instance_profile = config["ec2"]["instanceProfile"]
-        self.tags = config["ec2"]["tags"]
-        self.root_disk_size = config["ec2"]["ebsInitialRootDiskSize"]
-        self.spot_instance_price = config["ec2"]["spotInstancePrice"]
-        self.spot_instance_timeout = config["ec2"]["spotInstanceTimeout"]
-        self.spot_instance_request_type = config["ec2"]["spotInstanceRequestType"]
-        self.spot_instance_interruption_behavior = config["ec2"][
-            "spotInstanceInterruptionBehavior"
-        ]
-        self.ebs_optimized = config["ec2"]["ebsOptimized"]
-        self.subnet_id = config["ec2"]["subnetId"]
-        self.associate_public_ip_address = config["ec2"]["associatePublicIpAddress"]
-        self.use_private_ip_address = config["ec2"]["usePrivateIpAddress"]
-        self.source_dest_check = config["ec2"]["sourceDestCheck"]
-        self.security_group_ids = config["ec2"]["securityGroupIds"]
+        self.instance_type = self.config.ec2.instanceType
+        self.key_pair = self.config.ec2.keyPair
+        self.private_key = self.config.ec2.privateKey
+        self.security_groups = self.config.ec2.securityGroups
+        self.placement_group = self.config.ec2.placementGroup
+        self.instance_profile = self.config.ec2.instanceProfile
+        self.tags = self.config.ec2.tags
+        self.root_disk_size = self.config.ec2.ebsInitialRootDiskSize
+        self.spot_instance_price = self.config.ec2.spotInstancePrice
+        self.spot_instance_timeout = self.config.ec2.spotInstanceTimeout
+        self.spot_instance_request_type = self.config.ec2.spotInstanceRequestType
+        self.spot_instance_interruption_behavior = (
+            self.config.ec2.spotInstanceInterruptionBehavior
+        )
+        self.ebs_optimized = self.config.ec2.ebsOptimized
+        self.subnet_id = self.config.ec2.subnetId
+        self.associate_public_ip_address = self.config.ec2.associatePublicIpAddress
+        self.use_private_ip_address = self.config.ec2.usePrivateIpAddress
+        self.source_dest_check = self.config.ec2.sourceDestCheck
+        self.security_group_ids = self.config.ec2.securityGroupIds
 
         # convert sd to xvd because they are equal from aws perspective
         self.block_device_mapping = {
-            device_name_user_entered_to_stored(k): v
-            for k, v in config["ec2"]["blockDeviceMapping"].items()
+            device_name_user_entered_to_stored(k): dict(v)
+            for k, v in self.config.ec2.blockDeviceMapping.items()
         }
 
-        self.elastic_ipv4 = config["ec2"]["elasticIPv4"]
+        self.elastic_ipv4 = self.config.ec2.elasticIPv4
 
-        self.dns_hostname = config["route53"]["hostName"].lower()
-        self.dns_ttl = config["route53"]["ttl"]
-        self.route53_access_key_id = config["route53"]["accessKeyId"]
-        self.route53_use_public_dns_name = config["route53"]["usePublicDNSName"]
-        self.route53_private = config["route53"]["private"]
+        # How is this supposed to work??????
+        # self.dns_hostname = config.route53.hostName.lower()
+        # self.dns_ttl = config.route53.ttl
+        # self.route53_access_key_id = config.route53.accessKeyId
+        # self.route53_use_public_dns_name = config.route53.usePublicDNSName
+        # self.route53_private = config.route53.private
+
+        self.dns_hostname: Any = None
+        self.dns_ttl: Any = None
+        self.route53_access_key_id: Any = None
+        self.route53_use_public_dns_name: Any = None
+        self.route53_private: Any = None
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region or self.zone or "???")
@@ -1481,7 +1491,7 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
                 self.instance_profile = defn.instance_profile
 
         # Reapply tags if they have changed.
-        common_tags = defn.tags
+        common_tags = dict(defn.tags)  # Make mutable
         if defn.owners != []:
             common_tags["Owners"] = ", ".join(defn.owners)
         self.update_tags(self.vm_id, user_tags=common_tags, check=check)
