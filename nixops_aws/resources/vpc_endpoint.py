@@ -12,9 +12,13 @@ import nixops_aws.ec2_utils
 from .vpc import VPCState
 from .vpc_route_table import VPCRouteTableState
 
+from .types.vpc_endpoint import VpcEndpointOptions
+
 
 class VPCEndpointDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC endpoint."""
+
+    config: VpcEndpointOptions
 
     @classmethod
     def get_type(cls):
