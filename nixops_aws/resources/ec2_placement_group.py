@@ -7,9 +7,13 @@ import nixops.resources
 import nixops.util
 import nixops_aws.ec2_utils
 
+from .types.ec2_placement_group import Ec2PlacementGroupOptions
+
 
 class EC2PlacementGroupDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 placement group."""
+
+    config: Ec2PlacementGroupOptions
 
     @classmethod
     def get_type(cls):
@@ -21,10 +25,10 @@ class EC2PlacementGroupDefinition(nixops.resources.ResourceDefinition):
 
     def __init__(self, name, config):
         super(EC2PlacementGroupDefinition, self).__init__(name, config)
-        self.placement_group_name = config['name']
-        self.placement_group_strategy = config['strategy']
-        self.region = config['region']
-        self.access_key_id = config['accessKeyId']
+        self.placement_group_name = config.name
+        self.placement_group_strategy = config.strategy
+        self.region = config.region
+        self.access_key_id = config.accessKeyId
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
