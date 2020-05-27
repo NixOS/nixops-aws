@@ -79,9 +79,7 @@ class VPCRouteTableAssociationState(
 
     def create_after(self, resources, defn):
         return {
-            r
-            for r in resources
-            if isinstance(r, vpc_route_table.VPCRouteTableState)
+            r for r in resources if isinstance(r, vpc_route_table.VPCRouteTableState)
         }
 
     def realize_associate_route_table(self, allow_recreate):
