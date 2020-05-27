@@ -74,8 +74,7 @@ class VPCEgressOnlyInternetGatewayState(
         return {
             r
             for r in resources
-            if isinstance(r, vpc.VPCState)
-            or isinstance(r, elastic_ip.ElasticIPState)
+            if isinstance(r, vpc.VPCState) or isinstance(r, elastic_ip.ElasticIPState)
         }
 
     def realize_create_gtw(self, allow_recreate):
@@ -96,7 +95,9 @@ class VPCEgressOnlyInternetGatewayState(
 
         vpc_id = config["vpcId"]
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc", VPCState)
+            res = self.depl.get_typed_resource(
+                vpc_id[4:].split(".")[0], "vpc", VPCState
+            )
             vpc_id = res._state["vpcId"]
 
         self.log(
