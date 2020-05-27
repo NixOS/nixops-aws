@@ -223,12 +223,15 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
         if self._ssh_private_key_file:
             return self._ssh_private_key_file
         for r in self.depl.active_resources.values():
-            if (
-                isinstance(r, nixops_aws.resources.ec2_keypair.EC2KeyPairState)
-                and r.state == nixops_aws.resources.ec2_keypair.EC2KeyPairState.UP
-                and r.keypair_name == self.key_pair
-            ):
-                return self.write_ssh_private_key(r.private_key)
+            if type(r) is not nixops_aws.resources.ec2_keypair.EC2KeyPairState:
+                continue
+
+            kp_r: nixops_aws.resources.ec2_keypair.EC2KeyPairState
+            kp_r = r  # type: ignore
+
+            if (kp_r.state == nixops_aws.resources.ec2_keypair.EC2KeyPairState.UP
+                and kp_r.keypair_name == self.key_pair):
+                return self.write_ssh_private_key(kp_r.private_key)
         return None
 
     def get_ssh_flags(self, *args, **kwargs):
