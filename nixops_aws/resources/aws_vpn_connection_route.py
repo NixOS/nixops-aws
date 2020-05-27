@@ -12,9 +12,13 @@ from nixops.state import StateDict
 
 from .aws_vpn_connection import AWSVPNConnectionState
 
+from .types.aws_vpn_connection_route import AwsVpnConnectionRouteOptions
+
 
 class AWSVPNConnectionRouteDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPN connection route"""
+
+    config: AwsVpnConnectionRouteOptions
 
     @classmethod
     def get_type(cls):
