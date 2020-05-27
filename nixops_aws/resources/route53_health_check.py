@@ -14,9 +14,13 @@ from nixops_aws.backends.ec2 import EC2State
 
 # boto3.set_stream_logger(name='botocore')
 
+from .types.route53_health_check import Route53HealthCheckOptions
+
 
 class Route53HealthCheckDefinition(nixops.resources.ResourceDefinition):
     """Definition of an Route53 Health Check."""
+
+    config: Route53HealthCheckOptions
 
     @classmethod
     def get_type(cls):
@@ -28,24 +32,24 @@ class Route53HealthCheckDefinition(nixops.resources.ResourceDefinition):
 
     def __init__(self, name, config):
         nixops.resources.ResourceDefinition.__init__(self, name, config)
-        self.access_key_id = config["accessKeyId"]
-        self.ip_address = config["ipAddress"]
-        self.port = config["port"]
-        self.type = config["type"]
-        self.resource_path = config["resourcePath"]
-        self.fqdn = config["fullyQualifiedDomainName"]
-        self.search_string = config["searchString"]
-        self.request_interval = config["requestInterval"]
-        self.failure_threshold = config["failureThreshold"]
-        self.measure_latency = config["measureLatency"]
-        self.inverted = config["inverted"]
-        self.enable_sni = config["enableSNI"]
-        self.regions = config["regions"]
-        self.alarm_indentifier_region = config["alarmIdentifier"]["region"]
-        self.alarm_indentifier_name = config["alarmIdentifier"]["name"]
-        self.insufficient_data_health_status = config["insufficientDataHealthStatus"]
-        self.child_health_checks = config["childHealthChecks"]
-        self.health_threshold = config["healthThreshold"]
+        self.access_key_id = config.accessKeyId
+        self.ip_address = config.ipAddress
+        self.port = config.port
+        self.type = config.type
+        self.resource_path = config.resourcePath
+        self.fqdn = config.fullyQualifiedDomainName
+        self.search_string = config.searchString
+        self.request_interval = config.requestInterval
+        self.failure_threshold = config.failureThreshold
+        self.measure_latency = config.measureLatency
+        self.inverted = config.inverted
+        self.enable_sni = config.enableSNI
+        self.regions = config.regions
+        self.alarm_indentifier_region = config.alarmIdentifier.region
+        self.alarm_indentifier_name = config.alarmIdentifier.name
+        self.insufficient_data_health_status = config.insufficientDataHealthStatus
+        self.child_health_checks = config.childHealthChecks
+        self.health_threshold = config.healthThreshold
 
 
 class Route53HealthCheckState(nixops.resources.ResourceState):
