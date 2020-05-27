@@ -7,9 +7,13 @@ import nixops.resources
 import nixops_aws.ec2_utils
 import botocore.exceptions
 
+from .types.elastic_ip import ElasticIpOptions
+
 
 class ElasticIPDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 elastic IP address."""
+
+    config: ElasticIpOptions
 
     @classmethod
     def get_type(cls):
