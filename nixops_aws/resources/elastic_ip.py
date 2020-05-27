@@ -91,7 +91,6 @@ class ElasticIPState(nixops.resources.ResourceState[ElasticIPDefinition]):
 
         if self.state != self.UP:
 
-
             is_vpc = defn.config["vpc"]
             domain = "vpc" if is_vpc else "standard"
 
@@ -100,7 +99,9 @@ class ElasticIPState(nixops.resources.ResourceState[ElasticIPDefinition]):
                     defn.config["region"], domain
                 )
             )
-            address = self._connect_boto3(defn.config["region"]).allocate_address(Domain=domain)
+            address = self._connect_boto3(defn.config["region"]).allocate_address(
+                Domain=domain
+            )
 
             # FIXME: if we crash before the next step, we forget the
             # address we just created.  Doesn't seem to be anything we
@@ -118,7 +119,9 @@ class ElasticIPState(nixops.resources.ResourceState[ElasticIPDefinition]):
 
     def describe_eip(self):
         try:
-            response = self._connect_boto3(self.region).describe_addresses(PublicIps=[self.public_ipv4])
+            response = self._connect_boto3(self.region).describe_addresses(
+                PublicIps=[self.public_ipv4]
+            )
         except botocore.exceptions.ClientError as error:
             if error.response["Error"]["Code"] == "InvalidAddress.NotFound":
                 self.warn("public IP {} was deleted".format(self.public_ipv4))
@@ -152,9 +155,13 @@ class ElasticIPState(nixops.resources.ResourceState[ElasticIPDefinition]):
                         )
                 self.log("releasing elastic IP {}".format(eip["PublicIp"]))
                 if vpc == True:
-                    self._connect_boto3(self.region).release_address(AllocationId=eip["AllocationId"])
+                    self._connect_boto3(self.region).release_address(
+                        AllocationId=eip["AllocationId"]
+                    )
                 else:
-                    self._connect_boto3(self.region).release_address(PublicIp=eip["PublicIp"])
+                    self._connect_boto3(self.region).release_address(
+                        PublicIp=eip["PublicIp"]
+                    )
 
             with self.depl._db:
                 self.state = self.MISSING
