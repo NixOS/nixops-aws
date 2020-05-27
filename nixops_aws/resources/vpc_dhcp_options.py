@@ -89,9 +89,7 @@ class VPCDhcpOptionsState(nixops.resources.DiffEngineResourceState, EC2CommonSta
         return "resources.vpcDhcpOptions."
 
     def create_after(self, resources, defn):
-        return {
-            r for r in resources if isinstance(r, vpc.VPCState)
-        }
+        return {r for r in resources if isinstance(r, vpc.VPCState)}
 
     def get_dhcp_config_option(self, key, values):
         val = values if isinstance(values, list) else [str(values)]
@@ -127,7 +125,9 @@ class VPCDhcpOptionsState(nixops.resources.DiffEngineResourceState, EC2CommonSta
         self._state["region"] = config["region"]
         vpc_id = config["vpcId"]
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc", VPCState)
+            res = self.depl.get_typed_resource(
+                vpc_id[4:].split(".")[0], "vpc", VPCState
+            )
             vpc_id = res._state["vpcId"]
 
         dhcp_config = self.generate_dhcp_configuration(config)
