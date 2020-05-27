@@ -99,7 +99,9 @@ class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonS
         customer_gtw_id = config["customerGatewayId"]
         if customer_gtw_id.startswith("res-"):
             res_vpc_customer_gw = self.depl.get_typed_resource(
-                customer_gtw_id[4:].split(".")[0], "vpc-customer-gateway", VPCCustomerGatewayState
+                customer_gtw_id[4:].split(".")[0],
+                "vpc-customer-gateway",
+                VPCCustomerGatewayState,
             )
             customer_gtw_id = res_vpc_customer_gw._state["customerGatewayId"]
 
