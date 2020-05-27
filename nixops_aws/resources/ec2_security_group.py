@@ -10,9 +10,13 @@ from . import vpc, elastic_ip
 from .vpc import VPCState
 from .elastic_ip import ElasticIPState
 
+from .types.ec2_security_group import Ec2SecurityGroupOptions
+
 
 class EC2SecurityGroupDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 security group."""
+
+    config: Ec2SecurityGroupOptions
 
     @classmethod
     def get_type(cls):
@@ -24,40 +28,33 @@ class EC2SecurityGroupDefinition(nixops.resources.ResourceDefinition):
 
     def __init__(self, name, config):
         super(EC2SecurityGroupDefinition, self).__init__(name, config)
-        self.security_group_name = config["name"]
-        self.security_group_description = config["description"]
-        self.region = config["region"]
-        self.access_key_id = config["accessKeyId"]
+        self.security_group_name = config.name
+        self.security_group_description = config.description
+        self.region = config.region
+        self.access_key_id = config.accessKeyId
 
         self.vpc_id = None
-        if config.get("vpcId"):
-            self.vpc_id = config.get("vpcId")
+        if config.vpcId:
+            self.vpc_id = config.vpcId
 
         self.security_group_rules = []
-        for rule in config["rules"]:
-            ip_protocol = rule['protocol']
+        for rule in config.rules:
+            ip_protocol = rule.protocol
             if ip_protocol == "icmp":
-                from_port = int(
-                    rule["typeNumber"]
-                )
-                to_port = int(
-                    rule["codeNumber"]
-                )
+                from_port = rule.typeNumber
+                to_port = rule.codeNumber
             else:
-                from_port = int(
-                    rule["fromPort"]
-                )
-                to_port = int(
-                    rule["toPort"]
-                )
-            cidr_ip = config.get('sourceIp')
+                from_port = rule.fromPort
+                to_port = rule.toPort
+
+            cidr_ip = config.sourceIp
             if cidr_ip is not None:
                 self.security_group_rules.append(
                     [ip_protocol, from_port, to_port, cidr_ip]
                 )
             else:
-                group_name = config["sourceGroup"]["groupName"]
-                owner_id = config["sourceGroup"]["ownerId"]
+                group_name = config.sourceGroup.groupName
+                owner_id = config.sourceGroup.ownerId
                 self.security_group_rules.append(
                     [ip_protocol, from_port, to_port, group_name, owner_id]
                 )
