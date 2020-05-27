@@ -14,9 +14,13 @@ from . import vpc_subnet
 from .vpc_subnet import VPCSubnetState
 from .ec2_security_group import EC2SecurityGroupState
 
+from .types.vpc_network_interface import VpcNetworkInterfaceOptions
+
 
 class VPCNetworkInterfaceDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC network interface"""
+
+    config: VpcNetworkInterfaceOptions
 
     @classmethod
     def get_type(cls):
