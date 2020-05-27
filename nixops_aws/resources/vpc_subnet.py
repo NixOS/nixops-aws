@@ -12,8 +12,13 @@ from nixops.diff import Handler
 from . import vpc
 from .vpc import VPCState
 
+from .types.vpc_subnet import VpcSubnetOptions
+
+
 class VPCSubnetDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC subnet."""
+
+    config: VpcSubnetOptions
 
     @classmethod
     def get_type(cls):
