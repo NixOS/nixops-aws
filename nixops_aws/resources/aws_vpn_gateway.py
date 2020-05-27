@@ -8,10 +8,13 @@ import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
 from .vpc import VPCState
+from .types.aws_vpn_gateway import AwsVpnGatewayOptions
 
 
 class AWSVPNGatewayDefinition(nixops.resources.ResourceDefinition):
     """Definition of an AWS VPN gateway."""
+
+    config: AwsVpnGatewayOptions
 
     @classmethod
     def get_type(cls):
