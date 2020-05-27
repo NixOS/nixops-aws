@@ -11,22 +11,7 @@ import nixops_aws.ec2_utils
 from typing import Union
 from typing_extensions import Literal
 
-class S3BucketWebsiteOptions(nixops.resources.ResourceOptions):
-    enabled: bool
-    suffix: str
-    errorDocument: str
-
-
-class S3BucketOptions(nixops.resources.ResourceOptions):
-    name: str
-    region: str
-    accessKeyId: str
-    arn: str
-    policy: str
-    lifeCycle: str
-    versioning: Union[Literal["Suspended"], Literal["Enabled"]]
-    persistOnDestroy: bool
-    website: S3BucketWebsiteOptions
+from .types.s3_bucket import S3BucketOptions
 
 
 class S3BucketDefinition(nixops.resources.ResourceDefinition):
