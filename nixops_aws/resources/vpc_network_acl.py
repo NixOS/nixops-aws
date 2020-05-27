@@ -13,9 +13,13 @@ from . import vpc, vpc_subnet
 from .vpc import VPCState
 from .vpc_subnet import VPCSubnetState
 
+from .types.vpc_network_acl import VpcNetworkAclOptions
+
 
 class VPCNetworkAclDefinition(nixops.resources.ResourceDefinition):
     """definition of a vpc network ACL."""
+
+    config: VpcNetworkAclOptions
 
     @classmethod
     def get_type(cls):
