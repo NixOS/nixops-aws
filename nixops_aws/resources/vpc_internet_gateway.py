@@ -75,8 +75,7 @@ class VPCInternetGatewayState(nixops.resources.DiffEngineResourceState, EC2Commo
         return {
             r
             for r in resources
-            if isinstance(r, vpc.VPCState)
-            or isinstance(r, elastic_ip.ElasticIPState)
+            if isinstance(r, vpc.VPCState) or isinstance(r, elastic_ip.ElasticIPState)
         }
 
     def realize_create_gtw(self, allow_recreate):
@@ -97,7 +96,9 @@ class VPCInternetGatewayState(nixops.resources.DiffEngineResourceState, EC2Commo
 
         vpc_id = config["vpcId"]
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc", VPCState)
+            res = self.depl.get_typed_resource(
+                vpc_id[4:].split(".")[0], "vpc", VPCState
+            )
             vpc_id = res._state["vpcId"]
 
         self.log("creating internet gateway in region {}".format(self._state["region"]))
