@@ -9,8 +9,13 @@ import nixops.resources
 import nixops_aws.ec2_utils
 from . import cloudwatch_log_group
 
+from .types.cloudwatch_log_stream import CloudwatchLogStreamOptions
+
+
 class CloudWatchLogStreamDefinition(nixops.resources.ResourceDefinition):
     """Definition of a cloudwatch log stream."""
+
+    config: CloudwatchLogStreamOptions
 
     @classmethod
     def get_type(cls):
