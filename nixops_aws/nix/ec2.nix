@@ -421,7 +421,7 @@ in
     deployment.ec2.physicalProperties = mkOption {
       default = {};
       example = { cores = 4; memory = 14985; };
-      type = types.attrsOf types.int;
+      type = types.attrsOf (types.oneOf [ types.int types.str types.bool ]);
       description = ''
         Attribute set containing number of CPUs and memory available to
         the machine.
@@ -474,7 +474,7 @@ in
     };
 
     fileSystems = mkOption {
-      type = with types; attrsOf (submodule fileSystemsOptions);
+      type = with types; loaOf (submodule fileSystemsOptions);
     };
 
   };
