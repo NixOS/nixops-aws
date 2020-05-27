@@ -83,9 +83,7 @@ class VPCNetworkInterfaceAttachmentState(
         return {
             r
             for r in resources
-            if isinstance(
-                r, vpc_network_interface.VPCNetworkInterfaceState
-            )
+            if isinstance(r, vpc_network_interface.VPCNetworkInterfaceState)
             or isinstance(r, EC2State)
         }
 
@@ -136,13 +134,17 @@ class VPCNetworkInterfaceAttachmentState(
         self._state["region"] = config["region"]
         vm_id = config["instanceId"]
         if vm_id.startswith("res-"):
-            ec2_res = self.depl.get_typed_resource(vm_id[4:].split(".")[0], "ec2", EC2State)
+            ec2_res = self.depl.get_typed_resource(
+                vm_id[4:].split(".")[0], "ec2", EC2State
+            )
             vm_id = ec2_res.vm_id
 
         eni_id = config["networkInterfaceId"]
         if eni_id.startswith("res-"):
             vpc_network_interface_res = self.depl.get_typed_resource(
-                eni_id[4:].split(".")[0], "vpc-network-interface", VPCNetworkInterfaceState
+                eni_id[4:].split(".")[0],
+                "vpc-network-interface",
+                VPCNetworkInterfaceState,
             )
             eni_id = vpc_network_interface_res._state["networkInterfaceId"]
 
@@ -181,7 +183,8 @@ class VPCNetworkInterfaceAttachmentState(
                 elif response["Attachment"]["Status"] != "detaching":
                     raise Exception(
                         "eni attachment {0} in an unexpected state {1}".format(
-                            self._state['networkInterfaceId'], response["Attachment"]["Status"]
+                            self._state["networkInterfaceId"],
+                            response["Attachment"]["Status"],
                         )
                     )
                 self.log_continue(".")
