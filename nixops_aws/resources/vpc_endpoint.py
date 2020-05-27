@@ -102,7 +102,9 @@ class VPCEndpointState(nixops.resources.DiffEngineResourceState, EC2CommonState)
         vpc_id = config["vpcId"]
 
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc", VPCState)
+            res = self.depl.get_typed_resource(
+                vpc_id[4:].split(".")[0], "vpc", VPCState
+            )
             vpc_id = res._state["vpcId"]
 
         if not self._state.get("creationToken", None):
