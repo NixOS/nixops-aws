@@ -9,7 +9,13 @@ from nixops_aws.resources.ec2_common import EC2CommonState
 from nixops.diff import Handler
 from typing import Optional
 
+from .types.ec2_rds_dbsecurity_group import Ec2RdsDbsecurityGroupOptions
+
+
 class EC2RDSDbSecurityGroupDefinition(nixops.resources.ResourceDefinition):
+
+    config: Ec2RdsDbsecurityGroupOptions
+
     @classmethod
     def get_type(cls):
         return "ec2-rds-dbsecurity-group"
