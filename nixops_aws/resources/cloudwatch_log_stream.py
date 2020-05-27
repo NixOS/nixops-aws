@@ -29,7 +29,9 @@ class CloudWatchLogStreamDefinition(nixops.resources.ResourceDefinition):
         return "{0}".format(self.get_type())
 
 
-class CloudWatchLogStreamState(nixops.resources.ResourceState[CloudWatchLogStreamDefinition]):
+class CloudWatchLogStreamState(
+    nixops.resources.ResourceState[CloudWatchLogStreamDefinition]
+):
     """State of the cloudwatch log group"""
 
     state = nixops.util.attr_property(
@@ -132,9 +134,7 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState[CloudWatchLogStrea
         return {
             r
             for r in resources
-            if isinstance(
-                r, cloudwatch_log_group.CloudWatchLogGroupState
-            )
+            if isinstance(r, cloudwatch_log_group.CloudWatchLogGroupState)
         }
 
     def create(self, defn, check, allow_reboot, allow_recreate):
