@@ -10,9 +10,13 @@ from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
 from nixops.diff import Handler
 
+from .types.vpc import VpcOptions
+
 
 class VPCDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC."""
+
+    config: VpcOptions
 
     @classmethod
     def get_type(cls):
