@@ -8,7 +8,8 @@ import nixops.deployment
 import nixops.resources
 import nixops_aws.ec2_utils
 from nixops.state import StateDict
-from typing import Optional
+from typing import Optional, Dict
+from boto.ec2.connection import EC2Connection
 
 
 class EC2CommonState:
@@ -16,6 +17,10 @@ class EC2CommonState:
     name: str
     _state: StateDict
     _client: Optional[mypy_boto3_ec2.EC2Client]
+
+    # Not always available
+    _conn: EC2Connection
+    access_key_id: Optional[str]
 
     COMMON_EC2_RESERVED = ["accessKeyId", "ec2.tags"]
 
