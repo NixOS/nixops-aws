@@ -7,9 +7,13 @@ import nixops.resources
 import nixops_aws.ec2_utils
 from nixops_aws.backends import ec2
 
+from .types.ec2_keypair import Ec2KeypairOptions
+
 
 class EC2KeyPairDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 key pair."""
+
+    config: Ec2KeypairOptions
 
     @classmethod
     def get_type(cls):
@@ -21,9 +25,9 @@ class EC2KeyPairDefinition(nixops.resources.ResourceDefinition):
 
     def __init__(self, name, config):
         nixops.resources.ResourceDefinition.__init__(self, name, config)
-        self.keypair_name = config['name']
-        self.region = config['region']
-        self.access_key_id = config['accessKeyId']
+        self.keypair_name = config.name
+        self.region = config.region
+        self.access_key_id = config.accessKeyId
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
