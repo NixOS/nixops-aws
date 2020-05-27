@@ -17,9 +17,13 @@ from . import vpc_subnet, elastic_ip
 from .elastic_ip import ElasticIPState
 from .vpc_subnet import VPCSubnetState
 
+from .types.vpc_nat_gateway import VpcNatGatewayOptions
+
 
 class VPCNatGatewayDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC NAT gateway"""
+
+    config: VpcNatGatewayOptions
 
     @classmethod
     def get_type(cls):
