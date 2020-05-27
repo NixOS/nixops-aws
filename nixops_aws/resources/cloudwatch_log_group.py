@@ -8,9 +8,13 @@ import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
 
+from .types.cloudwatch_log_group import CloudwatchLogGroupOptions
+
 
 class CloudWatchLogGroupDefinition(nixops.resources.ResourceDefinition):
     """Definition of a cloudwatch log group."""
+
+    config: CloudwatchLogGroupOptions
 
     @classmethod
     def get_type(cls):
