@@ -14,9 +14,13 @@ from . import vpc_route_table
 from .vpc_route_table import VPCRouteTableState
 from .vpc_subnet import VPCSubnetState
 
+from .types.vpc_route_table_association import VpcRouteTableAssociationOptions
+
 
 class VPCRouteTableAssociationDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC route table association"""
+
+    config: VpcRouteTableAssociationOptions
 
     @classmethod
     def get_type(cls):
