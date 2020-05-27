@@ -14,9 +14,13 @@ from . import vpc, vpc_subnet
 from .vpc import VPCState
 from .aws_vpn_gateway import AWSVPNGatewayState
 
+from .types.vpc_route_table import VpcRouteTableOptions
+
 
 class VPCRouteTableDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC route table"""
+
+    config: VpcRouteTableOptions
 
     @classmethod
     def get_type(cls):
