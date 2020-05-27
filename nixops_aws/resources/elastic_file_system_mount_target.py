@@ -152,8 +152,7 @@ class ElasticFileSystemMountTargetState(
                     if mt["LifeCycleState"] != "creating":
                         raise Exception(
                             "Elastic File System mount target ‘{0}’ is in unexpected state ‘{1}’".format(
-                                res["MountTargetId"],
-                                mt["LifeCycleState"]
+                                res["MountTargetId"], mt["LifeCycleState"]
                             )
                         )
 
