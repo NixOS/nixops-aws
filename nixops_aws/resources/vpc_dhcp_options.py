@@ -14,9 +14,13 @@ from nixops.state import StateDict
 from nixops.diff import Handler
 from .vpc import VPCState
 
+from .types.vpc_dhcp_options import VpcDhcpOptionsOptions
+
 
 class VPCDhcpOptionsDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC DHCP options."""
+
+    config: VpcDhcpOptionsOptions
 
     @classmethod
     def get_type(cls):
