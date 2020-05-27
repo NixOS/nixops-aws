@@ -48,7 +48,9 @@ class CloudwatchMetricAlarmDefinition(nixops.resources.ResourceDefinition):
         self.datapoints_to_alarm = config.datapointsToAlarm
 
 
-class CloudwatchMetricAlarmState(nixops.resources.ResourceState[CloudwatchMetricAlarmDefinition]):
+class CloudwatchMetricAlarmState(
+    nixops.resources.ResourceState[CloudwatchMetricAlarmDefinition]
+):
     """State of a Cloudwatch Metric Alarm."""
 
     state = nixops.util.attr_property(
