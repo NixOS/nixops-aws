@@ -94,9 +94,7 @@ class VPCRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
             r
             for r in resources
             if isinstance(r, vpc_route_table.VPCRouteTableState)
-            or isinstance(
-                r, vpc_internet_gateway.VPCInternetGatewayState
-            )
+            or isinstance(r, vpc_internet_gateway.VPCInternetGatewayState)
             or isinstance(r, vpc_nat_gateway.VPCNatGatewayState)
         }
 
