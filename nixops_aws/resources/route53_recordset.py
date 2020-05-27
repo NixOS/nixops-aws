@@ -14,9 +14,13 @@ from nixops_aws.backends.ec2 import EC2State
 
 # boto3.set_stream_logger(name='botocore')
 
+from .types.route53_recordset import Route53RecordsetOptions
+
 
 class Route53RecordSetDefinition(nixops.resources.ResourceDefinition):
     """Definition of a Route53 RecordSet."""
+
+    config: Route53RecordsetOptions
 
     @classmethod
     def get_type(cls):
@@ -28,20 +32,20 @@ class Route53RecordSetDefinition(nixops.resources.ResourceDefinition):
 
     def __init__(self, name, config):
         nixops.resources.ResourceDefinition.__init__(self, name, config)
-        self.access_key_id = config["accessKeyId"]
+        self.access_key_id = config.accessKeyId
 
-        self.zone_id = config["zoneId"]
-        self.set_identifier = config["setIdentifier"]
-        self.weight = config["weight"]
+        self.zone_id = config.zoneId
+        self.set_identifier = config.setIdentifier
+        self.weight = config.weight
 
-        self.zone_name = config["zoneName"]
-        self.domain_name = config["domainName"]
+        self.zone_name = config.zoneName
+        self.domain_name = config.domainName
 
-        self.ttl = config["ttl"]
-        self.routing_policy = config["routingPolicy"]
-        self.record_type = config["recordType"]
-        self.record_values = config["recordValues"]
-        self.health_check_id = config["healthCheckId"]
+        self.ttl = config.ttl
+        self.routing_policy = config.routingPolicy
+        self.record_type = config.recordType
+        self.record_values = config.recordValues
+        self.health_check_id = config.healthCheckId
 
     def show_type(self):
         return "{0}".format(self.get_type())
