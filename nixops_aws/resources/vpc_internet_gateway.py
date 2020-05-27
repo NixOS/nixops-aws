@@ -12,8 +12,13 @@ import nixops_aws.ec2_utils
 from . import vpc, elastic_ip
 from .vpc import VPCState
 
+from .types.vpc_internet_gateway import VpcInternetGatewayOptions
+
+
 class VPCInternetGatewayDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC internet gateway."""
+
+    config: VpcInternetGatewayOptions
 
     @classmethod
     def get_type(cls):
