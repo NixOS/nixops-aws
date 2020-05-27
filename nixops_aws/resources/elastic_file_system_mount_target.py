@@ -13,6 +13,8 @@ from . import elastic_file_system
 import time
 from .elastic_file_system import ElasticFileSystemState
 
+from .types.elastic_file_system_mount_target import ElasticFileSystemMountTargetOptions
+
 
 class ElasticFileSystemMountTargetDefinition(nixops.resources.ResourceDefinition):
     """Definition of an AWS Elastic File System mount target."""
