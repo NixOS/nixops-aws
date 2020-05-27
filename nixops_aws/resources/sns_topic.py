@@ -8,9 +8,13 @@ import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
 
+from .types.sns_topic import SnsTopicOptions
+
 
 class SNSTopicDefinition(nixops.resources.ResourceDefinition):
     """Definition of an SNS topic."""
+
+    config: SnsTopicOptions
 
     @classmethod
     def get_type(cls):
