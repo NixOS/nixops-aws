@@ -88,8 +88,7 @@ class VPCRouteTableState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         return {
             r
             for r in resources
-            if isinstance(r, vpc.VPCState)
-            or isinstance(r, vpc_subnet.VPCSubnetState)
+            if isinstance(r, vpc.VPCState) or isinstance(r, vpc_subnet.VPCSubnetState)
         }
 
     def realize_create_route_table(self, allow_recreate):
@@ -110,7 +109,9 @@ class VPCRouteTableState(nixops.resources.DiffEngineResourceState, EC2CommonStat
 
         vpc_id = config["vpcId"]
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc", VPCState)
+            res = self.depl.get_typed_resource(
+                vpc_id[4:].split(".")[0], "vpc", VPCState
+            )
             vpc_id = res._state["vpcId"]
 
         self.log("creating route table in vpc {}".format(vpc_id))
