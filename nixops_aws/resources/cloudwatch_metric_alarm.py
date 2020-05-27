@@ -11,9 +11,13 @@ import nixops_aws.ec2_utils
 from .sns_topic import SNSTopicState
 from nixops_aws.backends.ec2 import EC2State
 
+from .types.cloudwatch_metric_alarm import CloudwatchMetricAlarmOptions
+
 
 class CloudwatchMetricAlarmDefinition(nixops.resources.ResourceDefinition):
     """Definition of an Cloudwatch Metric Alarm."""
+
+    config: CloudwatchMetricAlarmOptions
 
     @classmethod
     def get_type(cls):
@@ -25,23 +29,23 @@ class CloudwatchMetricAlarmDefinition(nixops.resources.ResourceDefinition):
 
     def __init__(self, name, config):
         nixops.resources.ResourceDefinition.__init__(self, name, config)
-        self.access_key_id = config["accessKeyId"]
-        self.region = config["region"]
-        self.alarm_name = config["name"]
-        self.metric_name = config["metricName"]
-        self.namespace = config["namespace"]
-        self.statistic = config["statistic"]
-        self.dimensions = config["dimensions"]
-        self.unit = config["unit"]
-        self.period = config["period"]
-        self.evaluation_periods = config["evaluationPeriods"]
-        self.threshold = config["threshold"]
-        self.comparison_operator = config["comparisonOperator"]
-        self.alarm_actions = config["alarmActions"]
-        self.ok_actions = config["okActions"]
-        self.insufficient_data_actions = config["insufficientDataActions"]
-        self.treat_missing_data = config["treatMissingData"]
-        self.datapoints_to_alarm = config["datapointsToAlarm"]
+        self.access_key_id = config.accessKeyId
+        self.region = config.region
+        self.alarm_name = config.name
+        self.metric_name = config.metricName
+        self.namespace = config.namespace
+        self.statistic = config.statistic
+        self.dimensions = config.dimensions
+        self.unit = config.unit
+        self.period = config.period
+        self.evaluation_periods = config.evaluationPeriods
+        self.threshold = config.threshold
+        self.comparison_operator = config.comparisonOperator
+        self.alarm_actions = config.alarmActions
+        self.ok_actions = config.okActions
+        self.insufficient_data_actions = config.insufficientDataActions
+        self.treat_missing_data = config.treatMissingData
+        self.datapoints_to_alarm = config.datapointsToAlarm
 
 
 class CloudwatchMetricAlarmState(nixops.resources.ResourceState):
