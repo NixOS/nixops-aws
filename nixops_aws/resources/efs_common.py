@@ -24,11 +24,12 @@ class EFSCommonState:
         else:
             raise Exception("region and self.region are None")
 
-        self._efs_client = boto3.session.Session().client(
+        client: mypy_boto3_efs.EFSClient = boto3.session.Session().client(
             "efs",
             region_name=region_name,
             aws_access_key_id=access_key_id,
             aws_secret_access_key=secret_access_key,
         )
+        self._efs_client = client
 
         return self._efs_client
