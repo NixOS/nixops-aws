@@ -40,7 +40,9 @@ class Route53HostedZoneDefinition(nixops.resources.ResourceDefinition):
             vpc.pop("_module")
 
 
-class Route53HostedZoneState(nixops.resources.ResourceState[Route53HostedZoneDefinition]):
+class Route53HostedZoneState(
+    nixops.resources.ResourceState[Route53HostedZoneDefinition]
+):
     """State of a Route53 Hosted Zone."""
 
     state = nixops.util.attr_property(
