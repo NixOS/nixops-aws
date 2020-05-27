@@ -83,18 +83,11 @@ class EC2Definition(MachineDefinition):
 
         self.elastic_ipv4 = self.config.ec2.elasticIPv4
 
-        # How is this supposed to work??????
-        # self.dns_hostname = config.route53.hostName.lower()
-        # self.dns_ttl = config.route53.ttl
-        # self.route53_access_key_id = config.route53.accessKeyId
-        # self.route53_use_public_dns_name = config.route53.usePublicDNSName
-        # self.route53_private = config.route53.private
-
-        self.dns_hostname: Any = None
-        self.dns_ttl: Any = None
-        self.route53_access_key_id: Any = None
-        self.route53_use_public_dns_name: Any = None
-        self.route53_private: Any = None
+        self.dns_hostname = config.route53.hostName.lower()
+        self.dns_ttl = config.route53.ttl
+        self.route53_access_key_id = config.route53.accessKeyId
+        self.route53_use_public_dns_name = config.route53.usePublicDNSName
+        self.route53_private = config.route53.private
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region or self.zone or "???")

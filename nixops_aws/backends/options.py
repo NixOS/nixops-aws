@@ -7,6 +7,14 @@ from typing_extensions import Literal
 from typing import Union
 
 
+class Route53Options(ResourceOptions):
+    accessKeyId: str
+    hostName: str
+    private: bool
+    ttl: int
+    usePublicDNSName: bool
+
+
 class DiskOptions(ResourceOptions):
     size: int
     iops: Optional[int]
@@ -73,3 +81,4 @@ class Ec2Options(ResourceOptions):
 
 class EC2MachineOptions(MachineOptions):
     ec2: Ec2Options
+    route53: Route53Options
