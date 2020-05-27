@@ -52,7 +52,9 @@ class Route53HealthCheckDefinition(nixops.resources.ResourceDefinition):
         self.health_threshold = config.healthThreshold
 
 
-class Route53HealthCheckState(nixops.resources.ResourceState[Route53HealthCheckDefinition]):
+class Route53HealthCheckState(
+    nixops.resources.ResourceState[Route53HealthCheckDefinition]
+):
     """State of a Route53 Health Check."""
 
     state = nixops.util.attr_property(
@@ -95,7 +97,9 @@ class Route53HealthCheckState(nixops.resources.ResourceState[Route53HealthCheckD
 
     def resolve_health_check(self, id):
         if id.startswith("res-"):
-            hc = self.depl.get_typed_resource(id[4:], "aws-route53-health-check", Route53HealthCheckState)
+            hc = self.depl.get_typed_resource(
+                id[4:], "aws-route53-health-check", Route53HealthCheckState
+            )
             if not hc.health_check_id:
                 raise Exception(
                     "cannot create calculated health check for not-yet children."
