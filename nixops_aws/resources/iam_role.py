@@ -225,7 +225,6 @@ class IAMRoleState(nixops.resources.ResourceState[IAMRoleDefinition]):
                 "please set ‘accessKeyId’, $EC2_ACCESS_KEY or $AWS_ACCESS_KEY_ID"
             )
 
-
         ip = self._get_instance_profile(defn.role_name, True)
         rp = self._get_role_policy(defn.role_name, True)
         r = self._get_role(defn.role_name, True)
