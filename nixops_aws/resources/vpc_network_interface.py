@@ -35,7 +35,8 @@ class VPCNetworkInterfaceDefinition(nixops.resources.ResourceDefinition):
 
 
 class VPCNetworkInterfaceState(
-    nixops.resources.DiffEngineResourceState, EC2CommonState):
+    nixops.resources.DiffEngineResourceState, EC2CommonState
+):
     """State of a VPC network interface"""
 
     state = nixops.util.attr_property(
@@ -91,11 +92,7 @@ class VPCNetworkInterfaceState(
         return "resources.vpcNetworkInterfaces."
 
     def create_after(self, resources, defn):
-        return {
-            r
-            for r in resources
-            if isinstance(r, vpc_subnet.VPCSubnetState)
-        }
+        return {r for r in resources if isinstance(r, vpc_subnet.VPCSubnetState)}
 
     def realize_create_eni(self, allow_recreate):
         config = self.get_defn()
