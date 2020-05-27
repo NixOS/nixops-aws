@@ -10,9 +10,13 @@ from . import vpc, elastic_ip
 import nixops_aws.ec2_utils
 from .vpc import VPCState
 
+from .types.vpc_egress_only_internet_gateway import VpcEgressOnlyInternetGatewayOptions
+
 
 class VPCEgressOnlyInternetGatewayDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC egress only internet gateway."""
+
+    config: VpcEgressOnlyInternetGatewayOptions
 
     @classmethod
     def get_type(cls):
