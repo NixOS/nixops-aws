@@ -89,8 +89,7 @@ class VPCNetworkAclState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         return {
             r
             for r in resources
-            if isinstance(r, vpc.VPCState)
-            or isinstance(r, vpc_subnet.VPCSubnetState)
+            if isinstance(r, vpc.VPCState) or isinstance(r, vpc_subnet.VPCSubnetState)
         }
 
     def realize_create_network_acl(self, allow_recreate):
@@ -111,7 +110,9 @@ class VPCNetworkAclState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         vpc_id = config["vpcId"]
 
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc", VPCState)
+            res = self.depl.get_typed_resource(
+                vpc_id[4:].split(".")[0], "vpc", VPCState
+            )
             vpc_id = res._state["vpcId"]
 
         self.log("creating network ACL in vpc {}".format(vpc_id))
@@ -158,7 +159,9 @@ class VPCNetworkAclState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         new_subnets = []
         for s in config["subnetIds"]:
             if s.startswith("res-"):
-                res = self.depl.get_typed_resource(s[4:].split(".")[0], "vpc-subnet", VPCSubnetState)
+                res = self.depl.get_typed_resource(
+                    s[4:].split(".")[0], "vpc-subnet", VPCSubnetState
+                )
                 new_subnets.append(res._state["subnetId"])
             else:
                 new_subnets.append(s)
@@ -166,7 +169,9 @@ class VPCNetworkAclState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         vpc_id = config["vpcId"]
 
         if vpc_id.startswith("res-"):
-            res_vpc = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc", VPCState)
+            res_vpc = self.depl.get_typed_resource(
+                vpc_id[4:].split(".")[0], "vpc", VPCState
+            )
             vpc_id = res_vpc._state["vpcId"]
 
         subnets_to_remove = [s for s in old_subnets if s not in new_subnets]
