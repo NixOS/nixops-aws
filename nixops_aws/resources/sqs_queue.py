@@ -8,19 +8,13 @@ import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
 from typing import Optional
-
-
-class SQSQueueOptions(nixops.resources.ResourceOptions):
-    name: str
-    region: str
-    accessKeyId: Optional[str]
-    visibilityTimeout: str
+from .types.sqs_queue import SqsQueueOptions
 
 
 class SQSQueueDefinition(nixops.resources.ResourceDefinition):
     """Definition of an SQS queue."""
 
-    config: SQSQueueOptions
+    config: SqsQueueOptions
 
     @classmethod
     def get_type(cls):
