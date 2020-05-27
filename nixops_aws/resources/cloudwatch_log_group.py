@@ -28,7 +28,9 @@ class CloudWatchLogGroupDefinition(nixops.resources.ResourceDefinition):
         return "{0}".format(self.get_type())
 
 
-class CloudWatchLogGroupState(nixops.resources.ResourceState[CloudWatchLogGroupDefinition]):
+class CloudWatchLogGroupState(
+    nixops.resources.ResourceState[CloudWatchLogGroupDefinition]
+):
     """State of the cloudwatch log group"""
 
     state = nixops.util.attr_property(
@@ -111,8 +113,7 @@ class CloudWatchLogGroupState(nixops.resources.ResourceState[CloudWatchLogGroupD
                         return True, log["arn"]
             if "nextToken" in response:
                 self.lookup_cloudwatch_log_group(
-                    log_group_name=log_group_name,
-                    next_token=response["nextToken"],
+                    log_group_name=log_group_name, next_token=response["nextToken"],
                 )
         return False, None
 
