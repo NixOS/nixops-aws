@@ -11,9 +11,13 @@ import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 
+from .types.vpc_customer_gateway import VpcCustomerGatewayOptions
+
 
 class VPCCustomerGatewayDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC customer gateway."""
+
+    config: VpcCustomerGatewayOptions
 
     @classmethod
     def get_type(cls):
