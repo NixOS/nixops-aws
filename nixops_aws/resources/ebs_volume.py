@@ -121,7 +121,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
                 )
 
             if (
-                self.volume_type != None
+                self.volume_type is not None
                 and defn.config["volumeType"] != self.volume_type
             ):
                 raise Exception(
