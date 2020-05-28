@@ -37,3 +37,12 @@ jobs:
         uses: cachix/install-nix-action@v8
       - name: Flake8
         run: 'nix-shell ./shell.nix --run "flake8 nixops_aws"'
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Nix
+        uses: cachix/install-nix-action@v8
+      - name: Mypy
+        run: 'nix-shell ./shell.nix --run "mypy nixops_aws"'
