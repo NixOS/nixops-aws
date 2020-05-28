@@ -97,7 +97,7 @@ class Route53RecordSetState(nixops.resources.ResourceState[Route53RecordSetDefin
             )
         return self._boto_session
 
-    def create(self, defn, check, allow_reboot, allow_recreate):
+    def create(self, defn, check, allow_reboot, allow_recreate):  # noqa: C901
         self.access_key_id = (
             defn.access_key_id or nixops_aws.ec2_utils.get_access_key_id()
         )
@@ -244,7 +244,7 @@ class Route53RecordSetState(nixops.resources.ResourceState[Route53RecordSetDefin
         # Don't care about the state for now. We'll just upsert!
         # TODO: Copy properties_changed function used in GCE/Azure's
         # check output of operation. It now just barfs an exception if something doesn't work properly
-        change_result = self.route53_retry(
+        self.route53_retry(
             lambda: client.change_resource_record_sets(
                 HostedZoneId=zone_id, ChangeBatch=self.make_batch("UPSERT", defn)
             )
@@ -325,7 +325,7 @@ class Route53RecordSetState(nixops.resources.ResourceState[Route53RecordSetDefin
             client = self.boto_session().client("route53")
 
             # TODO: catch exception
-            change_result = self.route53_retry(
+            self.route53_retry(
                 lambda: client.change_resource_record_sets(
                     HostedZoneId=self.zone_id,
                     ChangeBatch=self.make_batch("DELETE", self),
