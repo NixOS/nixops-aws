@@ -27,25 +27,25 @@ class CloudwatchMetricAlarmDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "cloudwatchMetricAlarms"
 
-    def __init__(self, name, config):
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
         nixops.resources.ResourceDefinition.__init__(self, name, config)
-        self.access_key_id = config.accessKeyId
-        self.region = config.region
-        self.alarm_name = config.name
-        self.metric_name = config.metricName
-        self.namespace = config.namespace
-        self.statistic = config.statistic
-        self.dimensions = config.dimensions
-        self.unit = config.unit
-        self.period = config.period
-        self.evaluation_periods = config.evaluationPeriods
-        self.threshold = config.threshold
-        self.comparison_operator = config.comparisonOperator
-        self.alarm_actions = config.alarmActions
-        self.ok_actions = config.okActions
-        self.insufficient_data_actions = config.insufficientDataActions
-        self.treat_missing_data = config.treatMissingData
-        self.datapoints_to_alarm = config.datapointsToAlarm
+        self.access_key_id = self.config.accessKeyId
+        self.region = self.config.region
+        self.alarm_name = self.config.name
+        self.metric_name = self.config.metricName
+        self.namespace = self.config.namespace
+        self.statistic = self.config.statistic
+        self.dimensions = self.config.dimensions
+        self.unit = self.config.unit
+        self.period = self.config.period
+        self.evaluation_periods = self.config.evaluationPeriods
+        self.threshold = self.config.threshold
+        self.comparison_operator = self.config.comparisonOperator
+        self.alarm_actions = self.config.alarmActions
+        self.ok_actions = self.config.okActions
+        self.insufficient_data_actions = self.config.insufficientDataActions
+        self.treat_missing_data = self.config.treatMissingData
+        self.datapoints_to_alarm = self.config.datapointsToAlarm
 
 
 class CloudwatchMetricAlarmState(
