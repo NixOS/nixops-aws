@@ -78,8 +78,7 @@ class VPCEndpointState(nixops.resources.DiffEngineResourceState, EC2CommonState)
         return {
             r
             for r in resources
-            if isinstance(r, VPCState)
-            or isinstance(r, VPCRouteTableState)
+            if isinstance(r, VPCState) or isinstance(r, VPCRouteTableState)
         }
 
     def realize_create_endpoint(self, allow_recreate):
