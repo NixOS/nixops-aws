@@ -208,7 +208,7 @@ class VPCState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         config = self.get_defn()
         if config["enableClassicLink"]:
             self.get_client().enable_vpc_classic_link(VpcId=self.vpc_id)
-        elif config["enableClassicLink"] == False and self._state.get(
+        elif config["enableClassicLink"] is False and self._state.get(
             "enableClassicLink", None
         ):
             self.get_client().disable_vpc_classic_link(VpcId=self.vpc_id)
