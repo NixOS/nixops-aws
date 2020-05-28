@@ -8,8 +8,6 @@ import json
 import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
-from typing import Union
-from typing_extensions import Literal
 
 from .types.s3_bucket import S3BucketOptions
 
@@ -90,7 +88,7 @@ class S3BucketState(nixops.resources.ResourceState[S3BucketDefinition]):
         )
         return self._conn
 
-    def create(self, defn, check, allow_reboot, allow_recreate):
+    def create(self, defn, check, allow_reboot, allow_recreate):  # noqa: C901
 
         self.access_key_id = (
             defn.access_key_id or nixops_aws.ec2_utils.get_access_key_id()
