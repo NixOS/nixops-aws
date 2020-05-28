@@ -7,7 +7,6 @@ import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 from . import vpc, elastic_ip
-import nixops_aws.ec2_utils
 from .vpc import VPCState
 
 from .types.vpc_egress_only_internet_gateway import VpcEgressOnlyInternetGatewayOptions
