@@ -26,19 +26,19 @@ class EC2SecurityGroupDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "ec2SecurityGroups"
 
-    def __init__(self, name, config):
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
         super(EC2SecurityGroupDefinition, self).__init__(name, config)
-        self.security_group_name = config.name
-        self.security_group_description = config.description
-        self.region = config.region
-        self.access_key_id = config.accessKeyId
+        self.security_group_name = self.config.name
+        self.security_group_description = self.config.description
+        self.region = self.config.region
+        self.access_key_id = self.config.accessKeyId
 
         self.vpc_id = None
         if config.vpcId:
             self.vpc_id = config.vpcId
 
         self.security_group_rules = []
-        for rule in config.rules:
+        for rule in self.config.rules:
             ip_protocol = rule.protocol
             if ip_protocol == "icmp":
                 from_port = rule.typeNumber
@@ -47,14 +47,14 @@ class EC2SecurityGroupDefinition(nixops.resources.ResourceDefinition):
                 from_port = rule.fromPort
                 to_port = rule.toPort
 
-            cidr_ip = config.sourceIp
+            cidr_ip = rule.sourceIp
             if cidr_ip is not None:
                 self.security_group_rules.append(
                     [ip_protocol, from_port, to_port, cidr_ip]
                 )
             else:
-                group_name = config.sourceGroup.groupName
-                owner_id = config.sourceGroup.ownerId
+                group_name = rule.sourceGroup.groupName
+                owner_id = rule.sourceGroup.ownerId
                 self.security_group_rules.append(
                     [ip_protocol, from_port, to_port, group_name, owner_id]
                 )
