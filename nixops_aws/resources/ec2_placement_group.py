@@ -123,7 +123,7 @@ class EC2PlacementGroupState(
                         self.placement_group_name
                     )
                 )
-                created = self._connect().create_placement_group(
+                self._connect().create_placement_group(
                     self.placement_group_name, self.placement_group_strategy
                 )
             except boto.exception.EC2ResponseError as e:
