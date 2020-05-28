@@ -23,11 +23,11 @@ class EC2KeyPairDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "ec2KeyPairs"
 
-    def __init__(self, name, config):
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
         nixops.resources.ResourceDefinition.__init__(self, name, config)
-        self.keypair_name = config.name
-        self.region = config.region
-        self.access_key_id = config.accessKeyId
+        self.keypair_name = self.config.name
+        self.region = self.config.region
+        self.access_key_id = self.config.accessKeyId
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
