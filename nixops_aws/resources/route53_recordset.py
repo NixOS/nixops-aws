@@ -30,22 +30,22 @@ class Route53RecordSetDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "route53RecordSets"
 
-    def __init__(self, name, config):
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
         nixops.resources.ResourceDefinition.__init__(self, name, config)
-        self.access_key_id = config.accessKeyId
+        self.access_key_id = self.config.accessKeyId
 
-        self.zone_id = config.zoneId
-        self.set_identifier = config.setIdentifier
-        self.weight = config.weight
+        self.zone_id = self.config.zoneId
+        self.set_identifier = self.config.setIdentifier
+        self.weight = self.config.weight
 
-        self.zone_name = config.zoneName
-        self.domain_name = config.domainName
+        self.zone_name = self.config.zoneName
+        self.domain_name = self.config.domainName
 
-        self.ttl = config.ttl
-        self.routing_policy = config.routingPolicy
-        self.record_type = config.recordType
-        self.record_values = config.recordValues
-        self.health_check_id = config.healthCheckId
+        self.ttl = self.config.ttl
+        self.routing_policy = self.config.routingPolicy
+        self.record_type = self.config.recordType
+        self.record_values = self.config.recordValues
+        self.health_check_id = self.config.healthCheckId
 
     def show_type(self):
         return "{0}".format(self.get_type())
