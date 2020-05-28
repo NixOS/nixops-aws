@@ -7,7 +7,6 @@ import time
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
-import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from . import vpc
 from .vpc import VPCState
