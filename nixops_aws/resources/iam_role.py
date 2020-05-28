@@ -34,12 +34,12 @@ class IAMRoleDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "iamRoles"
 
-    def __init__(self, name, config):
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
         nixops.resources.ResourceDefinition.__init__(self, name, config)
-        self.role_name = config.name
-        self.access_key_id = config.accessKeyId
-        self.policy = config.policy
-        self.assume_role_policy = config.assumeRolePolicy
+        self.role_name = self.config.name
+        self.access_key_id = self.config.accessKeyId
+        self.policy = self.config.policy
+        self.assume_role_policy = self.config.assumeRolePolicy
 
     def show_type(self):
         return "{0}".format(self.get_type())
