@@ -128,12 +128,12 @@ class SNSTopicState(nixops.resources.ResourceState[SNSTopicDefinition]):
 
         self.region = defn.config["region"]
 
-        if self.arn == None or not self.topic_exists(arn=self.arn):
+        if self.arn is None or not self.topic_exists(arn=self.arn):
             self.log("creating SNS topic ‘{0}’...".format(defn.config["name"]))
             topic = self._connect().create_topic(defn.config["name"])
             arn = topic.get("CreateTopicResponse").get("CreateTopicResult")["TopicArn"]
 
-        if defn.config["displayName"] != None:
+        if defn.config["displayName"] is not None:
             self._connect().set_topic_attributes(
                 topic=arn,
                 attr_name="DisplayName",
@@ -141,7 +141,7 @@ class SNSTopicState(nixops.resources.ResourceState[SNSTopicDefinition]):
             )
 
         if defn.config["policy"] != "":
-            policy = self._connect().set_topic_attributes(
+            self._connect().set_topic_attributes(
                 topic=arn, attr_name="Policy", attr_value=defn.config["policy"]
             )
 
