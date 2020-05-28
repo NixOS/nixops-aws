@@ -23,12 +23,12 @@ class EC2PlacementGroupDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "ec2PlacementGroups"
 
-    def __init__(self, name, config):
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
         super(EC2PlacementGroupDefinition, self).__init__(name, config)
-        self.placement_group_name = config.name
-        self.placement_group_strategy = config.strategy
-        self.region = config.region
-        self.access_key_id = config.accessKeyId
+        self.placement_group_name = self.config.name
+        self.placement_group_strategy = self.config.strategy
+        self.region = self.config.region
+        self.access_key_id = self.config.accessKeyId
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
