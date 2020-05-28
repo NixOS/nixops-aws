@@ -19,6 +19,8 @@ from .types.elastic_file_system_mount_target import ElasticFileSystemMountTarget
 class ElasticFileSystemMountTargetDefinition(nixops.resources.ResourceDefinition):
     """Definition of an AWS Elastic File System mount target."""
 
+    config: ElasticFileSystemMountTargetOptions
+
     @classmethod
     def get_type(cls):
         return "elastic-file-system-mount-target"
