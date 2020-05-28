@@ -28,15 +28,14 @@ class Route53HostedZoneDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "route53HostedZones"
 
-    def __init__(self, name, config):
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
         nixops.resources.ResourceDefinition.__init__(self, name, config)
-        self.access_key_id = config.accessKeyId
-        self.comment = config.comment
-        self.private_zone = config.privateZone
-        self.zone_name = config.name
-        self.associated_vpcs = config.associatedVPCs
+        self.access_key_id = self.config.accessKeyId
+        self.comment = self.config.comment
+        self.private_zone = self.config.privateZone
+        self.zone_name = self.config.name
+        self.associated_vpcs = [dict(z) for z in self.config.associatedVPCs]
         for vpc in self.associated_vpcs:
-            # TODO: Does this work with new types?
             vpc.pop("_module")
 
 
