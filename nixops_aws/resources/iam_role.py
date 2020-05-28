@@ -86,7 +86,7 @@ class IAMRoleState(nixops.resources.ResourceState[IAMRoleDefinition]):
         )
         return self._conn
 
-    def _destroy(self):
+    def _destroy(self):  # noqa: C901
         if self.state != self.UP:
             return
 
@@ -184,7 +184,7 @@ class IAMRoleState(nixops.resources.ResourceState[IAMRoleDefinition]):
                     return False
                 else:
                     raise IamNotFound(e.status, e.reason, body=e.body)
-        except:
+        except Exception:
             raise
 
     def _get_role_policy(self, name, allow404=True):
@@ -198,7 +198,7 @@ class IAMRoleState(nixops.resources.ResourceState[IAMRoleDefinition]):
                     return False
                 else:
                     raise IamNotFound(e.status, e.reason, body=e.body)
-        except:
+        except Exception:
             raise
 
     def _get_role(self, name, allow404=True):
@@ -212,7 +212,7 @@ class IAMRoleState(nixops.resources.ResourceState[IAMRoleDefinition]):
                     return False
                 else:
                     raise IamNotFound(e.status, e.reason, body=e.body)
-        except:
+        except Exception:
             raise
 
     def create(self, defn, check, allow_reboot, allow_recreate):
@@ -226,12 +226,12 @@ class IAMRoleState(nixops.resources.ResourceState[IAMRoleDefinition]):
             )
 
         ip = self._get_instance_profile(defn.role_name, True)
-        rp = self._get_role_policy(defn.role_name, True)
+        self._get_role_policy(defn.role_name, True)
         r = self._get_role(defn.role_name, True)
 
         if not r:
             self.log("creating IAM role ‘{0}’...".format(defn.role_name))
-            role = self._connect().create_role(defn.role_name)
+            self._connect().create_role(defn.role_name)
 
         if not ip:
             self.log("creating IAM instance profile ‘{0}’...".format(defn.role_name))
