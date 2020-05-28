@@ -94,7 +94,7 @@ class CloudWatchLogStreamState(
             self._connect().delete_log_stream(
                 log_group_name=self.log_group_name, log_stream_name=self.log_stream_name
             )
-        except boto.logs.exceptions.ResourceNotFoundException as e:
+        except boto.logs.exceptions.ResourceNotFoundException:
             self.log(
                 "the log group ‘{0}’ or log stream ‘{1}’ was already deleted".format(
                     self.log_group_name, self.log_stream_name
@@ -160,13 +160,13 @@ class CloudWatchLogStreamState(
             log_group_name=self.log_group_name, log_stream_name=self.log_stream_name
         )
 
-        if self.arn == None or not exist:
+        if self.arn is None or not exist:
             self.log(
                 "creating cloudwatch log stream ‘{0}’ under log group ‘{1}’...".format(
                     defn.config["name"], defn.config["logGroupName"]
                 )
             )
-            log_group = self._connect().create_log_stream(
+            self._connect().create_log_stream(
                 log_stream_name=defn.config["name"],
                 log_group_name=defn.config["logGroupName"],
             )
