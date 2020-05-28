@@ -11,7 +11,6 @@ import nixops.resources
 from nixops_aws.backends.ec2 import EC2State
 from nixops_aws.resources.ec2_common import EC2CommonState
 from nixops_aws.resources.vpc_network_interface import VPCNetworkInterfaceState
-import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
 from . import vpc_network_interface
