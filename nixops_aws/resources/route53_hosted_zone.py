@@ -129,8 +129,8 @@ class Route53HostedZoneState(
                 {"region": assoc["VPCRegion"], "vpcId": assoc["VPCId"]}
                 for assoc in hosted_zone["VPCs"]
             ]
-            tbd = [assoc for assoc in current if not assoc in defn.associated_vpcs]
-            tba = [assoc for assoc in defn.associated_vpcs if not assoc in current]
+            tbd = [assoc for assoc in current if assoc not in defn.associated_vpcs]
+            tba = [assoc for assoc in defn.associated_vpcs if assoc not in current]
 
             for assoc in tba:
                 client.associate_vpc_with_hosted_zone(
