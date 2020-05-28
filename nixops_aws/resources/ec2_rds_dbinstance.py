@@ -27,27 +27,27 @@ class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "rdsDbInstances"
 
-    def __init__(self, name, config):
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
         super(EC2RDSDbInstanceDefinition, self).__init__(name, config)
         # rds specific params
 
-        self.rds_dbinstance_id = config.id
-        self.rds_dbinstance_allocated_storage = config.allocatedStorage
-        self.rds_dbinstance_instance_class = config.instanceClass
-        self.rds_dbinstance_master_username = config.masterUsername
-        self.rds_dbinstance_master_password = config.masterPassword
-        self.rds_dbinstance_port = config.port
-        self.rds_dbinstance_engine = config.engine
-        self.rds_dbinstance_db_name = config.dbName
-        self.rds_dbinstance_multi_az = config.multiAZ
+        self.rds_dbinstance_id = self.config.id
+        self.rds_dbinstance_allocated_storage = self.config.allocatedStorage
+        self.rds_dbinstance_instance_class = self.config.instanceClass
+        self.rds_dbinstance_master_username = self.config.masterUsername
+        self.rds_dbinstance_master_password = self.config.masterPassword
+        self.rds_dbinstance_port = self.config.port
+        self.rds_dbinstance_engine = self.config.engine
+        self.rds_dbinstance_db_name = self.config.dbName
+        self.rds_dbinstance_multi_az = self.config.multiAZ
         self.rds_dbinstance_security_groups = []
-        for sg_name in config.securityGroups:
+        for sg_name in self.config.securityGroups:
             self.rds_dbinstance_security_groups.append(sg_name)
         # TODO: implement remainder of boto.rds.RDSConnection.create_dbinstance parameters
 
         # common params
-        self.region = config.region
-        self.access_key_id = config.accessKeyId
+        self.region = self.config.region
+        self.access_key_id = self.config.accessKeyId
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
