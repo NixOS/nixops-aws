@@ -8,7 +8,7 @@ import nixops.deployment
 import nixops.resources
 import nixops_aws.ec2_utils
 from nixops.state import StateDict
-from typing import Optional, Dict
+from typing import Optional
 from boto.ec2.connection import EC2Connection
 
 
