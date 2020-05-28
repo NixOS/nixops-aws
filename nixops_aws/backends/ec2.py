@@ -489,7 +489,7 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
 
     def update_block_device_mapping(self, k, v):
         x = self.block_device_mapping
-        if v == None:
+        if v is None:
             x.pop(k, None)
         else:
             x[k] = v
@@ -499,9 +499,6 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
         if not self.region:
             return {}
         backups: Dict[str, Dict[str, Union[str, List[str]]]] = {}
-        current_volumes = set(
-            [v["volumeId"] for v in self.block_device_mapping.values()]
-        )
         for b_id, b in self.backups.items():
             b = {device_name_stored_to_real(device): snap for device, snap in b.items()}
             backups[b_id] = {}
@@ -538,7 +535,7 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
     def remove_backup(self, backup_id, keep_physical=False):
         self.log("removing backup {0}".format(backup_id))
         _backups = self.backups
-        if not backup_id in _backups.keys():
+        if backup_id not in _backups.keys():
             self.warn("backup {0} not found, skipping".format(backup_id))
         else:
             if not keep_physical:
@@ -546,11 +543,11 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
                     snapshot = None
                     try:
                         snapshot = self._get_snapshot_by_id(snapshot_id)
-                    except:
+                    except Exception:
                         self.warn(
                             "snapshot {0} not found, skipping".format(snapshot_id)
                         )
-                    if not snapshot is None:
+                    if snapshot is not None:
                         self.log("removing snapshot {0}".format(snapshot_id))
                         self._retry(lambda: snapshot.delete())
 
@@ -846,7 +843,7 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
                     self.public_ipv4 = elastic_ipv4
                     self.ssh_pinged = False
 
-            elif self.elastic_ipv4 != None:
+            elif self.elastic_ipv4 is not None:
                 addresses = self._connect().get_all_addresses(
                     addresses=[self.elastic_ipv4]
                 )
@@ -1111,7 +1108,7 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
 
                 self.update_block_device_mapping(device_stored, None)
 
-    def create(self, defn: EC2Definition, check, allow_reboot, allow_recreate):
+    def create(self, defn: EC2Definition, check, allow_reboot, allow_recreate):  # noqa: C901
         if self.state != self.UP:
             check = True
 
@@ -2016,7 +2013,6 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
             return
 
         instance = self._get_instance(allow_missing=True)
-        old_state = self.state
         # self.log("instance state is ‘{0}’".format(instance.state if instance else "gone"))
 
         if instance is None or instance.state in {"shutting-down", "terminated"}:
