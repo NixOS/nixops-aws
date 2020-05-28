@@ -104,7 +104,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState[EC2SecurityGroupDefin
         return self.security_group_name
 
     def create_after(self, resources, defn):
-        #!!! TODO: Handle dependencies between security groups
+        # !!! TODO: Handle dependencies between security groups
         return {
             r
             for r in resources
@@ -117,7 +117,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState[EC2SecurityGroupDefin
         self._conn = nixops_aws.ec2_utils.connect(self.region, self.access_key_id)
         return self._conn
 
-    def create(self, defn, check, allow_reboot, allow_recreate):
+    def create(self, defn, check, allow_reboot, allow_recreate):  # noqa: C901
         def retry_notfound(f):
             nixops_aws.ec2_utils.retry(f, error_codes=["InvalidGroup.NotFound"])
 
@@ -236,7 +236,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState[EC2SecurityGroupDefin
                 old_rules.add(tuple(rule))
         for rule in resolved_security_group_rules:
             tupled_rule = tuple(rule)
-            if not tupled_rule in old_rules:
+            if tupled_rule not in old_rules:
                 new_rules.add(tupled_rule)
             else:
                 old_rules.remove(tupled_rule)
