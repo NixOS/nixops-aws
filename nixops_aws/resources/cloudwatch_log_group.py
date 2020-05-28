@@ -91,7 +91,7 @@ class CloudWatchLogGroupState(
         self.log("destroying cloudwatch log group ‘{0}’...".format(self.log_group_name))
         try:
             self._connect().delete_log_group(self.log_group_name)
-        except boto.logs.exceptions.ResourceNotFoundException as e:
+        except boto.logs.exceptions.ResourceNotFoundException:
             self.log(
                 "the log group ‘{0}’ was already deleted".format(self.log_group_name)
             )
@@ -139,12 +139,12 @@ class CloudWatchLogGroupState(
             log_group_name=self.log_group_name
         )
 
-        if self.arn == None or not exist:
+        if self.arn is None or not exist:
             self.retention_in_days = None
             self.log(
                 "creating cloudwatch log group ‘{0}’...".format(defn.config["name"])
             )
-            log_group = self._connect().create_log_group(defn.config["name"])
+            self._connect().create_log_group(defn.config["name"])
             exist, arn = self.lookup_cloudwatch_log_group(
                 log_group_name=defn.config["name"]
             )
