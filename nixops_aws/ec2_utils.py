@@ -27,9 +27,9 @@ def fetch_aws_secret_key(access_key_id) -> Tuple[str, str]:
         if os.path.isfile(path):
             with open(path, "r") as f:
                 contents = f.read()
-                for l in contents.splitlines():
-                    l = l.split("#")[0]  # drop comments
-                    w = l.split()
+                for line in contents.splitlines():
+                    line = line.split("#")[0]  # drop comments
+                    w = line.split()
                     if len(w) < 2 or len(w) > 3:
                         continue
                     if len(w) == 3 and w[2] == access_key_id:
@@ -137,7 +137,7 @@ def retry(f, error_codes=[], logger=None):
             err_code = e.response["Error"]["Code"]
             err_msg = e.response["Error"]["Message"]
 
-        if i == num_retries or (error_codes != [] and not err_code in error_codes):
+        if i == num_retries or (error_codes != [] and err_code not in error_codes):
             raise e
         if logger is not None:
             logger.log(
