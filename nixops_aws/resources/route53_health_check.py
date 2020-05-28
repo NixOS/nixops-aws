@@ -30,26 +30,26 @@ class Route53HealthCheckDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "route53HealthChecks"
 
-    def __init__(self, name, config):
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
         nixops.resources.ResourceDefinition.__init__(self, name, config)
-        self.access_key_id = config.accessKeyId
-        self.ip_address = config.ipAddress
-        self.port = config.port
-        self.type = config.type
-        self.resource_path = config.resourcePath
-        self.fqdn = config.fullyQualifiedDomainName
-        self.search_string = config.searchString
-        self.request_interval = config.requestInterval
-        self.failure_threshold = config.failureThreshold
-        self.measure_latency = config.measureLatency
-        self.inverted = config.inverted
-        self.enable_sni = config.enableSNI
-        self.regions = config.regions
-        self.alarm_indentifier_region = config.alarmIdentifier.region
-        self.alarm_indentifier_name = config.alarmIdentifier.name
-        self.insufficient_data_health_status = config.insufficientDataHealthStatus
-        self.child_health_checks = config.childHealthChecks
-        self.health_threshold = config.healthThreshold
+        self.access_key_id = self.config.accessKeyId
+        self.ip_address = self.config.ipAddress
+        self.port = self.config.port
+        self.type = self.config.type
+        self.resource_path = self.config.resourcePath
+        self.fqdn = self.config.fullyQualifiedDomainName
+        self.search_string = self.config.searchString
+        self.request_interval = self.config.requestInterval
+        self.failure_threshold = self.config.failureThreshold
+        self.measure_latency = self.config.measureLatency
+        self.inverted = self.config.inverted
+        self.enable_sni = self.config.enableSNI
+        self.regions = self.config.regions
+        self.alarm_indentifier_region = self.config.alarmIdentifier.region
+        self.alarm_indentifier_name = self.config.alarmIdentifier.name
+        self.insufficient_data_health_status = self.config.insufficientDataHealthStatus
+        self.child_health_checks = self.config.childHealthChecks
+        self.health_threshold = self.config.healthThreshold
 
 
 class Route53HealthCheckState(
