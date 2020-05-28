@@ -154,7 +154,7 @@ class ElasticIPState(nixops.resources.ResourceState[ElasticIPDefinition]):
                             AssociationId=eip["AssociationId"]
                         )
                 self.log("releasing elastic IP {}".format(eip["PublicIp"]))
-                if vpc == True:
+                if vpc is True:
                     self._connect_boto3(self.region).release_address(
                         AllocationId=eip["AllocationId"]
                     )
