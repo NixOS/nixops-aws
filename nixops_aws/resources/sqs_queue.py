@@ -7,7 +7,6 @@ import boto.sqs
 import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
-from typing import Optional
 from .types.sqs_queue import SqsQueueOptions
 
 
