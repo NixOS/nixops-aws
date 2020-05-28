@@ -1108,7 +1108,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
 
                 self.update_block_device_mapping(device_stored, None)
 
-    def create(self, defn: EC2Definition, check, allow_reboot, allow_recreate):  # noqa: C901
+    def create(  # noqa: C901
+        self, defn: EC2Definition, check, allow_reboot, allow_recreate
+    ):
         if self.state != self.UP:
             check = True
 
