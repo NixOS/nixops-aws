@@ -10,12 +10,17 @@ import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
 import copy
+from nixops_aws.backends.ec2 import EC2State
 
 # boto3.set_stream_logger(name='botocore')
+
+from .types.route53_health_check import Route53HealthCheckOptions
 
 
 class Route53HealthCheckDefinition(nixops.resources.ResourceDefinition):
     """Definition of an Route53 Health Check."""
+
+    config: Route53HealthCheckOptions
 
     @classmethod
     def get_type(cls):
@@ -25,29 +30,31 @@ class Route53HealthCheckDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "route53HealthChecks"
 
-    def __init__(self, xml, config):
-        nixops.resources.ResourceDefinition.__init__(self, xml, config)
-        self.access_key_id = config["accessKeyId"]
-        self.ip_address = config["ipAddress"]
-        self.port = config["port"]
-        self.type = config["type"]
-        self.resource_path = config["resourcePath"]
-        self.fqdn = config["fullyQualifiedDomainName"]
-        self.search_string = config["searchString"]
-        self.request_interval = config["requestInterval"]
-        self.failure_threshold = config["failureThreshold"]
-        self.measure_latency = config["measureLatency"]
-        self.inverted = config["inverted"]
-        self.enable_sni = config["enableSNI"]
-        self.regions = config["regions"]
-        self.alarm_indentifier_region = config["alarmIdentifier"]["region"]
-        self.alarm_indentifier_name = config["alarmIdentifier"]["name"]
-        self.insufficient_data_health_status = config["insufficientDataHealthStatus"]
-        self.child_health_checks = config["childHealthChecks"]
-        self.health_threshold = config["healthThreshold"]
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
+        nixops.resources.ResourceDefinition.__init__(self, name, config)
+        self.access_key_id = self.config.accessKeyId
+        self.ip_address = self.config.ipAddress
+        self.port = self.config.port
+        self.type = self.config.type
+        self.resource_path = self.config.resourcePath
+        self.fqdn = self.config.fullyQualifiedDomainName
+        self.search_string = self.config.searchString
+        self.request_interval = self.config.requestInterval
+        self.failure_threshold = self.config.failureThreshold
+        self.measure_latency = self.config.measureLatency
+        self.inverted = self.config.inverted
+        self.enable_sni = self.config.enableSNI
+        self.regions = self.config.regions
+        self.alarm_indentifier_region = self.config.alarmIdentifier.region
+        self.alarm_indentifier_name = self.config.alarmIdentifier.name
+        self.insufficient_data_health_status = self.config.insufficientDataHealthStatus
+        self.child_health_checks = self.config.childHealthChecks
+        self.health_threshold = self.config.healthThreshold
 
 
-class Route53HealthCheckState(nixops.resources.ResourceState):
+class Route53HealthCheckState(
+    nixops.resources.ResourceState[Route53HealthCheckDefinition]
+):
     """State of a Route53 Health Check."""
 
     state = nixops.util.attr_property(
@@ -90,7 +97,9 @@ class Route53HealthCheckState(nixops.resources.ResourceState):
 
     def resolve_health_check(self, id):
         if id.startswith("res-"):
-            hc = self.depl.get_typed_resource(id[4:], "aws-route53-health-check")
+            hc = self.depl.get_typed_resource(
+                id[4:], "aws-route53-health-check", Route53HealthCheckState
+            )
             if not hc.health_check_id:
                 raise Exception(
                     "cannot create calculated health check for not-yet children."
@@ -102,7 +111,7 @@ class Route53HealthCheckState(nixops.resources.ResourceState):
     def build_config(self, defn):
         def resolve_machine_ip(v):
             if v.startswith("res-"):
-                m = self.depl.get_machine(v[4:])
+                m = self.depl.get_machine(v[4:], EC2State)
                 if not m.public_ipv4:
                     raise Exception(
                         "cannot create health check for a machine that has not yet been created"

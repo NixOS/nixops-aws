@@ -1,13 +1,21 @@
 import botocore.exceptions
 import botocore.errorfactory
-
+import boto3
+import mypy_boto3_rds
 import nixops.util
 import nixops.resources
+import nixops_aws.ec2_utils
 from nixops_aws.resources.ec2_common import EC2CommonState
 from nixops.diff import Handler
+from typing import Optional
+
+from .types.ec2_rds_dbsecurity_group import Ec2RdsDbsecurityGroupOptions
 
 
 class EC2RDSDbSecurityGroupDefinition(nixops.resources.ResourceDefinition):
+
+    config: Ec2RdsDbsecurityGroupOptions
+
     @classmethod
     def get_type(cls):
         return "ec2-rds-dbsecurity-group"
@@ -23,6 +31,8 @@ class EC2RDSDbSecurityGroupDefinition(nixops.resources.ResourceDefinition):
 class EC2RDSDbSecurityGroupState(
     nixops.resources.DiffEngineResourceState, EC2CommonState
 ):
+
+    _rds_client: Optional[mypy_boto3_rds.RDSClient]
 
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
@@ -58,7 +68,7 @@ class EC2RDSDbSecurityGroupState(
             return
         if self.state == self.UP:
             try:
-                response = self.get_client("rds").describe_db_security_groups(
+                response = self.get_rds_client().describe_db_security_groups(
                     DBSecurityGroupName=self._state["groupName"]
                 )
             except botocore.exceptions.ClientError as error:
@@ -116,7 +126,7 @@ class EC2RDSDbSecurityGroupState(
 
         self.log("creating RDS security group {}".format(config["groupName"]))
         self._state["region"] = config["region"]
-        self.get_client("rds").create_db_security_group(
+        self.get_rds_client().create_db_security_group(
             DBSecurityGroupName=config["groupName"],
             DBSecurityGroupDescription=config["description"],
         )
@@ -142,7 +152,7 @@ class EC2RDSDbSecurityGroupState(
                 )
             )
             kwargs = self.process_rule(rule)
-            self.get_client("rds").revoke_db_security_group_ingress(**kwargs)
+            self.get_rds_client().revoke_db_security_group_ingress(**kwargs)
 
         for rule in rules_to_add:
             self.log(
@@ -151,7 +161,7 @@ class EC2RDSDbSecurityGroupState(
                 )
             )
             kwargs = self.process_rule(rule)
-            self.get_client("rds").authorize_db_security_group_ingress(**kwargs)
+            self.get_rds_client().authorize_db_security_group_ingress(**kwargs)
 
         with self.depl._db:
             self._state["rules"] = config["rules"]
@@ -171,7 +181,7 @@ class EC2RDSDbSecurityGroupState(
             return
         self.log("destroying rds db security group {}".format(self._state["groupName"]))
         try:
-            self.get_client("rds").delete_db_security_group(
+            self.get_rds_client().delete_db_security_group(
                 DBSecurityGroupName=self._state["groupName"]
             )
         except botocore.exceptions.ClientError as error:
@@ -194,3 +204,30 @@ class EC2RDSDbSecurityGroupState(
     def destroy(self, wipe=True):
         self._destroy()
         return True
+
+    def get_rds_client(self):
+        """
+        Generic method to get a cached RDS AWS client or create it.
+        """
+        new_access_key_id = (
+            self.get_defn()["accessKeyId"] if self.depl.definitions else None
+        ) or nixops_aws.ec2_utils.get_access_key_id()
+        if new_access_key_id is not None:
+            self.access_key_id = new_access_key_id
+        if self.access_key_id is None:
+            raise Exception(
+                "please set 'accessKeyId', $EC2_ACCESS_KEY or $AWS_ACCESS_KEY_ID"
+            )
+        if self._rds_client:
+            return self._rds_client
+        assert self._state["region"]
+        (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
+            self.access_key_id
+        )
+        self._rds_client = boto3.session.Session().client(
+            service_name="rds",
+            region_name=self._state["region"],
+            aws_access_key_id=access_key_id,
+            aws_secret_access_key=secret_access_key,
+        )
+        return self._rds_client

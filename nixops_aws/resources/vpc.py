@@ -3,16 +3,21 @@
 # Automatic provisioning of AWS VPCs.
 
 import botocore
-
+import time
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
 from nixops.diff import Handler
+import nixops_aws.resources
+
+from .types.vpc import VpcOptions
 
 
 class VPCDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC."""
+
+    config: VpcOptions
 
     @classmethod
     def get_type(cls):
@@ -203,7 +208,7 @@ class VPCState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         config = self.get_defn()
         if config["enableClassicLink"]:
             self.get_client().enable_vpc_classic_link(VpcId=self.vpc_id)
-        elif config["enableClassicLink"] == False and self._state.get(
+        elif config["enableClassicLink"] is False and self._state.get(
             "enableClassicLink", None
         ):
             self.get_client().disable_vpc_classic_link(VpcId=self.vpc_id)

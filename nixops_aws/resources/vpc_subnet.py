@@ -3,16 +3,21 @@
 # Automatic provisioning of AWS VPC subnets.
 
 import botocore
-
+import time
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
-import nixops_aws.ec2_utils
 from nixops.diff import Handler
+from . import vpc
+from .vpc import VPCState
+
+from .types.vpc_subnet import VpcSubnetOptions
 
 
 class VPCSubnetDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC subnet."""
+
+    config: VpcSubnetOptions
 
     @classmethod
     def get_type(cls):
@@ -80,9 +85,7 @@ class VPCSubnetState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         return "resources.vpcSubnets."
 
     def create_after(self, resources, defn):
-        return {
-            r for r in resources if isinstance(r, nixops_aws.resources.vpc.VPCState)
-        }
+        return {r for r in resources if isinstance(r, vpc.VPCState)}
 
     def create(self, defn, check, allow_reboot, allow_recreate):
         nixops.resources.DiffEngineResourceState.create(
@@ -158,7 +161,9 @@ class VPCSubnetState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         vpc_id = config["vpcId"]
 
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc")
+            res = self.depl.get_typed_resource(
+                vpc_id[4:].split(".")[0], "vpc", VPCState
+            )
             vpc_id = res._state["vpcId"]
 
         zone = config["zone"] if config["zone"] else ""

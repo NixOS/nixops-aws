@@ -9,9 +9,13 @@ import nixops.resources
 import botocore.exceptions
 from . import ec2_common
 
+from .types.ebs_volume import EbsVolumeOptions
+
 
 class EBSVolumeDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EBS volume."""
+
+    config: EbsVolumeOptions
 
     @classmethod
     def get_type(cls):
@@ -61,13 +65,13 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
     def resource_id(self):
         return self.volume_id
 
-    def connect(self, region):
+    def _connect(self, region):
         if self._conn:
             return self._conn
         self._conn = nixops_aws.ec2_utils.connect(region, self.access_key_id)
         return self._conn
 
-    def connect_boto3(self, region):
+    def _connect_boto3(self, region):
         if self._conn_boto3:
             return self._conn_boto3
         self._conn_boto3 = nixops_aws.ec2_utils.connect_ec2_boto3(
@@ -76,11 +80,10 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
         return self._conn_boto3
 
     def _get_vol(self, config):
-        self.connect_boto3(config["region"])
         try:
-            _vol = self._conn_boto3.describe_volumes(VolumeIds=[config["volumeId"]])[
-                "Volumes"
-            ][0]
+            _vol = self._connect_boto3(config["region"]).describe_volumes(
+                VolumeIds=[config["volumeId"]]
+            )["Volumes"][0]
         except botocore.exceptions.ClientError as error:
             raise error
         if _vol["VolumeType"] == "io1":
@@ -106,8 +109,6 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
                 "please set ‘accessKeyId’, $EC2_ACCESS_KEY or $AWS_ACCESS_KEY_ID"
             )
 
-        self.connect(defn.config["region"])
-
         if self._exists():
             if self.region != defn.config["region"] or self.zone != defn.config["zone"]:
                 raise Exception(
@@ -120,7 +121,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
                 )
 
             if (
-                self.volume_type != None
+                self.volume_type is not None
                 and defn.config["volumeType"] != self.volume_type
             ):
                 raise Exception(
@@ -140,7 +141,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
                 self._get_vol(defn.config)
             else:
                 if defn.config["size"] == 0 and defn.config["snapshot"] != "":
-                    snapshots = self._conn.get_all_snapshots(
+                    snapshots = self._connect(defn.config["region"]).get_all_snapshots(
                         snapshot_ids=[defn.config["snapshot"]]
                     )
                     assert len(snapshots) == 1
@@ -162,7 +163,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
                         "please set a zone where the volume will be created"
                     )
 
-                volume = self._conn.create_volume(
+                volume = self._connect(defn.config["region"]).create_volume(
                     zone=defn.config["zone"],
                     size=defn.config["size"],
                     snapshot=defn.config["snapshot"],
@@ -187,13 +188,16 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
         if self.state == self.STARTING or check:
             self.update_tags(self.volume_id, user_tags=defn.config["tags"], check=check)
             nixops_aws.ec2_utils.wait_for_volume_available(
-                self._conn, self.volume_id, self.logger, states=["available", "in-use"]
+                self._connect(self.region),
+                self.volume_id,
+                self.logger,
+                states=["available", "in-use"],
             )
             self.state = self.UP
 
     def check(self):
         volume = nixops_aws.ec2_utils.get_volume_by_id(
-            self.connect(self.region), self.volume_id
+            self._connect(self.region), self.volume_id
         )
         if volume is None:
             self.state = self.MISSING
@@ -203,11 +207,10 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
             return True
 
         if wipe:
-            log.warn("wipe is not supported")
+            self.warn("wipe is not supported")
 
-        self.connect(self.region)
         volume = nixops_aws.ec2_utils.get_volume_by_id(
-            self._conn, self.volume_id, allow_missing=True
+            self._connect(self.region), self.volume_id, allow_missing=True
         )
         if not volume:
             return True

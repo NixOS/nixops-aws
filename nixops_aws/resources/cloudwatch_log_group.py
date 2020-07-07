@@ -8,9 +8,13 @@ import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
 
+from .types.cloudwatch_log_group import CloudwatchLogGroupOptions
+
 
 class CloudWatchLogGroupDefinition(nixops.resources.ResourceDefinition):
     """Definition of a cloudwatch log group."""
+
+    config: CloudwatchLogGroupOptions
 
     @classmethod
     def get_type(cls):
@@ -24,7 +28,9 @@ class CloudWatchLogGroupDefinition(nixops.resources.ResourceDefinition):
         return "{0}".format(self.get_type())
 
 
-class CloudWatchLogGroupState(nixops.resources.ResourceState):
+class CloudWatchLogGroupState(
+    nixops.resources.ResourceState[CloudWatchLogGroupDefinition]
+):
     """State of the cloudwatch log group"""
 
     state = nixops.util.attr_property(
@@ -65,9 +71,9 @@ class CloudWatchLogGroupState(nixops.resources.ResourceState):
     def get_definition_prefix(self):
         return "resources.cloudwatchLogGroups."
 
-    def connect(self):
+    def _connect(self):
         if self._conn:
-            return
+            return self._conn
         assert self.region
         (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
             self.access_key_id
@@ -77,15 +83,15 @@ class CloudWatchLogGroupState(nixops.resources.ResourceState):
             aws_access_key_id=access_key_id,
             aws_secret_access_key=secret_access_key,
         )
+        return self._conn
 
     def _destroy(self):
         if self.state != self.UP:
             return
-        self.connect()
         self.log("destroying cloudwatch log group ‘{0}’...".format(self.log_group_name))
         try:
-            self._conn.delete_log_group(self.log_group_name)
-        except boto.logs.exceptions.ResourceNotFoundException as e:
+            self._connect().delete_log_group(self.log_group_name)
+        except boto.logs.exceptions.ResourceNotFoundException:
             self.log(
                 "the log group ‘{0}’ was already deleted".format(self.log_group_name)
             )
@@ -98,7 +104,7 @@ class CloudWatchLogGroupState(nixops.resources.ResourceState):
 
     def lookup_cloudwatch_log_group(self, log_group_name, next_token=None):
         if log_group_name:
-            response = self._conn.describe_log_groups(
+            response = self._connect().describe_log_groups(
                 log_group_name_prefix=log_group_name, next_token=next_token
             )
             if "logGroups" in response:
@@ -107,8 +113,7 @@ class CloudWatchLogGroupState(nixops.resources.ResourceState):
                         return True, log["arn"]
             if "nextToken" in response:
                 self.lookup_cloudwatch_log_group(
-                    log_group_name_prefix=log_group_name,
-                    next_token=response["nextToken"],
+                    log_group_name=log_group_name, next_token=response["nextToken"],
                 )
         return False, None
 
@@ -130,17 +135,16 @@ class CloudWatchLogGroupState(nixops.resources.ResourceState):
             self._conn = None
 
         self.region = defn.config["region"]
-        self.connect()
         exist, arn = self.lookup_cloudwatch_log_group(
             log_group_name=self.log_group_name
         )
 
-        if self.arn == None or not exist:
+        if self.arn is None or not exist:
             self.retention_in_days = None
             self.log(
                 "creating cloudwatch log group ‘{0}’...".format(defn.config["name"])
             )
-            log_group = self._conn.create_log_group(defn.config["name"])
+            self._connect().create_log_group(defn.config["name"])
             exist, arn = self.lookup_cloudwatch_log_group(
                 log_group_name=defn.config["name"]
             )
@@ -151,7 +155,7 @@ class CloudWatchLogGroupState(nixops.resources.ResourceState):
                     defn.config["name"], defn.config["retentionInDays"]
                 )
             )
-            self._conn.set_retention(
+            self._connect().set_retention(
                 log_group_name=defn.config["name"],
                 retention_in_days=defn.config["retentionInDays"],
             )

@@ -7,10 +7,15 @@ import boto.logs
 import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
+from . import cloudwatch_log_group
+
+from .types.cloudwatch_log_stream import CloudwatchLogStreamOptions
 
 
 class CloudWatchLogStreamDefinition(nixops.resources.ResourceDefinition):
     """Definition of a cloudwatch log stream."""
+
+    config: CloudwatchLogStreamOptions
 
     @classmethod
     def get_type(cls):
@@ -24,7 +29,9 @@ class CloudWatchLogStreamDefinition(nixops.resources.ResourceDefinition):
         return "{0}".format(self.get_type())
 
 
-class CloudWatchLogStreamState(nixops.resources.ResourceState):
+class CloudWatchLogStreamState(
+    nixops.resources.ResourceState[CloudWatchLogStreamDefinition]
+):
     """State of the cloudwatch log group"""
 
     state = nixops.util.attr_property(
@@ -63,9 +70,9 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState):
     def get_definition_prefix(self):
         return "resources.cloudwatchLogStreams."
 
-    def connect(self):
+    def _connect(self):
         if self._conn:
-            return
+            return self._conn
         assert self.region
         (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
             self.access_key_id
@@ -75,19 +82,19 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState):
             aws_access_key_id=access_key_id,
             aws_secret_access_key=secret_access_key,
         )
+        return self._conn
 
     def _destroy(self):
         if self.state != self.UP:
             return
-        self.connect()
         self.log(
             "destroying cloudwatch log stream ‘{0}’...".format(self.log_stream_name)
         )
         try:
-            self._conn.delete_log_stream(
+            self._connect().delete_log_stream(
                 log_group_name=self.log_group_name, log_stream_name=self.log_stream_name
             )
-        except boto.logs.exceptions.ResourceNotFoundException as e:
+        except boto.logs.exceptions.ResourceNotFoundException:
             self.log(
                 "the log group ‘{0}’ or log stream ‘{1}’ was already deleted".format(
                     self.log_group_name, self.log_stream_name
@@ -104,7 +111,7 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState):
         self, log_group_name, log_stream_name, next_token=None
     ):
         if log_stream_name:
-            response = self._conn.describe_log_streams(
+            response = self._connect().describe_log_streams(
                 log_group_name=log_group_name,
                 log_stream_name_prefix=log_stream_name,
                 next_token=next_token,
@@ -114,7 +121,7 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState):
                     if log_stream_name == log_stream["logStreamName"]:
                         return True, log_stream["arn"]
             if "nextToken" in response:
-                self.lookup_cloudwatch_log_group(
+                self.lookup_cloudwatch_log_stream(
                     log_group_name=log_group_name,
                     log_stream_name=log_stream_name,
                     next_token=response["nextToken"],
@@ -127,9 +134,7 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState):
         return {
             r
             for r in resources
-            if isinstance(
-                r, nixops_aws.resources.cloudwatch_log_group.CloudWatchLogGroupState
-            )
+            if isinstance(r, cloudwatch_log_group.CloudWatchLogGroupState)
         }
 
     def create(self, defn, check, allow_reboot, allow_recreate):
@@ -151,18 +156,17 @@ class CloudWatchLogStreamState(nixops.resources.ResourceState):
             self._conn = None
 
         self.region = defn.config["region"]
-        self.connect()
         exist, arn = self.lookup_cloudwatch_log_stream(
             log_group_name=self.log_group_name, log_stream_name=self.log_stream_name
         )
 
-        if self.arn == None or not exist:
+        if self.arn is None or not exist:
             self.log(
                 "creating cloudwatch log stream ‘{0}’ under log group ‘{1}’...".format(
                     defn.config["name"], defn.config["logGroupName"]
                 )
             )
-            log_group = self._conn.create_log_stream(
+            self._connect().create_log_stream(
                 log_stream_name=defn.config["name"],
                 log_group_name=defn.config["logGroupName"],
             )

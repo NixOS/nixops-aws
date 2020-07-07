@@ -2,13 +2,25 @@ import socket
 import getpass
 
 import boto3
-
+import mypy_boto3_ec2
 import nixops.util
+import nixops.deployment
 import nixops.resources
 import nixops_aws.ec2_utils
+from nixops.state import StateDict
+from typing import Optional
+from boto.ec2.connection import EC2Connection
 
 
 class EC2CommonState:
+    depl: nixops.deployment.Deployment
+    name: str
+    _state: StateDict
+    _client: Optional[mypy_boto3_ec2.EC2Client]
+
+    # Not always available
+    _conn: EC2Connection
+    access_key_id: Optional[str]
 
     COMMON_EC2_RESERVED = ["accessKeyId", "ec2.tags"]
 
@@ -48,12 +60,16 @@ class EC2CommonState:
 
         self.update_tags_using(updater, user_tags=user_tags, check=check)
 
-    def get_client(self, service="ec2"):
+    def get_client(self):
         """
-        Generic method to get a cached AWS client or create it.
+        Generic method to get a cached EC2 AWS client or create it.
         """
+
+        # Here be dragons!
+        # This class is weird and doesn't have it's full dependencies declared.
+        # This function will _only_ work when _also_ inheriting from DiffEngineResourceState
         new_access_key_id = (
-            self.get_defn()["accessKeyId"] if self.depl.definitions else None
+            self.get_defn()["accessKeyId"] if self.depl.definitions else None  # type: ignore
         ) or nixops_aws.ec2_utils.get_access_key_id()
         if new_access_key_id is not None:
             self.access_key_id = new_access_key_id
@@ -65,12 +81,13 @@ class EC2CommonState:
             if self._client:
                 return self._client
         assert self._state["region"]
+        region: str = str(self._state["region"])
         (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
             self.access_key_id
         )
-        self._client = boto3.session.Session().client(
-            service_name=service,
-            region_name=self._state["region"],
+        self._client: mypy_boto3_ec2.EC2Client = boto3.session.Session().client(
+            service_name="ec2",
+            region_name=region,
             aws_access_key_id=access_key_id,
             aws_secret_access_key=secret_access_key,
         )

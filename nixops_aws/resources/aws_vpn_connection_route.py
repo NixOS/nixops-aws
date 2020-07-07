@@ -5,13 +5,19 @@ import botocore
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
-import nixops_aws.ec2_utils
+from . import aws_vpn_connection
 from nixops.diff import Handler
 from nixops.state import StateDict
+
+from .aws_vpn_connection import AWSVPNConnectionState
+
+from .types.aws_vpn_connection_route import AwsVpnConnectionRouteOptions
 
 
 class AWSVPNConnectionRouteDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPN connection route"""
+
+    config: AwsVpnConnectionRouteOptions
 
     @classmethod
     def get_type(cls):
@@ -25,7 +31,9 @@ class AWSVPNConnectionRouteDefinition(nixops.resources.ResourceDefinition):
         return "{0}".format(self.get_type())
 
 
-class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonState):
+class AWSVPNConnectionRouteState(
+    nixops.resources.DiffEngineResourceState, EC2CommonState
+):
     """State of a VPN connection route"""
 
     state = nixops.util.attr_property(
@@ -48,7 +56,7 @@ class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonS
         )
 
     def show_type(self):
-        s = super(AWSVPNConnectionState, self).show_type()
+        s = super(AWSVPNConnectionRouteState, self).show_type()
         if self.region:
             s = "{0} [{1}]".format(s, self.region)
         return s
@@ -67,9 +75,7 @@ class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonS
         return {
             r
             for r in resources
-            if isinstance(
-                r, nixops_aws.resources.aws_vpn_connection.AWSVPNConnectionState
-            )
+            if isinstance(r, aws_vpn_connection.AWSVPNConnectionState)
         }
 
     def realize_create_vpn_route(self, allow_recreate):
@@ -90,7 +96,9 @@ class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonS
         vpn_conn_id = config["vpnConnectionId"]
         if vpn_conn_id.startswith("res-"):
             res = self.depl.get_typed_resource(
-                vpn_conn_id[4:].split(".")[0], "aws-vpn-connection"
+                vpn_conn_id[4:].split(".")[0],
+                "aws-vpn-connection",
+                AWSVPNConnectionState,
             )
             vpn_conn_id = res._state["vpnConnectionId"]
 

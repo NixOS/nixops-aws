@@ -7,13 +7,19 @@ import botocore
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
-import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
+from . import vpc_subnet
+from .vpc_subnet import VPCSubnetState
+from .ec2_security_group import EC2SecurityGroupState
+
+from .types.vpc_network_interface import VpcNetworkInterfaceOptions
 
 
 class VPCNetworkInterfaceDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC network interface"""
+
+    config: VpcNetworkInterfaceOptions
 
     @classmethod
     def get_type(cls):
@@ -85,11 +91,7 @@ class VPCNetworkInterfaceState(
         return "resources.vpcNetworkInterfaces."
 
     def create_after(self, resources, defn):
-        return {
-            r
-            for r in resources
-            if isinstance(r, nixops_aws.resources.vpc_subnet.VPCSubnetState)
-        }
+        return {r for r in resources if isinstance(r, vpc_subnet.VPCSubnetState)}
 
     def realize_create_eni(self, allow_recreate):
         config = self.get_defn()
@@ -139,18 +141,18 @@ class VPCNetworkInterfaceState(
         subnet_id = config["subnetId"]
         if subnet_id.startswith("res-"):
             res = self.depl.get_typed_resource(
-                subnet_id[4:].split(".")[0], "vpc-subnet"
+                subnet_id[4:].split(".")[0], "vpc-subnet", VPCSubnetState
             )
             subnet_id = res._state["subnetId"]
 
         groups = []
         for grp in config["securityGroups"]:
             if grp.startswith("res-"):
-                res = self.depl.get_typed_resource(
-                    grp[4:].split(".")[0], "ec2-security-group"
+                res_sg = self.depl.get_typed_resource(
+                    grp[4:].split(".")[0], "ec2-security-group", EC2SecurityGroupState
                 )
-                assert res.vpc_id
-                groups.append(res.security_group_id)
+                assert res_sg.vpc_id
+                groups.append(res_sg.security_group_id)
             else:
                 groups.append(grp)
 
@@ -191,7 +193,7 @@ class VPCNetworkInterfaceState(
         for grp in config["securityGroups"]:
             if grp.startswith("res-"):
                 res = self.depl.get_typed_resource(
-                    grp[4:].split(".")[0], "ec2-security-group"
+                    grp[4:].split(".")[0], "ec2-security-group", EC2SecurityGroupState
                 )
                 assert res.vpc_id
                 groups.append(res.security_group_id)

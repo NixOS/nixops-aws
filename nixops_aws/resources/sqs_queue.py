@@ -7,10 +7,13 @@ import boto.sqs
 import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
+from .types.sqs_queue import SqsQueueOptions
 
 
 class SQSQueueDefinition(nixops.resources.ResourceDefinition):
     """Definition of an SQS queue."""
+
+    config: SqsQueueOptions
 
     @classmethod
     def get_type(cls):
@@ -20,22 +23,18 @@ class SQSQueueDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "sqsQueues"
 
-    def __init__(self, xml):
-        nixops.resources.ResourceDefinition.__init__(self, xml)
-        self.queue_name = xml.find("attrs/attr[@name='name']/string").get("value")
-        self.region = xml.find("attrs/attr[@name='region']/string").get("value")
-        self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(
-            "value"
-        )
-        self.visibility_timeout = xml.find(
-            "attrs/attr[@name='visibilityTimeout']/int"
-        ).get("value")
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
+        super().__init__(name, config)
+        self.queue_name = self.config.name
+        self.region = self.config.region
+        self.access_key_id = self.config.accessKeyId
+        self.visibility_timeout = self.config.visibilityTimeout
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
 
 
-class SQSQueueState(nixops.resources.ResourceState):
+class SQSQueueState(nixops.resources.ResourceState[SQSQueueDefinition]):
     """State of an SQS queue."""
 
     state = nixops.util.attr_property(
@@ -72,9 +71,9 @@ class SQSQueueState(nixops.resources.ResourceState):
     def resource_id(self):
         return self.queue_name
 
-    def connect(self):
+    def _connect(self):
         if self._conn:
-            return
+            return self._conn
         assert self.region
         (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
             self.access_key_id
@@ -84,15 +83,16 @@ class SQSQueueState(nixops.resources.ResourceState):
             aws_access_key_id=access_key_id,
             aws_secret_access_key=secret_access_key,
         )
+        return self._conn
 
     def _destroy(self):
         if self.state != self.UP:
             return
-        self.connect()
-        q = self._conn.lookup(self.queue_name)
+        conn = self._connect()
+        q = conn.lookup(self.queue_name)
         if q:
             self.log("destroying SQS queue ‘{0}’...".format(self.queue_name))
-            self._conn.delete_queue(q)
+            conn.delete_queue(q)
         with self.depl._db:
             self.state = self.MISSING
             self.queue_name = None
@@ -122,9 +122,8 @@ class SQSQueueState(nixops.resources.ResourceState):
         if check or self.state != self.UP:
 
             self.region = defn.region
-            self.connect()
 
-            q = self._conn.lookup(defn.queue_name)
+            q = self._connect().lookup(defn.queue_name)
 
             if not q or self.state != self.UP:
                 if q:
@@ -135,11 +134,11 @@ class SQSQueueState(nixops.resources.ResourceState):
                             defn.queue_name
                         )
                     )
-                    self._conn.delete_queue(q)
+                    self._connect().delete_queue(q)
                     time.sleep(61)
                 self.log("creating SQS queue ‘{0}’...".format(defn.queue_name))
                 q = nixops_aws.ec2_utils.retry(
-                    lambda: self._conn.create_queue(
+                    lambda: self._connect().create_queue(
                         defn.queue_name, defn.visibility_timeout
                     ),
                     error_codes=["AWS.SimpleQueueService.QueueDeletedRecently"],

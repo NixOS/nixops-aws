@@ -9,9 +9,13 @@ import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
 
+from .types.s3_bucket import S3BucketOptions
+
 
 class S3BucketDefinition(nixops.resources.ResourceDefinition):
     """Definition of an S3 bucket."""
+
+    config: S3BucketOptions
 
     @classmethod
     def get_type(cls):
@@ -21,26 +25,24 @@ class S3BucketDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "s3Buckets"
 
-    def __init__(self, xml, config={}):
-        nixops.resources.ResourceDefinition.__init__(self, xml, config)
-        self.bucket_name = xml.find("attrs/attr[@name='name']/string").get("value")
-        self.region = xml.find("attrs/attr[@name='region']/string").get("value")
-        self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(
-            "value"
-        )
-        self.policy = xml.find("attrs/attr[@name='policy']/string").get("value")
-        self.lifecycle = xml.find("attrs/attr[@name='lifeCycle']/string").get("value")
-        self.versioning = xml.find("attrs/attr[@name='versioning']/string").get("value")
-        self.website_enabled = self.config["website"]["enabled"]
-        self.website_suffix = self.config["website"]["suffix"]
-        self.website_error_document = self.config["website"]["errorDocument"]
-        self.persist_on_destroy = self.config["persistOnDestroy"]
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
+        nixops.resources.ResourceDefinition.__init__(self, name, config)
+        self.bucket_name = self.config.name
+        self.region = self.config.region
+        self.access_key_id = self.config.accessKeyId
+        self.policy = self.config.policy
+        self.lifecycle = self.config.lifeCycle
+        self.versioning = self.config.versioning
+        self.website_enabled = self.config.website.enabled
+        self.website_suffix = self.config.website.suffix
+        self.website_error_document = self.config.website.errorDocument
+        self.persist_on_destroy = self.config.persistOnDestroy
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
 
 
-class S3BucketState(nixops.resources.ResourceState):
+class S3BucketState(nixops.resources.ResourceState[S3BucketDefinition]):
     """State of an S3 bucket."""
 
     state = nixops.util.attr_property(
@@ -73,9 +75,9 @@ class S3BucketState(nixops.resources.ResourceState):
     def get_definition_prefix(self):
         return "resources.s3Buckets."
 
-    def connect(self):
+    def _connect(self):
         if self._conn:
-            return
+            return self._conn
         (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
             self.access_key_id
         )
@@ -84,8 +86,9 @@ class S3BucketState(nixops.resources.ResourceState):
             aws_access_key_id=access_key_id,
             aws_secret_access_key=secret_access_key,
         )
+        return self._conn
 
-    def create(self, defn, check, allow_reboot, allow_recreate):
+    def create(self, defn, check, allow_reboot, allow_recreate):  # noqa: C901
 
         self.access_key_id = (
             defn.access_key_id or nixops_aws.ec2_utils.get_access_key_id()
@@ -102,8 +105,7 @@ class S3BucketState(nixops.resources.ResourceState):
                 )
             )
 
-        self.connect()
-        s3client = self._conn.client("s3")
+        s3client = self._connect().client("s3")
         if check or self.state != self.UP:
 
             self.log("creating S3 bucket ‘{0}’...".format(defn.bucket_name))
@@ -213,10 +215,9 @@ class S3BucketState(nixops.resources.ResourceState):
                 )
                 return True
 
-            self.connect()
             try:
                 self.log("destroying S3 bucket ‘{0}’...".format(self.bucket_name))
-                bucket = self._conn.resource("s3").Bucket(self.bucket_name)
+                bucket = self._connect().resource("s3").Bucket(self.bucket_name)
                 try:
                     bucket.delete()
                 except botocore.exceptions.ClientError as e:

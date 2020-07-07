@@ -8,9 +8,13 @@ import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
 
+from .types.sns_topic import SnsTopicOptions
+
 
 class SNSTopicDefinition(nixops.resources.ResourceDefinition):
     """Definition of an SNS topic."""
+
+    config: SnsTopicOptions
 
     @classmethod
     def get_type(cls):
@@ -24,7 +28,7 @@ class SNSTopicDefinition(nixops.resources.ResourceDefinition):
         return "{0}".format(self.get_type())
 
 
-class SNSTopicState(nixops.resources.ResourceState):
+class SNSTopicState(nixops.resources.ResourceState[SNSTopicDefinition]):
     """State of an SNS topic."""
 
     state = nixops.util.attr_property(
@@ -65,9 +69,9 @@ class SNSTopicState(nixops.resources.ResourceState):
     def get_definition_prefix(self):
         return "resources.snsTopics."
 
-    def connect(self):
+    def _connect(self):
         if self._conn:
-            return
+            return self._conn
         assert self.region
         (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
             self.access_key_id
@@ -77,13 +81,14 @@ class SNSTopicState(nixops.resources.ResourceState):
             aws_access_key_id=access_key_id,
             aws_secret_access_key=secret_access_key,
         )
+        return self._conn
 
     def _destroy(self):
         if self.state != self.UP:
             return
-        self.connect()
+
         self.log("destroying SNS topic ‘{0}’...".format(self.topic_name))
-        self._conn.delete_topic(self.arn)
+        self._connect().delete_topic(self.arn)
         with self.depl._db:
             self.state = self.MISSING
             self.topic_name = None
@@ -92,7 +97,7 @@ class SNSTopicState(nixops.resources.ResourceState):
             self.arn = None
 
     def topic_exists(self, arn):
-        response = self._conn.get_all_topics()
+        response = self._connect().get_all_topics()
         topics = response["ListTopicsResponse"]["ListTopicsResult"]["Topics"]
         current_topics = []
         if len(topics) > 0:
@@ -122,22 +127,21 @@ class SNSTopicState(nixops.resources.ResourceState):
             self._conn = None
 
         self.region = defn.config["region"]
-        self.connect()
 
-        if self.arn == None or not self.topic_exists(arn=self.arn):
+        if self.arn is None or not self.topic_exists(arn=self.arn):
             self.log("creating SNS topic ‘{0}’...".format(defn.config["name"]))
-            topic = self._conn.create_topic(defn.config["name"])
+            topic = self._connect().create_topic(defn.config["name"])
             arn = topic.get("CreateTopicResponse").get("CreateTopicResult")["TopicArn"]
 
-        if defn.config["displayName"] != None:
-            self._conn.set_topic_attributes(
+        if defn.config["displayName"] is not None:
+            self._connect().set_topic_attributes(
                 topic=arn,
                 attr_name="DisplayName",
                 attr_value=defn.config["displayName"],
             )
 
         if defn.config["policy"] != "":
-            policy = self._conn.set_topic_attributes(
+            self._connect().set_topic_attributes(
                 topic=arn, attr_name="Policy", attr_value=defn.config["policy"]
             )
 
@@ -153,7 +157,7 @@ class SNSTopicState(nixops.resources.ResourceState):
                     self.log(
                         "adding SNS subscriber with endpoint '{0}'...".format(endpoint)
                     )
-                    self._conn.subscribe(
+                    self._connect().subscribe(
                         topic=arn, protocol=protocol, endpoint=endpoint
                     )
 
@@ -170,7 +174,7 @@ class SNSTopicState(nixops.resources.ResourceState):
                         )
                     )
                     if subscriber_arn != "PendingConfirmation":
-                        self._conn.unsubscribe(subscription=subscriber_arn)
+                        self._connect().unsubscribe(subscription=subscriber_arn)
 
         with self.depl._db:
             self.state = self.UP
@@ -181,7 +185,7 @@ class SNSTopicState(nixops.resources.ResourceState):
             self.subscriptions = defn.config["subscriptions"]
 
     def get_current_subscribers(self, arn):
-        response = self._conn.get_all_subscriptions_by_topic(topic=arn)
+        response = self._connect().get_all_subscriptions_by_topic(topic=arn)
         current_subscribers = response["ListSubscriptionsByTopicResponse"][
             "ListSubscriptionsByTopicResult"
         ]["Subscriptions"]

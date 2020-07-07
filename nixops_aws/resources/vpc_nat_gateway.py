@@ -10,13 +10,19 @@ import botocore
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
-import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
+from . import vpc_subnet, elastic_ip
+from .elastic_ip import ElasticIPState
+from .vpc_subnet import VPCSubnetState
+
+from .types.vpc_nat_gateway import VpcNatGatewayOptions
 
 
 class VPCNatGatewayDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC NAT gateway"""
+
+    config: VpcNatGatewayOptions
 
     @classmethod
     def get_type(cls):
@@ -78,8 +84,8 @@ class VPCNatGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         return {
             r
             for r in resources
-            if isinstance(r, nixops_aws.resources.vpc_subnet.VPCSubnetState)
-            or isinstance(r, nixops_aws.resources.elastic_ip.ElasticIPState)
+            if isinstance(r, vpc_subnet.VPCSubnetState)
+            or isinstance(r, elastic_ip.ElasticIPState)
         }
 
     def realize_create_gtw(self, allow_recreate):
@@ -102,15 +108,15 @@ class VPCNatGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonStat
 
         if allocation_id.startswith("res-"):
             res = self.depl.get_typed_resource(
-                allocation_id[4:].split(".")[0], "elastic-ip"
+                allocation_id[4:].split(".")[0], "elastic-ip", ElasticIPState
             )
             allocation_id = res.allocation_id
 
         if subnet_id.startswith("res-"):
-            res = self.depl.get_typed_resource(
-                subnet_id[4:].split(".")[0], "vpc-subnet"
+            res_vpc_subnet = self.depl.get_typed_resource(
+                subnet_id[4:].split(".")[0], "vpc-subnet", VPCSubnetState
             )
-            subnet_id = res._state["subnetId"]
+            subnet_id = res_vpc_subnet._state["subnetId"]
 
         if not self._state.get("creationToken", None):
             self._state["creationToken"] = str(uuid.uuid4())

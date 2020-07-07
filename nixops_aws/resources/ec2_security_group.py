@@ -6,10 +6,17 @@ import boto.ec2.securitygroup
 import nixops.resources
 import nixops.util
 import nixops_aws.ec2_utils
+from . import vpc, elastic_ip
+from .vpc import VPCState
+from .elastic_ip import ElasticIPState
+
+from .types.ec2_security_group import Ec2SecurityGroupOptions
 
 
 class EC2SecurityGroupDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 security group."""
+
+    config: Ec2SecurityGroupOptions
 
     @classmethod
     def get_type(cls):
@@ -19,50 +26,35 @@ class EC2SecurityGroupDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "ec2SecurityGroups"
 
-    def __init__(self, xml):
-        super(EC2SecurityGroupDefinition, self).__init__(xml)
-        self.security_group_name = xml.find("attrs/attr[@name='name']/string").get(
-            "value"
-        )
-        self.security_group_description = xml.find(
-            "attrs/attr[@name='description']/string"
-        ).get("value")
-        self.region = xml.find("attrs/attr[@name='region']/string").get("value")
-        self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(
-            "value"
-        )
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
+        super(EC2SecurityGroupDefinition, self).__init__(name, config)
+        self.security_group_name = self.config.name
+        self.security_group_description = self.config.description
+        self.region = self.config.region
+        self.access_key_id = self.config.accessKeyId
 
         self.vpc_id = None
-        if not xml.find("attrs/attr[@name='vpcId']/string") is None:
-            self.vpc_id = xml.find("attrs/attr[@name='vpcId']/string").get("value")
+        if config.vpcId:
+            self.vpc_id = config.vpcId
 
         self.security_group_rules = []
-        for rule_xml in xml.findall("attrs/attr[@name='rules']/list/attrs"):
-            ip_protocol = rule_xml.find("attr[@name='protocol']/string").get("value")
+        for rule in self.config.rules:
+            ip_protocol = rule.protocol
             if ip_protocol == "icmp":
-                from_port = int(
-                    rule_xml.find("attr[@name='typeNumber']/int").get("value")
-                )
-                to_port = int(
-                    rule_xml.find("attr[@name='codeNumber']/int").get("value")
-                )
+                from_port = rule.typeNumber
+                to_port = rule.codeNumber
             else:
-                from_port = int(
-                    rule_xml.find("attr[@name='fromPort']/int").get("value")
-                )
-                to_port = int(rule_xml.find("attr[@name='toPort']/int").get("value"))
-            cidr_ip_xml = rule_xml.find("attr[@name='sourceIp']/string")
-            if not cidr_ip_xml is None:
+                from_port = rule.fromPort
+                to_port = rule.toPort
+
+            cidr_ip = rule.sourceIp
+            if cidr_ip is not None:
                 self.security_group_rules.append(
-                    [ip_protocol, from_port, to_port, cidr_ip_xml.get("value")]
+                    [ip_protocol, from_port, to_port, cidr_ip]
                 )
             else:
-                group_name = rule_xml.find(
-                    "attr[@name='sourceGroup']/attrs/attr[@name='groupName']/string"
-                ).get("value")
-                owner_id = rule_xml.find(
-                    "attr[@name='sourceGroup']/attrs/attr[@name='ownerId']/string"
-                ).get("value")
+                group_name = rule.sourceGroup.groupName
+                owner_id = rule.sourceGroup.ownerId
                 self.security_group_rules.append(
                     [ip_protocol, from_port, to_port, group_name, owner_id]
                 )
@@ -71,7 +63,7 @@ class EC2SecurityGroupDefinition(nixops.resources.ResourceDefinition):
         return "{0} [{1}]".format(self.get_type(), self.region)
 
 
-class EC2SecurityGroupState(nixops.resources.ResourceState):
+class EC2SecurityGroupState(nixops.resources.ResourceState[EC2SecurityGroupDefinition]):
     """State of an EC2 security group."""
 
     region = nixops.util.attr_property("ec2.region", None)
@@ -112,20 +104,20 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
         return self.security_group_name
 
     def create_after(self, resources, defn):
-        #!!! TODO: Handle dependencies between security groups
+        # !!! TODO: Handle dependencies between security groups
         return {
             r
             for r in resources
-            if isinstance(r, nixops_aws.resources.vpc.VPCState)
-            or isinstance(r, nixops_aws.resources.elastic_ip.ElasticIPState)
+            if isinstance(r, vpc.VPCState) or isinstance(r, elastic_ip.ElasticIPState)
         }
 
     def _connect(self):
         if self._conn:
-            return
+            return self._conn
         self._conn = nixops_aws.ec2_utils.connect(self.region, self.access_key_id)
+        return self._conn
 
-    def create(self, defn, check, allow_reboot, allow_recreate):
+    def create(self, defn, check, allow_reboot, allow_recreate):  # noqa: C901
         def retry_notfound(f):
             nixops_aws.ec2_utils.retry(f, error_codes=["InvalidGroup.NotFound"])
 
@@ -142,7 +134,9 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
 
         if defn.vpc_id is not None:
             if defn.vpc_id.startswith("res-"):
-                res = self.depl.get_typed_resource(defn.vpc_id[4:].split(".")[0], "vpc")
+                res = self.depl.get_typed_resource(
+                    defn.vpc_id[4:].split(".")[0], "vpc", VPCState
+                )
                 defn.vpc_id = res._state["vpcId"]
 
         with self.depl._db:
@@ -161,11 +155,11 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
 
                 try:
                     if self.vpc_id:
-                        grp = self._conn.get_all_security_groups(
+                        grp = self._connect().get_all_security_groups(
                             group_ids=[self.security_group_id]
                         )[0]
                     else:
-                        grp = self._conn.get_all_security_groups(
+                        grp = self._connect().get_all_security_groups(
                             [defn.security_group_name]
                         )[0]
                     self.state = self.UP
@@ -203,8 +197,10 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
         resolved_security_group_rules = []
         for rule in defn.security_group_rules:
             if rule[-1].startswith("res-"):
-                res = self.depl.get_typed_resource(rule[-1][4:], "elastic-ip")
-                rule[-1] = res.public_ipv4 + "/32"
+                res_ip = self.depl.get_typed_resource(
+                    rule[-1][4:], "elastic-ip", ElasticIPState
+                )
+                rule[-1] = res_ip.public_ipv4 + "/32"
             resolved_security_group_rules.append(rule)
 
         security_group_was_created = False
@@ -216,7 +212,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
                         self.security_group_name
                     )
                 )
-                grp = self._conn.create_security_group(
+                grp = self._connect().create_security_group(
                     self.security_group_name,
                     self.security_group_description,
                     defn.vpc_id,
@@ -240,7 +236,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
                 old_rules.add(tuple(rule))
         for rule in resolved_security_group_rules:
             tupled_rule = tuple(rule)
-            if not tupled_rule in old_rules:
+            if tupled_rule not in old_rules:
                 new_rules.add(tupled_rule)
             else:
                 old_rules.remove(tupled_rule)
@@ -326,18 +322,18 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
 
     def get_security_group(self):
         if self.vpc_id:
-            return self._conn.get_all_security_groups(
+            return self._connect().get_all_security_groups(
                 group_ids=[self.security_group_id]
             )[0]
         else:
-            return self._conn.get_all_security_groups(
+            return self._connect().get_all_security_groups(
                 groupnames=[self.security_group_name]
             )[0]
 
     def after_activation(self, defn):
         region = self.region
-        self._connect()
-        conn = self._conn
+
+        conn = self._connect()
         for group in self.old_security_groups:
             if group["region"] != region:
                 region = group["region"]
@@ -359,7 +355,7 @@ class EC2SecurityGroupState(nixops.resources.ResourceState):
             self._connect()
             try:
                 nixops_aws.ec2_utils.retry(
-                    lambda: self._conn.delete_security_group(
+                    lambda: self._connect().delete_security_group(
                         group_id=self.security_group_id
                     ),
                     error_codes=["DependencyViolation"],

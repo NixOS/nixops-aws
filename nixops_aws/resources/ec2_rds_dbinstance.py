@@ -8,10 +8,16 @@ import nixops.util
 import nixops_aws.ec2_utils
 import time
 from uuid import uuid4
+from . import ec2_rds_dbsecurity_group
+from .ec2_rds_dbsecurity_group import EC2RDSDbSecurityGroupState
+
+from .types.ec2_rds_dbinstance import Ec2RdsDbinstanceOptions
 
 
 class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 RDS Database Instance."""
+
+    config: Ec2RdsDbinstanceOptions
 
     @classmethod
     def get_type(cls):
@@ -21,52 +27,33 @@ class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "rdsDbInstances"
 
-    def __init__(self, xml):
-        super(EC2RDSDbInstanceDefinition, self).__init__(xml)
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
+        super(EC2RDSDbInstanceDefinition, self).__init__(name, config)
         # rds specific params
-        self.rds_dbinstance_id = xml.find("attrs/attr[@name='id']/string").get("value")
-        self.rds_dbinstance_allocated_storage = int(
-            xml.find("attrs/attr[@name='allocatedStorage']/int").get("value")
-        )
-        self.rds_dbinstance_instance_class = xml.find(
-            "attrs/attr[@name='instanceClass']/string"
-        ).get("value")
-        self.rds_dbinstance_master_username = xml.find(
-            "attrs/attr[@name='masterUsername']/string"
-        ).get("value")
-        self.rds_dbinstance_master_password = xml.find(
-            "attrs/attr[@name='masterPassword']/string"
-        ).get("value")
-        self.rds_dbinstance_port = int(
-            xml.find("attrs/attr[@name='port']/int").get("value")
-        )
-        self.rds_dbinstance_engine = xml.find("attrs/attr[@name='engine']/string").get(
-            "value"
-        )
-        self.rds_dbinstance_db_name = xml.find("attrs/attr[@name='dbName']/string").get(
-            "value"
-        )
-        self.rds_dbinstance_multi_az = (
-            xml.find("attrs/attr[@name='multiAZ']/bool").get("value") == "true"
-        )
+
+        self.rds_dbinstance_id = self.config.id
+        self.rds_dbinstance_allocated_storage = self.config.allocatedStorage
+        self.rds_dbinstance_instance_class = self.config.instanceClass
+        self.rds_dbinstance_master_username = self.config.masterUsername
+        self.rds_dbinstance_master_password = self.config.masterPassword
+        self.rds_dbinstance_port = self.config.port
+        self.rds_dbinstance_engine = self.config.engine
+        self.rds_dbinstance_db_name = self.config.dbName
+        self.rds_dbinstance_multi_az = self.config.multiAZ
         self.rds_dbinstance_security_groups = []
-        for sg in xml.findall("attrs/attr[@name='securityGroups']/list"):
-            for sg_str in sg.findall("string"):
-                sg_name = sg_str.get("value")
-                self.rds_dbinstance_security_groups.append(sg_name)
+        for sg_name in self.config.securityGroups:
+            self.rds_dbinstance_security_groups.append(sg_name)
         # TODO: implement remainder of boto.rds.RDSConnection.create_dbinstance parameters
 
         # common params
-        self.region = xml.find("attrs/attr[@name='region']/string").get("value")
-        self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(
-            "value"
-        )
+        self.region = self.config.region
+        self.access_key_id = self.config.accessKeyId
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
 
 
-class EC2RDSDbInstanceState(nixops.resources.ResourceState):
+class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefinition]):
     """State of an RDS Database Instance."""
 
     region = nixops.util.attr_property("ec2.region", None)
@@ -128,10 +115,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
         return {
             r
             for r in resources
-            if isinstance(
-                r,
-                nixops_aws.resources.ec2_rds_dbsecurity_group.EC2RDSDbSecurityGroupState,
-            )
+            if isinstance(r, ec2_rds_dbsecurity_group.EC2RDSDbSecurityGroupState,)
         }
 
     def _connect(self):
@@ -182,7 +166,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
     def _try_fetch_dbinstance(self, instance_id):
         dbinstance = None
         try:
-            dbinstance = self._conn.get_all_dbinstances(instance_id=instance_id)[0]
+            dbinstance = self._connect().get_all_dbinstances(instance_id=instance_id)[0]
         except boto.exception.BotoServerError as bse:
             if bse.error_code == "DBInstanceNotFound":
                 dbinstance = None
@@ -282,7 +266,9 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
         for sg in config:
             if sg.startswith("res-"):
                 res = self.depl.get_typed_resource(
-                    sg[4:].split(".")[0], "ec2-rds-dbsecurity-group"
+                    sg[4:].split(".")[0],
+                    "ec2-rds-dbsecurity-group",
+                    EC2RDSDbSecurityGroupState,
                 )
                 security_groups.append(res._state["groupName"])
             else:
@@ -353,7 +339,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
                         raise Exception(
                             "RDS instance is UP but does not exist, set --allow-recreate to recreate"
                         )
-                    self.state = MISSING
+                    self.state = self.MISSING
 
                 if not dbinstance and (
                     self.state == self.MISSING or self.state == self.UNKNOWN
@@ -367,7 +353,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
                     security_groups = self.fetch_security_group_resources(
                         defn.rds_dbinstance_security_groups
                     )
-                    dbinstance = self._conn.create_dbinstance(
+                    dbinstance = self._connect().create_dbinstance(
                         defn.rds_dbinstance_id,
                         defn.rds_dbinstance_allocated_storage,
                         defn.rds_dbinstance_instance_class,
@@ -459,7 +445,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState):
                     uuid4().hex,
                 )
                 self.logger.log("saving final snapshot as %s" % final_snapshot_id)
-                self._conn.delete_dbinstance(
+                self._connect().delete_dbinstance(
                     self.rds_dbinstance_id, final_snapshot_id=final_snapshot_id
                 )
 

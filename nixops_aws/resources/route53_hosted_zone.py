@@ -12,9 +12,13 @@ import nixops_aws.ec2_utils
 
 # boto3.set_stream_logger(name='botocore')
 
+from .types.route53_hosted_zone import Route53HostedZoneOptions
+
 
 class Route53HostedZoneDefinition(nixops.resources.ResourceDefinition):
     """Definition of an Route53 Hosted Zone."""
+
+    config: Route53HostedZoneOptions
 
     @classmethod
     def get_type(cls):
@@ -24,18 +28,20 @@ class Route53HostedZoneDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "route53HostedZones"
 
-    def __init__(self, xml, config):
-        nixops.resources.ResourceDefinition.__init__(self, xml, config)
-        self.access_key_id = config["accessKeyId"]
-        self.comment = config["comment"]
-        self.private_zone = config["privateZone"]
-        self.zone_name = config["name"]
-        self.associated_vpcs = config["associatedVPCs"]
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
+        nixops.resources.ResourceDefinition.__init__(self, name, config)
+        self.access_key_id = self.config.accessKeyId
+        self.comment = self.config.comment
+        self.private_zone = self.config.privateZone
+        self.zone_name = self.config.name
+        self.associated_vpcs = [dict(z) for z in self.config.associatedVPCs]
         for vpc in self.associated_vpcs:
             vpc.pop("_module")
 
 
-class Route53HostedZoneState(nixops.resources.ResourceState):
+class Route53HostedZoneState(
+    nixops.resources.ResourceState[Route53HostedZoneDefinition]
+):
     """State of a Route53 Hosted Zone."""
 
     state = nixops.util.attr_property(
@@ -123,8 +129,8 @@ class Route53HostedZoneState(nixops.resources.ResourceState):
                 {"region": assoc["VPCRegion"], "vpcId": assoc["VPCId"]}
                 for assoc in hosted_zone["VPCs"]
             ]
-            tbd = [assoc for assoc in current if not assoc in defn.associated_vpcs]
-            tba = [assoc for assoc in defn.associated_vpcs if not assoc in current]
+            tbd = [assoc for assoc in current if assoc not in defn.associated_vpcs]
+            tba = [assoc for assoc in defn.associated_vpcs if assoc not in current]
 
             for assoc in tba:
                 client.associate_vpc_with_hosted_zone(

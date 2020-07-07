@@ -7,13 +7,19 @@ import botocore
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
-import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
+from . import vpc_route_table
+from .vpc_route_table import VPCRouteTableState
+from .vpc_subnet import VPCSubnetState
+
+from .types.vpc_route_table_association import VpcRouteTableAssociationOptions
 
 
 class VPCRouteTableAssociationDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC route table association"""
+
+    config: VpcRouteTableAssociationOptions
 
     @classmethod
     def get_type(cls):
@@ -72,9 +78,7 @@ class VPCRouteTableAssociationState(
 
     def create_after(self, resources, defn):
         return {
-            r
-            for r in resources
-            if isinstance(r, nixops_aws.resources.vpc_route_table.VPCRouteTableState)
+            r for r in resources if isinstance(r, vpc_route_table.VPCRouteTableState)
         }
 
     def realize_associate_route_table(self, allow_recreate):
@@ -96,16 +100,16 @@ class VPCRouteTableAssociationState(
         route_table_id = config["routeTableId"]
         if route_table_id.startswith("res-"):
             res = self.depl.get_typed_resource(
-                route_table_id[4:].split(".")[0], "vpc-route-table"
+                route_table_id[4:].split(".")[0], "vpc-route-table", VPCRouteTableState
             )
             route_table_id = res._state["routeTableId"]
 
         subnet_id = config["subnetId"]
         if subnet_id.startswith("res-"):
-            res = self.depl.get_typed_resource(
-                subnet_id[4:].split(".")[0], "vpc-subnet"
+            res_vpc_subnet = self.depl.get_typed_resource(
+                subnet_id[4:].split(".")[0], "vpc-subnet", VPCSubnetState
             )
-            subnet_id = res._state["subnetId"]
+            subnet_id = res_vpc_subnet._state["subnetId"]
 
         self.log(
             "associating route table {0} to subnet {1}".format(

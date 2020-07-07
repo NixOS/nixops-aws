@@ -13,7 +13,7 @@ with lib;
       type = types.str;
       description = "Name of the VPC endpoint.";
     };
-    
+
     vpcId = mkOption {
       type = types.either types.str (resource "vpc");
       apply = x: if builtins.isString x then x else "res-" + x._name + "." + x._type;

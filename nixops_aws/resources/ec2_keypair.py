@@ -5,10 +5,15 @@
 import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
+from nixops_aws.backends import ec2
+
+from .types.ec2_keypair import Ec2KeypairOptions
 
 
 class EC2KeyPairDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 key pair."""
+
+    config: Ec2KeypairOptions
 
     @classmethod
     def get_type(cls):
@@ -18,19 +23,17 @@ class EC2KeyPairDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "ec2KeyPairs"
 
-    def __init__(self, xml):
-        nixops.resources.ResourceDefinition.__init__(self, xml)
-        self.keypair_name = xml.find("attrs/attr[@name='name']/string").get("value")
-        self.region = xml.find("attrs/attr[@name='region']/string").get("value")
-        self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(
-            "value"
-        )
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
+        nixops.resources.ResourceDefinition.__init__(self, name, config)
+        self.keypair_name = self.config.name
+        self.region = self.config.region
+        self.access_key_id = self.config.accessKeyId
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
 
 
-class EC2KeyPairState(nixops.resources.ResourceState):
+class EC2KeyPairState(nixops.resources.ResourceState[EC2KeyPairDefinition]):
     """State of an EC2 key pair."""
 
     state = nixops.util.attr_property(
@@ -63,10 +66,11 @@ class EC2KeyPairState(nixops.resources.ResourceState):
     def get_definition_prefix(self):
         return "resources.ec2KeyPairs."
 
-    def connect(self):
+    def _connect(self):
         if self._conn:
-            return
+            return self._conn
         self._conn = nixops_aws.ec2_utils.connect(self.region, self.access_key_id)
+        return self._conn
 
     def create(self, defn, check, allow_reboot, allow_recreate):
 
@@ -91,22 +95,23 @@ class EC2KeyPairState(nixops.resources.ResourceState):
         if check or self.state != self.UP:
 
             self.region = defn.region
-            self.connect()
 
             # Sometimes EC2 DescribeKeypairs return empty list on invalid
             # identifiers, which results in a IndexError exception from within boto,
             # work around that until we figure out what is causing this.
             try:
-                kp = self._conn.get_key_pair(defn.keypair_name)
+                kp = self._connect().get_key_pair(defn.keypair_name)
             except IndexError:
                 kp = None
 
             # Don't re-upload the key if it exists and we're just checking.
             if not kp or self.state != self.UP:
                 if kp:
-                    self._conn.delete_key_pair(defn.keypair_name)
+                    self._connect().delete_key_pair(defn.keypair_name)
                 self.log("uploading EC2 key pair ‘{0}’...".format(defn.keypair_name))
-                self._conn.import_key_pair(defn.keypair_name, self.public_key.encode())
+                self._connect().import_key_pair(
+                    defn.keypair_name, self.public_key.encode()
+                )
 
             with self.depl._db:
                 self.state = self.UP
@@ -115,11 +120,9 @@ class EC2KeyPairState(nixops.resources.ResourceState):
     def destroy(self, wipe=False):
         def keypair_used():
             for m in self.depl.active_resources.values():
-                if (
-                    isinstance(m, nixops_aws.backends.ec2.EC2State)
-                    and m.key_pair == self.keypair_name
-                ):
-                    return m
+                if type(m) is ec2.EC2State:
+                    if m.key_pair == self.keypair_name:  # type: ignore
+                        return m
             return None
 
         m = keypair_used()
@@ -137,15 +140,13 @@ class EC2KeyPairState(nixops.resources.ResourceState):
 
         if self.state == self.UP:
             self.log("deleting EC2 key pair ‘{0}’...".format(self.keypair_name))
-            self.connect()
-            self._conn.delete_key_pair(self.keypair_name)
+            self._connect().delete_key_pair(self.keypair_name)
 
         return True
 
     def check(self):
-        self.connect()
         try:
-            kp = self._conn.get_key_pair(self.keypair_name)
+            kp = self._connect().get_key_pair(self.keypair_name)
         except IndexError:
             kp = None
         if kp is None:

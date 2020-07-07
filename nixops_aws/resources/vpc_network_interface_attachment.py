@@ -8,14 +8,20 @@ import botocore
 
 import nixops.util
 import nixops.resources
+from nixops_aws.backends.ec2 import EC2State
 from nixops_aws.resources.ec2_common import EC2CommonState
-import nixops_aws.ec2_utils
+from nixops_aws.resources.vpc_network_interface import VPCNetworkInterfaceState
 from nixops.diff import Handler
 from nixops.state import StateDict
+from . import vpc_network_interface
+
+from .types.vpc_network_interface_attachment import VpcNetworkInterfaceAttachmentOptions
 
 
 class VPCNetworkInterfaceAttachmentDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC network interface attachment"""
+
+    config: VpcNetworkInterfaceAttachmentOptions
 
     @classmethod
     def get_type(cls):
@@ -76,10 +82,8 @@ class VPCNetworkInterfaceAttachmentState(
         return {
             r
             for r in resources
-            if isinstance(
-                r, nixops_aws.resources.vpc_network_interface.VPCNetworkInterfaceState
-            )
-            or isinstance(r, nixops_aws.backends.ec2.EC2State)
+            if isinstance(r, vpc_network_interface.VPCNetworkInterfaceState)
+            or isinstance(r, EC2State)
         }
 
     def ensure_state_up(self):
@@ -106,7 +110,7 @@ class VPCNetworkInterfaceAttachmentState(
                 self.log_continue(".")
                 time.sleep(1)
             else:
-                raise Exception("eni {} doesn't have any attachment {}".format(eni_id))
+                raise Exception("eni {} doesn't have any attachment".format(eni_id))
 
         self.log_end(" done")
 
@@ -129,15 +133,19 @@ class VPCNetworkInterfaceAttachmentState(
         self._state["region"] = config["region"]
         vm_id = config["instanceId"]
         if vm_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vm_id[4:].split(".")[0], "ec2")
-            vm_id = res.vm_id
+            ec2_res = self.depl.get_typed_resource(
+                vm_id[4:].split(".")[0], "ec2", EC2State
+            )
+            vm_id = ec2_res.vm_id
 
         eni_id = config["networkInterfaceId"]
         if eni_id.startswith("res-"):
-            res = self.depl.get_typed_resource(
-                eni_id[4:].split(".")[0], "vpc-network-interface"
+            vpc_network_interface_res = self.depl.get_typed_resource(
+                eni_id[4:].split(".")[0],
+                "vpc-network-interface",
+                VPCNetworkInterfaceState,
             )
-            eni_id = res._state["networkInterfaceId"]
+            eni_id = vpc_network_interface_res._state["networkInterfaceId"]
 
         self.log(
             "attaching network interface {0} to instance {1}".format(eni_id, vm_id)
@@ -174,7 +182,8 @@ class VPCNetworkInterfaceAttachmentState(
                 elif response["Attachment"]["Status"] != "detaching":
                     raise Exception(
                         "eni attachment {0} in an unexpected state {1}".format(
-                            eni_id, response["Attachment"]["Status"]
+                            self._state["networkInterfaceId"],
+                            response["Attachment"]["Status"],
                         )
                     )
                 self.log_continue(".")

@@ -7,9 +7,13 @@ import nixops.resources
 import nixops.util
 import nixops_aws.ec2_utils
 
+from .types.ec2_placement_group import Ec2PlacementGroupOptions
+
 
 class EC2PlacementGroupDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 placement group."""
+
+    config: Ec2PlacementGroupOptions
 
     @classmethod
     def get_type(cls):
@@ -19,24 +23,20 @@ class EC2PlacementGroupDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "ec2PlacementGroups"
 
-    def __init__(self, xml):
-        super(EC2PlacementGroupDefinition, self).__init__(xml)
-        self.placement_group_name = xml.find("attrs/attr[@name='name']/string").get(
-            "value"
-        )
-        self.placement_group_strategy = xml.find(
-            "attrs/attr[@name='strategy']/string"
-        ).get("value")
-        self.region = xml.find("attrs/attr[@name='region']/string").get("value")
-        self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(
-            "value"
-        )
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
+        super(EC2PlacementGroupDefinition, self).__init__(name, config)
+        self.placement_group_name = self.config.name
+        self.placement_group_strategy = self.config.strategy
+        self.region = self.config.region
+        self.access_key_id = self.config.accessKeyId
 
     def show_type(self):
         return "{0} [{1}]".format(self.get_type(), self.region)
 
 
-class EC2PlacementGroupState(nixops.resources.ResourceState):
+class EC2PlacementGroupState(
+    nixops.resources.ResourceState[EC2PlacementGroupDefinition]
+):
     """State of an EC2 placement group."""
 
     region = nixops.util.attr_property("ec2.region", None)
@@ -104,14 +104,14 @@ class EC2PlacementGroupState(nixops.resources.ResourceState):
                 self._connect()
 
                 try:
-                    grp = self._conn.get_all_placement_groups(
+                    grp = self._connect().get_all_placement_groups(
                         [defn.placement_group_name]
                     )[0]
                     self.state = self.UP
                     self.placement_group_strategy = grp.strategy
                 except boto.exception.EC2ResponseError as e:
                     if e.error_code == "InvalidGroup.NotFound":
-                        self.state = self.Missing
+                        self.state = self.MISSING
                     else:
                         raise
 
@@ -123,7 +123,7 @@ class EC2PlacementGroupState(nixops.resources.ResourceState):
                         self.placement_group_name
                     )
                 )
-                created = self._conn.create_placement_group(
+                self._connect().create_placement_group(
                     self.placement_group_name, self.placement_group_strategy
                 )
             except boto.exception.EC2ResponseError as e:
@@ -137,8 +137,8 @@ class EC2PlacementGroupState(nixops.resources.ResourceState):
 
     def after_activation(self, defn):
         region = self.region
-        self._connect()
-        conn = self._conn
+
+        conn = self._connect()
         for group in self.old_placement_groups:
             if group["region"] != region:
                 region = group["region"]
@@ -158,6 +158,6 @@ class EC2PlacementGroupState(nixops.resources.ResourceState):
                 )
             )
             self._connect()
-            self._conn.delete_placement_group(self.placement_group_name)
+            self._connect().delete_placement_group(self.placement_group_name)
             self.state = self.MISSING
         return True

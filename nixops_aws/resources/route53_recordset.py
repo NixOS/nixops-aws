@@ -7,12 +7,20 @@ import boto3
 import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
+from . import route53_hosted_zone, route53_health_check
+from .route53_hosted_zone import Route53HostedZoneState
+from .route53_health_check import Route53HealthCheckState
+from nixops_aws.backends.ec2 import EC2State
 
 # boto3.set_stream_logger(name='botocore')
+
+from .types.route53_recordset import Route53RecordsetOptions
 
 
 class Route53RecordSetDefinition(nixops.resources.ResourceDefinition):
     """Definition of a Route53 RecordSet."""
+
+    config: Route53RecordsetOptions
 
     @classmethod
     def get_type(cls):
@@ -22,28 +30,28 @@ class Route53RecordSetDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "route53RecordSets"
 
-    def __init__(self, xml, config):
-        nixops.resources.ResourceDefinition.__init__(self, xml)
-        self.access_key_id = config["accessKeyId"]
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
+        nixops.resources.ResourceDefinition.__init__(self, name, config)
+        self.access_key_id = self.config.accessKeyId
 
-        self.zone_id = config["zoneId"]
-        self.set_identifier = config["setIdentifier"]
-        self.weight = config["weight"]
+        self.zone_id = self.config.zoneId
+        self.set_identifier = self.config.setIdentifier
+        self.weight = self.config.weight
 
-        self.zone_name = config["zoneName"]
-        self.domain_name = config["domainName"]
+        self.zone_name = self.config.zoneName
+        self.domain_name = self.config.domainName
 
-        self.ttl = config["ttl"]
-        self.routing_policy = config["routingPolicy"]
-        self.record_type = config["recordType"]
-        self.record_values = config["recordValues"]
-        self.health_check_id = config["healthCheckId"]
+        self.ttl = self.config.ttl
+        self.routing_policy = self.config.routingPolicy
+        self.record_type = self.config.recordType
+        self.record_values = self.config.recordValues
+        self.health_check_id = self.config.healthCheckId
 
     def show_type(self):
         return "{0}".format(self.get_type())
 
 
-class Route53RecordSetState(nixops.resources.ResourceState):
+class Route53RecordSetState(nixops.resources.ResourceState[Route53RecordSetDefinition]):
     """State of a Route53 Recordset."""
 
     state = nixops.util.attr_property(
@@ -89,7 +97,7 @@ class Route53RecordSetState(nixops.resources.ResourceState):
             )
         return self._boto_session
 
-    def create(self, defn, check, allow_reboot, allow_recreate):
+    def create(self, defn, check, allow_reboot, allow_recreate):  # noqa: C901
         self.access_key_id = (
             defn.access_key_id or nixops_aws.ec2_utils.get_access_key_id()
         )
@@ -126,7 +134,7 @@ class Route53RecordSetState(nixops.resources.ResourceState):
             else:
                 if zone_id.startswith("res-"):
                     hs = self.depl.get_typed_resource(
-                        zone_id[4:], "aws-route53-hosted-zone"
+                        zone_id[4:], "aws-route53-hosted-zone", Route53HostedZoneState
                     )
                     if not hs.zone_id:
                         raise Exception(
@@ -210,7 +218,7 @@ class Route53RecordSetState(nixops.resources.ResourceState):
 
         def resolve_machine_ip(v):
             if v.startswith("res-"):
-                m = self.depl.get_machine(v[4:])
+                m = self.depl.get_machine(v[4:], EC2State)
                 if not m.public_ipv4:
                     raise Exception(
                         "cannot create record set for a machine that has not yet been created"
@@ -236,7 +244,7 @@ class Route53RecordSetState(nixops.resources.ResourceState):
         # Don't care about the state for now. We'll just upsert!
         # TODO: Copy properties_changed function used in GCE/Azure's
         # check output of operation. It now just barfs an exception if something doesn't work properly
-        change_result = self.route53_retry(
+        self.route53_retry(
             lambda: client.change_resource_record_sets(
                 HostedZoneId=zone_id, ChangeBatch=self.make_batch("UPSERT", defn)
             )
@@ -285,7 +293,9 @@ class Route53RecordSetState(nixops.resources.ResourceState):
 
         def resolve_health_check(v):
             if v.startswith("res-"):
-                hc = self.depl.get_typed_resource(v[4:], "aws-route53-health-check")
+                hc = self.depl.get_typed_resource(
+                    v[4:], "aws-route53-health-check", Route53HealthCheckState
+                )
                 if not hc.health_check_id:
                     raise Exception(
                         "cannot refer to a health check resource that has not yet been created"
@@ -315,7 +325,7 @@ class Route53RecordSetState(nixops.resources.ResourceState):
             client = self.boto_session().client("route53")
 
             # TODO: catch exception
-            change_result = self.route53_retry(
+            self.route53_retry(
                 lambda: client.change_resource_record_sets(
                     HostedZoneId=self.zone_id,
                     ChangeBatch=self.make_batch("DELETE", self),
@@ -335,11 +345,7 @@ class Route53RecordSetState(nixops.resources.ResourceState):
         return {
             r
             for r in resources
-            if isinstance(
-                r, nixops_aws.resources.route53_hosted_zone.Route53HostedZoneState
-            )
-            or isinstance(
-                r, nixops_aws.resources.route53_health_check.Route53HealthCheckState
-            )
+            if isinstance(r, route53_hosted_zone.Route53HostedZoneState)
+            or isinstance(r, route53_health_check.Route53HealthCheckState)
             or isinstance(r, nixops.backends.MachineState)
         }

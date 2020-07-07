@@ -1,17 +1,22 @@
 # -*- coding: utf-8 -*-
 
 import uuid
-
+import botocore
 from nixops.state import StateDict
 from nixops.diff import Handler
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
-import nixops_aws.ec2_utils
+from .vpc import VPCState
+from .vpc_route_table import VPCRouteTableState
+
+from .types.vpc_endpoint import VpcEndpointOptions
 
 
 class VPCEndpointDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC endpoint."""
+
+    config: VpcEndpointOptions
 
     @classmethod
     def get_type(cls):
@@ -73,8 +78,7 @@ class VPCEndpointState(nixops.resources.DiffEngineResourceState, EC2CommonState)
         return {
             r
             for r in resources
-            if isinstance(r, nixops_aws.resources.vpc.VPCState)
-            or isinstance(r, nixops_aws.resources.vpc_route_table.VPCRouteTableState)
+            if isinstance(r, VPCState) or isinstance(r, VPCRouteTableState)
         }
 
     def realize_create_endpoint(self, allow_recreate):
@@ -95,7 +99,9 @@ class VPCEndpointState(nixops.resources.DiffEngineResourceState, EC2CommonState)
         vpc_id = config["vpcId"]
 
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc")
+            res = self.depl.get_typed_resource(
+                vpc_id[4:].split(".")[0], "vpc", VPCState
+            )
             vpc_id = res._state["vpcId"]
 
         if not self._state.get("creationToken", None):
@@ -122,7 +128,7 @@ class VPCEndpointState(nixops.resources.DiffEngineResourceState, EC2CommonState)
         for rtb in config["routeTableIds"]:
             if rtb.startswith("res-"):
                 res = self.depl.get_typed_resource(
-                    rtb[4:].split(".")[0], "vpc-route-table"
+                    rtb[4:].split(".")[0], "vpc-route-table", VPCRouteTableState
                 )
                 new_rtbs.append(res._state["routeTableId"])
             else:

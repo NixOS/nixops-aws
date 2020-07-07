@@ -7,13 +7,19 @@ import botocore
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
-import nixops_aws.ec2_utils
 from nixops.diff import Handler
 from nixops.state import StateDict
+from . import vpc, vpc_subnet
+from .vpc import VPCState
+from .aws_vpn_gateway import AWSVPNGatewayState
+
+from .types.vpc_route_table import VpcRouteTableOptions
 
 
 class VPCRouteTableDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC route table"""
+
+    config: VpcRouteTableOptions
 
     @classmethod
     def get_type(cls):
@@ -81,8 +87,7 @@ class VPCRouteTableState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         return {
             r
             for r in resources
-            if isinstance(r, nixops_aws.resources.vpc.VPCState)
-            or isinstance(r, nixops_aws.resources.vpc_subnet.VPCSubnetState)
+            if isinstance(r, vpc.VPCState) or isinstance(r, vpc_subnet.VPCSubnetState)
         }
 
     def realize_create_route_table(self, allow_recreate):
@@ -103,7 +108,9 @@ class VPCRouteTableState(nixops.resources.DiffEngineResourceState, EC2CommonStat
 
         vpc_id = config["vpcId"]
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc")
+            res = self.depl.get_typed_resource(
+                vpc_id[4:].split(".")[0], "vpc", VPCState
+            )
             vpc_id = res._state["vpcId"]
 
         self.log("creating route table in vpc {}".format(vpc_id))
@@ -122,7 +129,7 @@ class VPCRouteTableState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         for vgw in config["propagatingVgws"]:
             if vgw.startswith("res-"):
                 res = self.depl.get_typed_resource(
-                    vgw[4:].split(".")[0], "aws-vpn-gateway"
+                    vgw[4:].split(".")[0], "aws-vpn-gateway", AWSVPNGatewayState
                 )
                 new_vgws.append(res._state["vpnGatewayId"])
             else:

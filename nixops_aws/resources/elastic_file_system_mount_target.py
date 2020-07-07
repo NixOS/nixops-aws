@@ -11,10 +11,15 @@ from . import efs_common
 from . import ec2_security_group
 from . import elastic_file_system
 import time
+from .elastic_file_system import ElasticFileSystemState
+
+from .types.elastic_file_system_mount_target import ElasticFileSystemMountTargetOptions
 
 
 class ElasticFileSystemMountTargetDefinition(nixops.resources.ResourceDefinition):
     """Definition of an AWS Elastic File System mount target."""
+
+    config: ElasticFileSystemMountTargetOptions
 
     @classmethod
     def get_type(cls):
@@ -25,7 +30,8 @@ class ElasticFileSystemMountTargetDefinition(nixops.resources.ResourceDefinition
         return "elasticFileSystemMountTargets"
 
     def show_type(self):
-        return "{0} [{1}]".format(self.get_type(), self.region)
+        region = self.config.region  # type: ignore
+        return "{0} [{1}]".format(self.get_type(), region)
 
 
 class ElasticFileSystemMountTargetState(
@@ -82,7 +88,7 @@ class ElasticFileSystemMountTargetState(
             defn.config["accessKeyId"] or nixops_aws.ec2_utils.get_access_key_id()
         )
         region = defn.config["region"]
-        client = self._get_client(access_key_id, region)
+        client = self._get_efs_client(access_key_id, region)
 
         if self.state == self.MISSING:
 
@@ -92,7 +98,7 @@ class ElasticFileSystemMountTargetState(
             fs_id = defn.config["fileSystem"]
             if fs_id.startswith("res-"):
                 file_system = self.depl.get_typed_resource(
-                    fs_id[4:], "elastic-file-system"
+                    fs_id[4:], "elastic-file-system", ElasticFileSystemState
                 )
                 if not file_system.fs_id:
                     raise Exception(
@@ -148,7 +154,7 @@ class ElasticFileSystemMountTargetState(
                     if mt["LifeCycleState"] != "creating":
                         raise Exception(
                             "Elastic File System mount target ‘{0}’ is in unexpected state ‘{1}’".format(
-                                mt["LifeCycleState"]
+                                res["MountTargetId"], mt["LifeCycleState"]
                             )
                         )
 
@@ -170,7 +176,7 @@ class ElasticFileSystemMountTargetState(
 
             self.log_start("deleting Elastic File System mount target...")
 
-            client = self._get_client()
+            client = self._get_efs_client()
 
             try:
                 client.delete_mount_target(MountTargetId=self.fsmt_id)

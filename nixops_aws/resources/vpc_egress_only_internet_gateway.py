@@ -6,11 +6,16 @@ from nixops.diff import Handler
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
-import nixops_aws.ec2_utils
+from . import vpc, elastic_ip
+from .vpc import VPCState
+
+from .types.vpc_egress_only_internet_gateway import VpcEgressOnlyInternetGatewayOptions
 
 
 class VPCEgressOnlyInternetGatewayDefinition(nixops.resources.ResourceDefinition):
     """Definition of a VPC egress only internet gateway."""
+
+    config: VpcEgressOnlyInternetGatewayOptions
 
     @classmethod
     def get_type(cls):
@@ -68,8 +73,7 @@ class VPCEgressOnlyInternetGatewayState(
         return {
             r
             for r in resources
-            if isinstance(r, nixops_aws.resources.vpc.VPCState)
-            or isinstance(r, nixops_aws.resources.elastic_ip.ElasticIPState)
+            if isinstance(r, vpc.VPCState) or isinstance(r, elastic_ip.ElasticIPState)
         }
 
     def realize_create_gtw(self, allow_recreate):
@@ -90,7 +94,9 @@ class VPCEgressOnlyInternetGatewayState(
 
         vpc_id = config["vpcId"]
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc")
+            res = self.depl.get_typed_resource(
+                vpc_id[4:].split(".")[0], "vpc", VPCState
+            )
             vpc_id = res._state["vpcId"]
 
         self.log(

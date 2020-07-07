@@ -12,9 +12,13 @@ from . import ec2_common
 from . import efs_common
 import time
 
+from .types.elastic_file_system import ElasticFileSystemOptions
+
 
 class ElasticFileSystemDefinition(nixops.resources.ResourceDefinition):
     """Definition of an AWS Elastic File System."""
+
+    config: ElasticFileSystemOptions
 
     @classmethod
     def get_type(cls):
@@ -25,7 +29,8 @@ class ElasticFileSystemDefinition(nixops.resources.ResourceDefinition):
         return "elasticFileSystems"
 
     def show_type(self):
-        return "{0} [{1}]".format(self.get_type(), self.region)
+        region = self.config.region
+        return "{0} [{1}]".format(self.get_type(), region)
 
 
 class ElasticFileSystemState(
@@ -67,7 +72,7 @@ class ElasticFileSystemState(
             defn.config["accessKeyId"] or nixops_aws.ec2_utils.get_access_key_id()
         )
 
-        client = self._get_client(access_key_id, defn.config["region"])
+        client = self._get_efs_client(access_key_id, defn.config["region"])
 
         if self.state == self.MISSING:
 
@@ -104,7 +109,7 @@ class ElasticFileSystemState(
                     if fs["LifeCycleState"] != "creating":
                         raise Exception(
                             "Elastic File System ‘{0}’ is in unexpected state ‘{1}’".format(
-                                fs["LifeCycleState"]
+                                fs["FileSystemId"], fs["LifeCycleState"]
                             )
                         )
 
@@ -141,7 +146,7 @@ class ElasticFileSystemState(
 
             self.log_start("deleting Elastic File System...")
 
-            client = self._get_client()
+            client = self._get_efs_client()
 
             mts = client.describe_mount_targets(FileSystemId=self.fs_id)["MountTargets"]
             if len(mts) > 0:

@@ -6,8 +6,11 @@ import boto
 import boto.iam
 import nixops.util
 import nixops.resources
+import nixops_aws.resources
 import nixops_aws.ec2_utils
 from boto.exception import BotoServerError
+
+from .types.iam_role import IamRoleOptions
 
 
 class IamPermissionException(BotoServerError):
@@ -21,6 +24,8 @@ class IamNotFound(BotoServerError):
 class IAMRoleDefinition(nixops.resources.ResourceDefinition):
     """Definition of an IAM Role."""
 
+    config: IamRoleOptions
+
     @classmethod
     def get_type(cls):
         return "iam-role"
@@ -29,22 +34,18 @@ class IAMRoleDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "iamRoles"
 
-    def __init__(self, xml):
-        nixops.resources.ResourceDefinition.__init__(self, xml)
-        self.role_name = xml.find("attrs/attr[@name='name']/string").get("value")
-        self.access_key_id = xml.find("attrs/attr[@name='accessKeyId']/string").get(
-            "value"
-        )
-        self.policy = xml.find("attrs/attr[@name='policy']/string").get("value")
-        self.assume_role_policy = xml.find(
-            "attrs/attr[@name='assumeRolePolicy']/string"
-        ).get("value")
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
+        nixops.resources.ResourceDefinition.__init__(self, name, config)
+        self.role_name = self.config.name
+        self.access_key_id = self.config.accessKeyId
+        self.policy = self.config.policy
+        self.assume_role_policy = self.config.assumeRolePolicy
 
     def show_type(self):
         return "{0}".format(self.get_type())
 
 
-class IAMRoleState(nixops.resources.ResourceState):
+class IAMRoleState(nixops.resources.ResourceState[IAMRoleDefinition]):
     """State of an IAM Role."""
 
     state = nixops.util.attr_property(
@@ -74,20 +75,20 @@ class IAMRoleState(nixops.resources.ResourceState):
     def get_definition_prefix(self):
         return "resources.iamRoles."
 
-    def connect(self):
+    def _connect(self):
         if self._conn:
-            return
+            return self._conn
         (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
             self.access_key_id
         )
         self._conn = boto.connect_iam(
             aws_access_key_id=access_key_id, aws_secret_access_key=secret_access_key
         )
+        return self._conn
 
-    def _destroy(self):
+    def _destroy(self):  # noqa: C901
         if self.state != self.UP:
             return
-        self.connect()
 
         try:
             try:
@@ -95,7 +96,7 @@ class IAMRoleState(nixops.resources.ResourceState):
                 self._get_instance_profile(self.role_name)
                 self._get_role(self.role_name)
                 # sever the link
-                self._conn.remove_role_from_instance_profile(
+                self._connect().remove_role_from_instance_profile(
                     self.role_name, self.role_name
                 )
             except IamPermissionException as e:
@@ -111,11 +112,11 @@ class IAMRoleState(nixops.resources.ResourceState):
                 raise
 
             try:
-                self._conn.get_role_policy(self.role_name, self.role_name)
+                self._connect().get_role_policy(self.role_name, self.role_name)
                 self.log("removing role policy")
-                self._conn.delete_role_policy(self.role_name, self.role_name)
+                self._connect().delete_role_policy(self.role_name, self.role_name)
             except IamPermissionException as e:
-                self.error(str(e))
+                self.warn(str(e))
                 raise
             except IamNotFound:
                 self.warn("role policy already destroyed")
@@ -129,7 +130,7 @@ class IAMRoleState(nixops.resources.ResourceState):
             try:
                 self._get_role(self.role_name)
                 self.log("removing role")
-                self._conn.delete_role(self.role_name)
+                self._connect().delete_role(self.role_name)
             except IamPermissionException:
                 raise
             except IamNotFound:
@@ -143,7 +144,7 @@ class IAMRoleState(nixops.resources.ResourceState):
                 raise
 
             self.log("removing instance profile")
-            self._conn.delete_instance_profile(self.role_name)
+            self._connect().delete_instance_profile(self.role_name)
 
         except IamPermissionException:
             raise
@@ -174,7 +175,7 @@ class IAMRoleState(nixops.resources.ResourceState):
 
     def _get_instance_profile(self, name, allow404=True):
         try:
-            return self._conn.get_instance_profile(name)
+            return self._connect().get_instance_profile(name)
         except BotoServerError as e:
             if e.status == 403:
                 raise IamPermissionException(e.status, e.reason, body=e.body)
@@ -183,12 +184,12 @@ class IAMRoleState(nixops.resources.ResourceState):
                     return False
                 else:
                     raise IamNotFound(e.status, e.reason, body=e.body)
-        except:
+        except Exception:
             raise
 
     def _get_role_policy(self, name, allow404=True):
         try:
-            return self._conn.get_role_policy(name, name)
+            return self._connect().get_role_policy(name, name)
         except BotoServerError as e:
             if e.status == 403:
                 raise IamPermissionException(e.status, e.reason, body=e.body)
@@ -197,12 +198,12 @@ class IAMRoleState(nixops.resources.ResourceState):
                     return False
                 else:
                     raise IamNotFound(e.status, e.reason, body=e.body)
-        except:
+        except Exception:
             raise
 
     def _get_role(self, name, allow404=True):
         try:
-            return self._conn.get_role(name)
+            return self._connect().get_role(name)
         except BotoServerError as e:
             if e.status == 403:
                 raise IamPermissionException(e.status, e.reason, body=e.body)
@@ -211,7 +212,7 @@ class IAMRoleState(nixops.resources.ResourceState):
                     return False
                 else:
                     raise IamNotFound(e.status, e.reason, body=e.body)
-        except:
+        except Exception:
             raise
 
     def create(self, defn, check, allow_reboot, allow_recreate):
@@ -224,26 +225,24 @@ class IAMRoleState(nixops.resources.ResourceState):
                 "please set ‘accessKeyId’, $EC2_ACCESS_KEY or $AWS_ACCESS_KEY_ID"
             )
 
-        self.connect()
-
         ip = self._get_instance_profile(defn.role_name, True)
-        rp = self._get_role_policy(defn.role_name, True)
+        self._get_role_policy(defn.role_name, True)
         r = self._get_role(defn.role_name, True)
 
         if not r:
             self.log("creating IAM role ‘{0}’...".format(defn.role_name))
-            role = self._conn.create_role(defn.role_name)
+            self._connect().create_role(defn.role_name)
 
         if not ip:
             self.log("creating IAM instance profile ‘{0}’...".format(defn.role_name))
-            self._conn.create_instance_profile(defn.role_name, "/")
-            self._conn.add_role_to_instance_profile(defn.role_name, defn.role_name)
+            self._connect().create_instance_profile(defn.role_name, "/")
+            self._connect().add_role_to_instance_profile(defn.role_name, defn.role_name)
 
         if not check:
-            self._conn.put_role_policy(defn.role_name, defn.role_name, defn.policy)
+            self._connect().put_role_policy(defn.role_name, defn.role_name, defn.policy)
 
         if defn.assume_role_policy != "":
-            self._conn.update_assume_role_policy(
+            self._connect().update_assume_role_policy(
                 defn.role_name, defn.assume_role_policy
             )
 

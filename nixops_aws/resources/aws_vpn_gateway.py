@@ -1,15 +1,21 @@
 # -*- coding: utf-8 -*-
 
+import botocore
 from nixops.state import StateDict
 from nixops.diff import Handler
 import nixops.util
 import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
+import nixops_aws.resources
 import nixops_aws.ec2_utils
+from .vpc import VPCState
+from .types.aws_vpn_gateway import AwsVpnGatewayOptions
 
 
 class AWSVPNGatewayDefinition(nixops.resources.ResourceDefinition):
     """Definition of an AWS VPN gateway."""
+
+    config: AwsVpnGatewayOptions
 
     @classmethod
     def get_type(cls):
@@ -84,7 +90,9 @@ class AWSVPNGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         self._state["region"] = config["region"]
         vpc_id = config["vpcId"]
         if vpc_id.startswith("res-"):
-            res = self.depl.get_typed_resource(vpc_id[4:].split(".")[0], "vpc")
+            res = self.depl.get_typed_resource(
+                vpc_id[4:].split(".")[0], "vpc", VPCState
+            )
             vpc_id = res._state["vpcId"]
 
         self.log("creating VPN gateway in zone {}".format(config["zone"]))
