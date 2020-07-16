@@ -20,7 +20,7 @@ class EC2CommonState:
     depl: nixops.deployment.Deployment
     name: str
     _state: StateDict
-    _client: Optional[mypy_boto3_ec2.EC2Client]
+    _client: Optional["mypy_boto3_ec2.EC2Client"]
 
     # Not always available
     _conn: EC2Connection
@@ -89,7 +89,7 @@ class EC2CommonState:
         (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
             self.access_key_id
         )
-        self._client: mypy_boto3_ec2.EC2Client = boto3.session.Session().client(
+        self._client: "mypy_boto3_ec2.EC2Client" = boto3.session.Session().client(
             service_name="ec2",
             region_name=region,
             aws_access_key_id=access_key_id,

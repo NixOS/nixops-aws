@@ -10,11 +10,11 @@ if TYPE_CHECKING:
 class EFSCommonState:
     access_key_id: Optional[str]
     region: Optional[str]
-    _efs_client: Optional[mypy_boto3_efs.EFSClient] = None
+    _efs_client: Optional["mypy_boto3_efs.EFSClient"] = None
 
     def _get_efs_client(
         self, access_key_id: Optional[str] = None, region: Optional[str] = None
-    ) -> mypy_boto3_efs.EFSClient:
+    ) -> "mypy_boto3_efs.EFSClient":
         if self._efs_client:
             return self._efs_client
 
@@ -29,7 +29,7 @@ class EFSCommonState:
         else:
             raise Exception("region and self.region are None")
 
-        client: mypy_boto3_efs.EFSClient = boto3.session.Session().client(
+        client: "mypy_boto3_efs.EFSClient" = boto3.session.Session().client(
             "efs",
             region_name=region_name,
             aws_access_key_id=access_key_id,
