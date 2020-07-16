@@ -1,7 +1,10 @@
+from __future__ import annotations
 import boto3
-import mypy_boto3_efs
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 import nixops_aws.ec2_utils
+
+if TYPE_CHECKING:
+    import mypy_boto3_efs
 
 
 class EFSCommonState:

@@ -1,15 +1,17 @@
 import botocore.exceptions
 import botocore.errorfactory
 import boto3
-import mypy_boto3_rds
 import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
 from nixops_aws.resources.ec2_common import EC2CommonState
 from nixops.diff import Handler
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from .types.ec2_rds_dbsecurity_group import Ec2RdsDbsecurityGroupOptions
+
+if TYPE_CHECKING:
+    import mypy_boto3_rds
 
 
 class EC2RDSDbSecurityGroupDefinition(nixops.resources.ResourceDefinition):

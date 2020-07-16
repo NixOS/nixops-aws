@@ -1,8 +1,8 @@
+from __future__ import annotations
 import socket
 import getpass
 
 import boto3
-import mypy_boto3_ec2
 import nixops.util
 import nixops.deployment
 import nixops.resources
@@ -10,6 +10,10 @@ import nixops_aws.ec2_utils
 from nixops.state import StateDict
 from typing import Optional
 from boto.ec2.connection import EC2Connection
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import mypy_boto3_ec2
 
 
 class EC2CommonState:
