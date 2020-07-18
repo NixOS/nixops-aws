@@ -1526,11 +1526,13 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
         if "NixOps auto-generated key" in self.public_host_key:
             self.log("replacing temporary host key...")
             key_type = defn.host_key_type()
-            new_key = self.run_command(
-                "rm -f /etc/ssh/ssh_host_{0}_key*; systemctl restart sshd; cat /etc/ssh/ssh_host_{0}_key.pub".format(
-                    key_type
-                ),
-                capture_stdout=True,
+            new_key = str(
+                self.run_command(
+                    "rm -f /etc/ssh/ssh_host_{0}_key*; systemctl restart sshd; cat /etc/ssh/ssh_host_{0}_key.pub".format(
+                        key_type
+                    ),
+                    capture_stdout=True,
+                )
             ).rstrip()
             self.public_host_key = new_key
             nixops.known_hosts.add(self._ip_for_ssh_key(), self.public_host_key)
