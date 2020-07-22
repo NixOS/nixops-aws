@@ -10,7 +10,7 @@ import nixops_aws.ec2_utils
 from nixops.state import StateDict
 from typing import Optional
 from boto.ec2.connection import EC2Connection
-from typing import TYPE_CHECKING
+from typing import Mapping, TYPE_CHECKING
 
 if TYPE_CHECKING:
     import mypy_boto3_ec2
@@ -33,7 +33,7 @@ class EC2CommonState:
 
     tags = nixops.util.attr_property("ec2.tags", {}, "json")
 
-    def get_common_tags(self):
+    def get_common_tags(self) -> Mapping[str, str]:
         tags = {
             "CharonNetworkUUID": self.depl.uuid,
             "CharonMachineName": self.name,

@@ -10,7 +10,7 @@ from nixops_aws.resources.ec2_common import EC2CommonState
 import nixops_aws.ec2_utils
 from nixops.diff import Handler
 import nixops_aws.resources
-
+from typing import Dict
 from .types.vpc import VpcOptions
 
 
@@ -297,8 +297,8 @@ class VPCState(nixops.resources.DiffEngineResourceState, EC2CommonState):
                 self._state["associationId"] = association_id
 
     def realize_update_tag(self, allow_recreate):
-        config = self.get_defn()
-        tags = config["tags"]
+        config: VPCDefinition = self.get_defn()
+        tags: Dict[str, str] = {k: v for k, v in config.config.tags.items()}
         tags.update(self.get_common_tags())
         self.get_client().create_tags(
             Resources=[self.vpc_id], Tags=[{"Key": k, "Value": tags[k]} for k in tags]
