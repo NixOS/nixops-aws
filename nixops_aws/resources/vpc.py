@@ -298,7 +298,7 @@ class VPCState(nixops.resources.DiffEngineResourceState, EC2CommonState):
 
     def realize_update_tag(self, allow_recreate):
         config = self.get_defn()
-        tags = config["tags"]
+        tags = config.tags
         tags.update(self.get_common_tags())
         self.get_client().create_tags(
             Resources=[self.vpc_id], Tags=[{"Key": k, "Value": tags[k]} for k in tags]
