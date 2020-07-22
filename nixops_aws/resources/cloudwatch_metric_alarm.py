@@ -53,6 +53,8 @@ class CloudwatchMetricAlarmState(
 ):
     """State of a Cloudwatch Metric Alarm."""
 
+    definition_type = CloudwatchMetricAlarmDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )

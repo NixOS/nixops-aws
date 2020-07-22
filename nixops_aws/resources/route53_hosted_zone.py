@@ -44,6 +44,8 @@ class Route53HostedZoneState(
 ):
     """State of a Route53 Hosted Zone."""
 
+    definition_type = Route53HostedZoneDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )

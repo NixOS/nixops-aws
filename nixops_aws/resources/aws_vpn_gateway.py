@@ -32,6 +32,8 @@ class AWSVPNGatewayDefinition(nixops.resources.ResourceDefinition):
 class AWSVPNGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a AWS VPN gateway."""
 
+    definition_type = AWSVPNGatewayDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )

@@ -31,6 +31,7 @@ class AWSVPNConnectionDefinition(nixops.resources.ResourceDefinition):
 
 class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a AWS VPN gateway."""
+
     definition_type = AWSVPNConnectionDefinition
 
     state = nixops.util.attr_property(

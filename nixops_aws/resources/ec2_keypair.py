@@ -36,6 +36,8 @@ class EC2KeyPairDefinition(nixops.resources.ResourceDefinition):
 class EC2KeyPairState(nixops.resources.ResourceState[EC2KeyPairDefinition]):
     """State of an EC2 key pair."""
 
+    definition_type = EC2KeyPairDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )

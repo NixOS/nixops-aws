@@ -34,6 +34,8 @@ class VPCCustomerGatewayDefinition(nixops.resources.ResourceDefinition):
 class VPCCustomerGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a VPC customer gateway."""
 
+    definition_type = VPCCustomerGatewayDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )

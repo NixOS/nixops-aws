@@ -34,6 +34,8 @@ class EC2RDSDbSecurityGroupState(
     nixops.resources.DiffEngineResourceState, EC2CommonState
 ):
 
+    definition_type = EC2RDSDbSecurityGroupDefinition
+
     _rds_client: Optional["mypy_boto3_rds.RDSClient"]
 
     state = nixops.util.attr_property(

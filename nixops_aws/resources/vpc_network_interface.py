@@ -38,6 +38,8 @@ class VPCNetworkInterfaceState(
 ):
     """State of a VPC network interface"""
 
+    definition_type = VPCNetworkInterfaceDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )

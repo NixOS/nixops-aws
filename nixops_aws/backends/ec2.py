@@ -103,6 +103,8 @@ class EC2Definition(MachineDefinition):
 class EC2State(MachineState[EC2Definition], EC2CommonState):
     """State of an EC2 machine."""
 
+    definition_type = EC2Definition
+
     @classmethod
     def get_type(cls):
         return "ec2"

@@ -38,6 +38,8 @@ class VPCRouteTableAssociationState(
 ):
     """State of a VPC route table association"""
 
+    definition_type = VPCRouteTableAssociationDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )

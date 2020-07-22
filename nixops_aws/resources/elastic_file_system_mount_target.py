@@ -39,6 +39,8 @@ class ElasticFileSystemMountTargetState(
 ):
     """State of an AWS Elastic File System mount target."""
 
+    definition_type = ElasticFileSystemMountTargetDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )

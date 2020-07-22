@@ -33,6 +33,8 @@ class CloudWatchLogGroupState(
 ):
     """State of the cloudwatch log group"""
 
+    definition_type = CloudWatchLogGroupDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )

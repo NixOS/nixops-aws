@@ -66,6 +66,8 @@ class EC2SecurityGroupDefinition(nixops.resources.ResourceDefinition):
 class EC2SecurityGroupState(nixops.resources.ResourceState[EC2SecurityGroupDefinition]):
     """State of an EC2 security group."""
 
+    definition_type = EC2SecurityGroupDefinition
+
     region = nixops.util.attr_property("ec2.region", None)
     security_group_id = nixops.util.attr_property("ec2.securityGroupId", None)
     security_group_name = nixops.util.attr_property("ec2.securityGroupName", None)

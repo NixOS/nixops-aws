@@ -34,6 +34,8 @@ class VPCEgressOnlyInternetGatewayState(
 ):
     """State of a VPC egress only internet gateway."""
 
+    definition_type = VPCEgressOnlyInternetGatewayDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )

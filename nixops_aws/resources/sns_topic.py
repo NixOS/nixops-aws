@@ -31,6 +31,8 @@ class SNSTopicDefinition(nixops.resources.ResourceDefinition):
 class SNSTopicState(nixops.resources.ResourceState[SNSTopicDefinition]):
     """State of an SNS topic."""
 
+    definition_type = SNSTopicDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )

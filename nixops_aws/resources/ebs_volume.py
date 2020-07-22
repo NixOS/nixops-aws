@@ -32,6 +32,8 @@ class EBSVolumeDefinition(nixops.resources.ResourceDefinition):
 class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
     """State of an EBS volume."""
 
+    definition_type = EBSVolumeDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )
