@@ -34,8 +34,9 @@ class AWSVPNConnectionRouteDefinition(nixops.resources.ResourceDefinition):
 class AWSVPNConnectionRouteState(
     nixops.resources.DiffEngineResourceState, EC2CommonState
 ):
-    """State of a VPN connection route"""
+    definition_type = AWSVPNConnectionRouteDefinition
 
+    """State of a VPN connection route"""
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )
