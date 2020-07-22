@@ -35,6 +35,8 @@ class VPCNetworkAclDefinition(nixops.resources.ResourceDefinition):
 class VPCNetworkAclState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """state of a vpc Network ACL."""
 
+    definition_type = VPCNetworkAclDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )

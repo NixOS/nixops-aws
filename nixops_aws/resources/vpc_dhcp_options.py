@@ -36,6 +36,8 @@ class VPCDhcpOptionsDefinition(nixops.resources.ResourceDefinition):
 class VPCDhcpOptionsState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a VPC DHCP options."""
 
+    definition_type = VPCDhcpOptionsDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )

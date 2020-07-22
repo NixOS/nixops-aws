@@ -14,7 +14,6 @@ from nixops_aws.resources.vpc_network_interface import VPCNetworkInterfaceState
 from nixops.diff import Handler
 from nixops.state import StateDict
 from . import vpc_network_interface
-
 from .types.vpc_network_interface_attachment import VpcNetworkInterfaceAttachmentOptions
 
 
@@ -39,6 +38,8 @@ class VPCNetworkInterfaceAttachmentState(
     nixops.resources.DiffEngineResourceState, EC2CommonState
 ):
     """State of a VPC network interface attachment"""
+
+    definition_type = VPCNetworkInterfaceAttachmentDefinition
 
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int

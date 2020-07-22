@@ -34,6 +34,8 @@ class VPCDefinition(nixops.resources.ResourceDefinition):
 class VPCState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a VPC."""
 
+    definition_type = VPCDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )

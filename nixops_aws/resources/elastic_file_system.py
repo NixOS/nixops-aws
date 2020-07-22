@@ -38,6 +38,8 @@ class ElasticFileSystemState(
 ):
     """State of an AWS Elastic File System."""
 
+    definition_type = ElasticFileSystemDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )

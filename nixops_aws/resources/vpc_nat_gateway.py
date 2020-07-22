@@ -39,6 +39,8 @@ class VPCNatGatewayDefinition(nixops.resources.ResourceDefinition):
 class VPCNatGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a VPC NAT gateway"""
 
+    definition_type = VPCNatGatewayDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )

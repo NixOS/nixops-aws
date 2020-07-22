@@ -57,6 +57,8 @@ class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
 class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefinition]):
     """State of an RDS Database Instance."""
 
+    definition_type = EC2RDSDbInstanceDefinition
+
     _conn: Optional[boto.rds.RDSConnection]
     region = nixops.util.attr_property("ec2.region", None)
     access_key_id = nixops.util.attr_property("ec2.accessKeyId", None)

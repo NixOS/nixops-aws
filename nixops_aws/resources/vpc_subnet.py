@@ -34,6 +34,8 @@ class VPCSubnetDefinition(nixops.resources.ResourceDefinition):
 class VPCSubnetState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a VPC subnet."""
 
+    definition_type = VPCSubnetDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )

@@ -39,6 +39,8 @@ class EC2PlacementGroupState(
 ):
     """State of an EC2 placement group."""
 
+    definition_type = EC2PlacementGroupDefinition
+
     region = nixops.util.attr_property("ec2.region", None)
     placement_group_name = nixops.util.attr_property("ec2.placementGroupName", None)
     placement_group_strategy = nixops.util.attr_property(

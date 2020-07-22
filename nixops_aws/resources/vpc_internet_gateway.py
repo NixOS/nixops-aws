@@ -34,6 +34,8 @@ class VPCInternetGatewayDefinition(nixops.resources.ResourceDefinition):
 class VPCInternetGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a VPC internet gateway."""
 
+    definition_type = VPCInternetGatewayDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )

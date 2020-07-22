@@ -36,6 +36,8 @@ class VPCRouteTableDefinition(nixops.resources.ResourceDefinition):
 class VPCRouteTableState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a VPC route table"""
 
+    definition_type = VPCRouteTableDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )

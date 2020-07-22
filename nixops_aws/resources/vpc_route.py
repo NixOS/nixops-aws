@@ -36,6 +36,8 @@ class VPCRouteDefinition(nixops.resources.ResourceDefinition):
 class VPCRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a VPC route"""
 
+    definition_type = VPCRouteDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )
