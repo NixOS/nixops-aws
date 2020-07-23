@@ -93,7 +93,7 @@ class VPCRouteTableState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         }
 
     def realize_create_route_table(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCRouteTableDefinition = self.get_defn()
 
         if self.state == self.UP:
             if not allow_recreate:
@@ -106,9 +106,9 @@ class VPCRouteTableState(nixops.resources.DiffEngineResourceState, EC2CommonStat
             self.warn("route table definition changed, recreating ...")
             self._destroy()
 
-        self._state["region"] = config["region"]
+        self._state["region"] = config.config.region
 
-        vpc_id = config["vpcId"]
+        vpc_id = config.config.vpcId
         if vpc_id.startswith("res-"):
             res = self.depl.get_typed_resource(
                 vpc_id[4:].split(".")[0], "vpc", VPCState
@@ -124,11 +124,11 @@ class VPCRouteTableState(nixops.resources.DiffEngineResourceState, EC2CommonStat
             self._state["routeTableId"] = route_table["RouteTable"]["RouteTableId"]
 
     def realize_propagate_vpn_gtws(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCRouteTableDefinition = self.get_defn()
         old_vgws = self._state.get("propagatingVgws", [])
         new_vgws = []
 
-        for vgw in config["propagatingVgws"]:
+        for vgw in config.config.propagatingVgws:
             if vgw.startswith("res-"):
                 res = self.depl.get_typed_resource(
                     vgw[4:].split(".")[0], "aws-vpn-gateway", AWSVPNGatewayState
@@ -155,8 +155,8 @@ class VPCRouteTableState(nixops.resources.DiffEngineResourceState, EC2CommonStat
             self._state["propagatingVgws"] = new_vgws
 
     def realize_update_tag(self, allow_recreate):
-        config = self.get_defn()
-        tags = config["tags"]
+        config: VPCRouteTableDefinition = self.get_defn()
+        tags = {k: v for k, v in config.config.tags.items()}
         tags.update(self.get_common_tags())
         self.get_client().create_tags(
             Resources=[self._state["routeTableId"]],

@@ -76,7 +76,7 @@ class AWSVPNGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         }
 
     def realize_create_vpn_gtw(self, allow_recreate):
-        config = self.get_defn()
+        config: AWSVPNGatewayDefinition = self.get_defn()
 
         if self.state == self.UP:
             if not allow_recreate:
@@ -89,17 +89,17 @@ class AWSVPNGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonStat
             self.warn("VPN gateway changed, recreating...")
             self._destroy()
 
-        self._state["region"] = config["region"]
-        vpc_id = config["vpcId"]
+        self._state["region"] = config.config.region
+        vpc_id = config.config.vpcId
         if vpc_id.startswith("res-"):
             res = self.depl.get_typed_resource(
                 vpc_id[4:].split(".")[0], "vpc", VPCState
             )
             vpc_id = res._state["vpcId"]
 
-        self.log("creating VPN gateway in zone {}".format(config["zone"]))
+        self.log("creating VPN gateway in zone {}".format(config.config.zone))
         response = self.get_client().create_vpn_gateway(
-            AvailabilityZone=config["zone"], Type="ipsec.1"
+            AvailabilityZone=config.config.zone, Type="ipsec.1"
         )
 
         vpn_gtw_id = response["VpnGateway"]["VpnGatewayId"]
@@ -111,11 +111,11 @@ class AWSVPNGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonStat
             self.state = self.UP
             self._state["vpnGatewayId"] = vpn_gtw_id
             self._state["vpcId"] = vpc_id
-            self._state["zone"] = config["zone"]
+            self._state["zone"] = config.config.zone
 
     def realize_update_tag(self, allow_recreate):
-        config = self.get_defn()
-        tags = config["tags"]
+        config: AWSVPNGatewayDefinition = self.get_defn()
+        tags = {k: v for k, v in config.config.tags.items()}
         tags.update(self.get_common_tags())
         self.get_client().create_tags(
             Resources=[self._state["vpnGatewayId"]],

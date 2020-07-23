@@ -91,7 +91,7 @@ class VPCNatGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         }
 
     def realize_create_gtw(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCNatGatewayDefinition = self.get_defn()
         if self.state == self.UP:
             if not allow_recreate:
                 raise Exception(
@@ -103,10 +103,10 @@ class VPCNatGatewayState(nixops.resources.DiffEngineResourceState, EC2CommonStat
             self.warn("nat gateway changed, recreating...")
             self._destroy()
 
-        self._state["region"] = config["region"]
+        self._state["region"] = config.config.region
 
-        subnet_id = config["subnetId"]
-        allocation_id = config["allocationId"]
+        subnet_id = config.config.subnetId
+        allocation_id = config.config.allocationId
 
         if allocation_id.startswith("res-"):
             res = self.depl.get_typed_resource(

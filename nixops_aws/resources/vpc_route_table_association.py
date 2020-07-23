@@ -84,7 +84,7 @@ class VPCRouteTableAssociationState(
         }
 
     def realize_associate_route_table(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCRouteTableAssociationDefinition = self.get_defn()
 
         if self.state == self.UP:
             if not allow_recreate:
@@ -97,16 +97,16 @@ class VPCRouteTableAssociationState(
             self.warn("route table association definition changed, recreating ...")
             self._destroy()
 
-        self._state["region"] = config["region"]
+        self._state["region"] = config.config.region
 
-        route_table_id = config["routeTableId"]
+        route_table_id = config.config.routeTableId
         if route_table_id.startswith("res-"):
             res = self.depl.get_typed_resource(
                 route_table_id[4:].split(".")[0], "vpc-route-table", VPCRouteTableState
             )
             route_table_id = res._state["routeTableId"]
 
-        subnet_id = config["subnetId"]
+        subnet_id = config.config.subnetId
         if subnet_id.startswith("res-"):
             res_vpc_subnet = self.depl.get_typed_resource(
                 subnet_id[4:].split(".")[0], "vpc-subnet", VPCSubnetState

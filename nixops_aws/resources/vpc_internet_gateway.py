@@ -80,7 +80,7 @@ class VPCInternetGatewayState(nixops.resources.DiffEngineResourceState, EC2Commo
         }
 
     def realize_create_gtw(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCInternetGatewayDefinition = self.get_defn()
 
         if self.state == self.UP:
             if not allow_recreate:
@@ -93,9 +93,9 @@ class VPCInternetGatewayState(nixops.resources.DiffEngineResourceState, EC2Commo
             self.warn("internet gateway changed, recreating...")
             self._destroy()
 
-        self._state["region"] = config["region"]
+        self._state["region"] = config.config.region
 
-        vpc_id = config["vpcId"]
+        vpc_id = config.config.vpcId
         if vpc_id.startswith("res-"):
             res = self.depl.get_typed_resource(
                 vpc_id[4:].split(".")[0], "vpc", VPCState
@@ -111,13 +111,13 @@ class VPCInternetGatewayState(nixops.resources.DiffEngineResourceState, EC2Commo
         )
         with self.depl._db:
             self.state = self.UP
-            self._state["region"] = config["region"]
+            self._state["region"] = config.config.region
             self._state["vpcId"] = vpc_id
             self._state["internetGatewayId"] = igw_id
 
     def realize_update_tag(self, allow_recreate):
-        config = self.get_defn()
-        tags = config["tags"]
+        config: VPCInternetGatewayDefinition = self.get_defn()
+        tags = {k: v for k, v in config.config.tags.items()}
         tags.update(self.get_common_tags())
         self.get_client().create_tags(
             Resources=[self._state["internetGatewayId"]],

@@ -76,7 +76,7 @@ class VPCCustomerGatewayState(nixops.resources.DiffEngineResourceState, EC2Commo
         return "resources.vpcCustomerGateways."
 
     def realize_create_customer_gtw(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCCustomerGatewayDefinition = self.get_defn()
         if self.state == self.UP:
             if not allow_recreate:
                 raise Exception(
@@ -88,11 +88,13 @@ class VPCCustomerGatewayState(nixops.resources.DiffEngineResourceState, EC2Commo
             self.warn("customer gateway changed, recreating...")
             self._destroy()
 
-        self._state["region"] = config["region"]
+        self._state["region"] = config.config.region
 
         self.log("creating customer gateway")
         response = self.get_client().create_customer_gateway(
-            BgpAsn=config["bgpAsn"], PublicIp=config["publicIp"], Type=config["type"]
+            BgpAsn=config.config.bgpAsn,
+            PublicIp=config.config.publicIp,
+            Type=config.config.type,
         )
 
         customer_gtw_id = response["CustomerGateway"]["CustomerGatewayId"]
@@ -104,15 +106,15 @@ class VPCCustomerGatewayState(nixops.resources.DiffEngineResourceState, EC2Commo
 
         with self.depl._db:
             self.state = self.UP
-            self._state["region"] = config["region"]
+            self._state["region"] = config.config.region
             self._state["customerGatewayId"] = customer_gtw_id
-            self._state["bgpAsn"] = config["bgpAsn"]
-            self._state["publicIp"] = config["publicIp"]
-            self._state["type"] = config["type"]
+            self._state["bgpAsn"] = config.config.bgpAsn
+            self._state["publicIp"] = config.config.publicIp
+            self._state["type"] = config.config.type
 
     def realize_update_tag(self, allow_recreate):
-        config = self.get_defn()
-        tags = config["tags"]
+        config: VPCCustomerGatewayDefinition = self.get_defn()
+        tags = {k: v for k, v in config.config.tags.items()}
         tags.update(self.get_common_tags())
         self.get_client().create_tags(
             Resources=[self._state["customerGatewayId"]],

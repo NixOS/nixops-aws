@@ -40,6 +40,7 @@ class VPCState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         "state", nixops.resources.ResourceState.MISSING, int
     )
     access_key_id = nixops.util.attr_property("accessKeyId", None)
+    vpcId = nixops.util.attr_property("vpcId", None)
     _reserved_keys = EC2CommonState.COMMON_EC2_RESERVED + ["vpcId", "associationId"]
 
     @classmethod
@@ -168,7 +169,7 @@ class VPCState(nixops.resources.DiffEngineResourceState, EC2CommonState):
 
     def realize_create_vpc(self, allow_recreate):
         """Handle both create and recreate of the vpc resource """
-        config = self.get_defn()
+        config: VPCDefinition = self.get_defn()
         if self.state == self.UP:
             if not allow_recreate:
                 raise Exception(
@@ -181,20 +182,21 @@ class VPCState(nixops.resources.DiffEngineResourceState, EC2CommonState):
             self._destroy()
             self._client = None
 
-        self._state["region"] = config["region"]
+        self._state["region"] = config.config.region
 
-        self.log("creating vpc under region {0}".format(config["region"]))
+        self.log("creating vpc under region {0}".format(config.config.region))
         vpc = self.get_client().create_vpc(
-            CidrBlock=config["cidrBlock"], InstanceTenancy=config["instanceTenancy"]
+            CidrBlock=config.config.cidrBlock,
+            InstanceTenancy=config.config.instanceTenancy,
         )
         self.vpc_id = vpc.get("Vpc").get("VpcId")
 
         with self.depl._db:
             self.state = self.STARTING
             self._state["vpcId"] = self.vpc_id
-            self._state["region"] = config["region"]
-            self._state["cidrBlock"] = config["cidrBlock"]
-            self._state["instanceTenancy"] = config["instanceTenancy"]
+            self._state["region"] = config.config.region
+            self._state["cidrBlock"] = config.config.cidrBlock
+            self._state["instanceTenancy"] = config.config.instanceTenancy
 
         def tag_updater(tags):
             self.get_client().create_tags(
@@ -202,33 +204,34 @@ class VPCState(nixops.resources.DiffEngineResourceState, EC2CommonState):
                 Tags=[{"Key": k, "Value": tags[k]} for k in tags],
             )
 
-        self.update_tags_using(tag_updater, user_tags=config["tags"], check=True)
+        self.update_tags_using(tag_updater, user_tags=config.config.tags, check=True)
 
         self.wait_for_vpc_available(self.vpc_id)
 
     def realize_classic_link_change(self, allow_recreate):
-        config = self.get_defn()
-        if config["enableClassicLink"]:
+        config: VPCDefinition = self.get_defn()
+        if config.config.enableClassicLink:
             self.get_client().enable_vpc_classic_link(VpcId=self.vpc_id)
-        elif config["enableClassicLink"] is False and self._state.get(
+        elif config.config.enableClassicLink is False and self._state.get(
             "enableClassicLink", None
         ):
             self.get_client().disable_vpc_classic_link(VpcId=self.vpc_id)
         with self.depl._db:
-            self._state["enableClassicLink"] = config["enableClassicLink"]
+            self._state["enableClassicLink"] = config.config.enableClassicLink
 
     def realize_dns_config(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCDefinition = self.get_defn()
         self.get_client().modify_vpc_attribute(
-            VpcId=self.vpc_id, EnableDnsSupport={"Value": config["enableDnsSupport"]}
+            VpcId=self.vpc_id,
+            EnableDnsSupport={"Value": config.config.enableDnsSupport},
         )
         self.get_client().modify_vpc_attribute(
             VpcId=self.vpc_id,
-            EnableDnsHostnames={"Value": config["enableDnsHostnames"]},
+            EnableDnsHostnames={"Value": config.config.enableDnsHostnames},
         )
         with self.depl._db:
-            self._state["enableDnsSupport"] = config["enableDnsSupport"]
-            self._state["enableDnsHostnames"] = config["enableDnsHostnames"]
+            self._state["enableDnsSupport"] = config.config.enableDnsSupport
+            self._state["enableDnsHostnames"] = config.config.enableDnsHostnames
 
     def wait_for_ipv6_cidr_association(self, association_id):
         def lookup_association(association_set):
@@ -263,8 +266,8 @@ class VPCState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         return association["Ipv6CidrBlock"]
 
     def realize_associate_ipv6_cidr_block(self, allow_recreate):
-        config = self.get_defn()
-        assign_cidr = config["amazonProvidedIpv6CidrBlock"]
+        config: VPCDefinition = self.get_defn()
+        assign_cidr = config.config.amazonProvidedIpv6CidrBlock
         if assign_cidr:
             self.log(
                 "associating an amazon provided Ipv6 address to vpc {}".format(
@@ -272,7 +275,7 @@ class VPCState(nixops.resources.DiffEngineResourceState, EC2CommonState):
                 )
             )
             response = self.get_client().associate_vpc_cidr_block(
-                AmazonProvidedIpv6CidrBlock=config["amazonProvidedIpv6CidrBlock"],
+                AmazonProvidedIpv6CidrBlock=config.config.amazonProvidedIpv6CidrBlock,
                 VpcId=self._state["vpcId"],
             )
             association_id = response["Ipv6CidrBlockAssociation"]["AssociationId"]
@@ -290,9 +293,9 @@ class VPCState(nixops.resources.DiffEngineResourceState, EC2CommonState):
                 )
 
         with self.depl._db:
-            self._state["amazonProvidedIpv6CidrBlock"] = config[
+            self._state[
                 "amazonProvidedIpv6CidrBlock"
-            ]
+            ] = config.config.amazonProvidedIpv6CidrBlock
             if assign_cidr:
                 self._state["associationId"] = association_id
 

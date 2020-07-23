@@ -96,7 +96,7 @@ class VPCNetworkInterfaceState(
         return {r for r in resources if isinstance(r, vpc_subnet.VPCSubnetState)}
 
     def realize_create_eni(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCNetworkInterfaceDefinition = self.get_defn()
         if self.state == self.UP:
             if not allow_recreate:
                 raise Exception(
@@ -108,7 +108,7 @@ class VPCNetworkInterfaceState(
             self.warn("network interface definition changed, recreating ...")
             self._destroy()
 
-        self._state["region"] = config["region"]
+        self._state["region"] = config.config.region
 
         eni_input = self.network_interface_input(config)
         self.log(
@@ -135,9 +135,9 @@ class VPCNetworkInterfaceState(
             self._state["networkInterfaceId"] = eni["NetworkInterfaceId"]
             self._state["primaryPrivateIpAddress"] = primary
             self._state["privateIpAddresses"] = secondary
-            self._state["secondaryPrivateIpAddressCount"] = config[
+            self._state[
                 "secondaryPrivateIpAddressCount"
-            ]
+            ] = config.config.secondaryPrivateIpAddressCount
 
     def network_interface_input(self, config):
         subnet_id = config["subnetId"]
@@ -185,14 +185,14 @@ class VPCNetworkInterfaceState(
         return cfg
 
     def realize_modify_eni_attrs(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCNetworkInterfaceDefinition = self.get_defn()
         self.log("applying network interface attribute changes")
         self.get_client().modify_network_interface_attribute(
             NetworkInterfaceId=self._state["networkInterfaceId"],
-            Description={"Value": config["description"]},
+            Description={"Value": config.config.description},
         )
         groups = []
-        for grp in config["securityGroups"]:
+        for grp in config.config.securityGroups:
             if grp.startswith("res-"):
                 res = self.depl.get_typed_resource(
                     grp[4:].split(".")[0], "ec2-security-group", EC2SecurityGroupState
@@ -209,16 +209,16 @@ class VPCNetworkInterfaceState(
 
         self.get_client().modify_network_interface_attribute(
             NetworkInterfaceId=self._state["networkInterfaceId"],
-            SourceDestCheck={"Value": config["sourceDestCheck"]},
+            SourceDestCheck={"Value": config.config.sourceDestCheck},
         )
         with self.depl._db:
-            self._state["description"] = config["description"]
+            self._state["description"] = config.config.description
             self._state["securityGroups"] = groups
-            self._state["sourceDestCheck"] = config["sourceDestCheck"]
+            self._state["sourceDestCheck"] = config.config.sourceDestCheck
 
     def realize_update_tag(self, allow_recreate):
-        config = self.get_defn()
-        tags = config["tags"]
+        config: VPCNetworkInterfaceDefinition = self.get_defn()
+        tags = {k: v for k, v in config.config.tags.items()}
         tags.update(self.get_common_tags())
         self.get_client().create_tags(
             Resources=[self._state["networkInterfaceId"]],

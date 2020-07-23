@@ -96,8 +96,8 @@ class VPCSubnetState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         self.ensure_subnet_up(check)
 
     def ensure_subnet_up(self, check):
-        config = self.get_defn()
-        self._state["region"] = config["region"]
+        config: VPCSubnetDefinition = self.get_defn()
+        self._state["region"] = config.config.region
 
         if self._state.get("subnetId", None):
             if check:
@@ -146,7 +146,7 @@ class VPCSubnetState(nixops.resources.DiffEngineResourceState, EC2CommonState):
             self.state = self.UP
 
     def realize_create_subnet(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCSubnetDefinition = self.get_defn()
         if self.state == self.UP:
             if not allow_recreate:
                 raise Exception(
@@ -158,9 +158,9 @@ class VPCSubnetState(nixops.resources.DiffEngineResourceState, EC2CommonState):
             self.warn("subnet definition changed, recreating...")
             self._destroy()
 
-        self._state["region"] = config["region"]
+        self._state["region"] = config.config.region
 
-        vpc_id = config["vpcId"]
+        vpc_id = config.config.vpcId
 
         if vpc_id.startswith("res-"):
             res = self.depl.get_typed_resource(
@@ -168,10 +168,10 @@ class VPCSubnetState(nixops.resources.DiffEngineResourceState, EC2CommonState):
             )
             vpc_id = res._state["vpcId"]
 
-        zone = config["zone"] if config["zone"] else ""
+        zone = config.config.zone if config.config.zone else ""
         self.log("creating subnet in vpc {0}".format(vpc_id))
         response = self.get_client().create_subnet(
-            VpcId=vpc_id, CidrBlock=config["cidrBlock"], AvailabilityZone=zone
+            VpcId=vpc_id, CidrBlock=config.config.cidrBlock, AvailabilityZone=zone
         )
         subnet = response.get("Subnet")
         self.subnet_id = subnet.get("SubnetId")
@@ -180,10 +180,10 @@ class VPCSubnetState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         with self.depl._db:
             self.state = self.STARTING
             self._state["subnetId"] = self.subnet_id
-            self._state["cidrBlock"] = config["cidrBlock"]
+            self._state["cidrBlock"] = config.config.cidrBlock
             self._state["zone"] = self.zone
             self._state["vpcId"] = vpc_id
-            self._state["region"] = config["region"]
+            self._state["region"] = config.config.region
 
         def tag_updater(tags):
             self.get_client().create_tags(
@@ -191,27 +191,30 @@ class VPCSubnetState(nixops.resources.DiffEngineResourceState, EC2CommonState):
                 Tags=[{"Key": k, "Value": tags[k]} for k in tags],
             )
 
-        self.update_tags_using(tag_updater, user_tags=config["tags"], check=True)
+        self.update_tags_using(tag_updater, user_tags=config.config.tags, check=True)
 
         self.wait_for_subnet_available(self.subnet_id)
 
     def realize_map_public_ip_on_launch(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCSubnetDefinition = self.get_defn()
         self.get_client().modify_subnet_attribute(
-            MapPublicIpOnLaunch={"Value": config["mapPublicIpOnLaunch"]},
+            MapPublicIpOnLaunch={"Value": config.config.mapPublicIpOnLaunch},
             SubnetId=self.subnet_id,
         )
 
         with self.depl._db:
-            self._state["mapPublicIpOnLaunch"] = config["mapPublicIpOnLaunch"]
+            self._state["mapPublicIpOnLaunch"] = config.config.mapPublicIpOnLaunch
 
     def realize_associate_ipv6_cidr_block(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCSubnetDefinition = self.get_defn()
 
-        if config["ipv6CidrBlock"] is not None:
-            self.log("associating ipv6 cidr block {}".format(config["ipv6CidrBlock"]))
+        if config.config.ipv6CidrBlock is not None:
+            self.log(
+                "associating ipv6 cidr block {}".format(config.config.ipv6CidrBlock)
+            )
             response = self.get_client().associate_subnet_cidr_block(
-                Ipv6CidrBlock=config["ipv6CidrBlock"], SubnetId=self._state["subnetId"]
+                Ipv6CidrBlock=config.config.ipv6CidrBlock,
+                SubnetId=self._state["subnetId"],
             )
         else:
             self.log("disassociating ipv6 cidr block")
@@ -220,15 +223,15 @@ class VPCSubnetState(nixops.resources.DiffEngineResourceState, EC2CommonState):
             )
 
         with self.depl._db:
-            self._state["ipv6CidrBlock"] = config["ipv6CidrBlock"]
-            if config["ipv6CidrBlock"] is not None:
+            self._state["ipv6CidrBlock"] = config.config.ipv6CidrBlock
+            if config.config.ipv6CidrBlock is not None:
                 self._state["associationId"] = response["Ipv6CidrBlockAssociation"][
                     "AssociationId"
                 ]
 
     def realize_update_tag(self, allow_recreate):
-        config = self.get_defn()
-        tags = config["tags"]
+        config: VPCSubnetDefinition = self.get_defn()
+        tags = {k: v for k, v in config.config.tags.items()}
         tags.update(self.get_common_tags())
         self.get_client().create_tags(
             Resources=[self._state["subnetId"]],

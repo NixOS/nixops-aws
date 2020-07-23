@@ -88,8 +88,8 @@ class VPCNetworkInterfaceAttachmentState(
         }
 
     def ensure_state_up(self):
-        config = self.get_defn()
-        self._state["region"] = config["region"]
+        config: VPCNetworkInterfaceAttachmentDefinition = self.get_defn()
+        self._state["region"] = config.config.region
         if self._state.get("attachmentId", None):
             if self.state != self.UP:
                 self.wait_for_eni_attachment(self._state["networkInterfaceId"])
@@ -119,7 +119,7 @@ class VPCNetworkInterfaceAttachmentState(
             self.state = self.UP
 
     def realize_create_eni_attachment(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCNetworkInterfaceAttachmentDefinition = self.get_defn()
         if self.state == self.UP:
             if not allow_recreate:
                 raise Exception(
@@ -131,15 +131,16 @@ class VPCNetworkInterfaceAttachmentState(
             self.warn("network interface attachment definition changed, recreating ...")
             self._destroy()
 
-        self._state["region"] = config["region"]
-        vm_id = config["instanceId"]
+        self._state["region"] = config.config.region
+        vm_id = config.config.instanceId
         if vm_id.startswith("res-"):
             ec2_res = self.depl.get_typed_resource(
                 vm_id[4:].split(".")[0], "ec2", EC2State
             )
+            assert ec2_res.vm_id is not None
             vm_id = ec2_res.vm_id
 
-        eni_id = config["networkInterfaceId"]
+        eni_id = config.config.networkInterfaceId
         if eni_id.startswith("res-"):
             vpc_network_interface_res = self.depl.get_typed_resource(
                 eni_id[4:].split(".")[0],
@@ -152,7 +153,7 @@ class VPCNetworkInterfaceAttachmentState(
             "attaching network interface {0} to instance {1}".format(eni_id, vm_id)
         )
         eni_attachment = self.get_client().attach_network_interface(
-            DeviceIndex=config["deviceIndex"],
+            DeviceIndex=config.config.deviceIndex,
             InstanceId=vm_id,
             NetworkInterfaceId=eni_id,
         )
@@ -161,7 +162,7 @@ class VPCNetworkInterfaceAttachmentState(
             self.state = self.STARTING
             self._state["attachmentId"] = eni_attachment["AttachmentId"]
             self._state["instanceId"] = vm_id
-            self._state["deviceIndex"] = config["deviceIndex"]
+            self._state["deviceIndex"] = config.config.deviceIndex
             self._state["networkInterfaceId"] = eni_id
 
         self.wait_for_eni_attachment(eni_id)

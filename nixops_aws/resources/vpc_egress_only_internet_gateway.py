@@ -79,7 +79,7 @@ class VPCEgressOnlyInternetGatewayState(
         }
 
     def realize_create_gtw(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCEgressOnlyInternetGatewayDefinition = self.get_defn()
 
         if self.state == self.UP:
             if not allow_recreate:
@@ -92,9 +92,9 @@ class VPCEgressOnlyInternetGatewayState(
             self.warn("egress only internet gateway changed, recreating...")
             self._destroy()
 
-        self._state["region"] = config["region"]
+        self._state["region"] = config.config.region
 
-        vpc_id = config["vpcId"]
+        vpc_id = config.config.vpcId
         if vpc_id.startswith("res-"):
             res = self.depl.get_typed_resource(
                 vpc_id[4:].split(".")[0], "vpc", VPCState
@@ -111,7 +111,7 @@ class VPCEgressOnlyInternetGatewayState(
 
         with self.depl._db:
             self.state = self.UP
-            self._state["region"] = config["region"]
+            self._state["region"] = config.config.region
             self._state["vpcId"] = vpc_id
             self._state["egressOnlyInternetGatewayId"] = igw_id
 
