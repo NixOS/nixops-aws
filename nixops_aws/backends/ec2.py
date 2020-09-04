@@ -919,7 +919,7 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
             IamInstanceProfile["Name"] = defn.instance_profile
 
         if defn.subnet_id != "":
-            if defn.security_groups != [] and defn.security_groups != ["default"]:
+            if defn.security_groups and list(defn.security_groups) != ["default"]:
                 raise Exception(
                     "‘deployment.ec2.securityGroups’ is incompatible with ‘deployment.ec2.subnetId’"
                 )
