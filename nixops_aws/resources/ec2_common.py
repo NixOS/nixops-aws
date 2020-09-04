@@ -23,7 +23,7 @@ class EC2CommonState:
     _client: Optional["mypy_boto3_ec2.EC2Client"]
 
     # Not always available
-    _conn: EC2Connection
+    _conn: Optional[EC2Connection]
     access_key_id: Optional[str]
 
     COMMON_EC2_RESERVED = ["accessKeyId", "ec2.tags"]
@@ -60,6 +60,8 @@ class EC2CommonState:
     def update_tags(self, id, user_tags={}, check=False):
         def updater(tags):
             # FIXME: handle removing tags.
+            if self._conn is None:
+                raise Exception("bug: self._conn is None")
             self._retry(lambda: self._conn.create_tags([id], tags))
 
         self.update_tags_using(updater, user_tags=user_tags, check=check)
