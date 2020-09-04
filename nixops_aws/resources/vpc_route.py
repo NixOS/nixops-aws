@@ -126,7 +126,7 @@ class VPCRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
 
         num_targets = 0
         for item in self.TARGETS:
-            if hasattr(config.config, item):
+            if getattr(config.config, item, None):
                 num_targets += 1
                 target = item
 
