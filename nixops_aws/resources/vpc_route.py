@@ -154,7 +154,7 @@ class VPCRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
                 res_type = cfg.split(".")[1]
                 attr = cfg.split(".")[2] if len(cfg.split(".")) > 2 else option
                 # TODO: Type this how?
-                res: Any = self.depl.get_typed_resource(name, res_type, Any)  # type: ignore
+                res: Any = self.depl.get_generic_resource(name, res_type)  # type: ignore
                 return res._state[attr]
             else:
                 return cfg
