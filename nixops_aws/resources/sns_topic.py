@@ -8,6 +8,8 @@ import nixops.util
 import nixops.resources
 import nixops_aws.ec2_utils
 
+from typing import List
+
 from .types.sns_topic import SnsTopicOptions
 
 
@@ -110,9 +112,9 @@ class SNSTopicState(nixops.resources.ResourceState[SNSTopicDefinition]):
                 return True
         return False
 
-    def create(self, defn, check, allow_reboot, allow_recreate):
+    def create(self, defn: SNSTopicDefinition, check, allow_reboot, allow_recreate):
         self.access_key_id = (
-            defn.config["accessKeyId"] or nixops_aws.ec2_utils.get_access_key_id()
+            defn.config.accessKeyId or nixops_aws.ec2_utils.get_access_key_id()
         )
         if not self.access_key_id:
             raise Exception(
@@ -121,40 +123,37 @@ class SNSTopicState(nixops.resources.ResourceState[SNSTopicDefinition]):
 
         arn = self.arn
         if self.state == self.UP and (
-            self.topic_name != defn.config["name"]
-            or self.region != defn.config["region"]
+            self.topic_name != defn.config.name or self.region != defn.config.region
         ):
             self.log("topic definition changed, recreating...")
             self._destroy()
             self._conn = None
 
-        self.region = defn.config["region"]
+        self.region = defn.config.region
 
         if self.arn is None or not self.topic_exists(arn=self.arn):
-            self.log("creating SNS topic ‘{0}’...".format(defn.config["name"]))
-            topic = self._connect().create_topic(defn.config["name"])
+            self.log("creating SNS topic ‘{0}’...".format(defn.config.name))
+            topic = self._connect().create_topic(defn.config.name)
             arn = topic.get("CreateTopicResponse").get("CreateTopicResult")["TopicArn"]
 
-        if defn.config["displayName"] is not None:
+        if defn.config.displayName is not None:
             self._connect().set_topic_attributes(
-                topic=arn,
-                attr_name="DisplayName",
-                attr_value=defn.config["displayName"],
+                topic=arn, attr_name="DisplayName", attr_value=defn.config.displayName,
             )
 
-        if defn.config["policy"] != "":
+        if defn.config.policy != "":
             self._connect().set_topic_attributes(
-                topic=arn, attr_name="Policy", attr_value=defn.config["policy"]
+                topic=arn, attr_name="Policy", attr_value=defn.config.policy
             )
 
         current_subscribers, current_subscriptions_arns = self.get_current_subscribers(
             arn=arn
         )
 
-        if len(defn.config["subscriptions"]) > 0:
-            for subscriber in defn.config["subscriptions"]:
-                protocol = subscriber["protocol"]
-                endpoint = subscriber["endpoint"]
+        if len(defn.config.subscriptions) > 0:
+            for subscriber in defn.config.subscriptions:
+                protocol = subscriber.protocol
+                endpoint = subscriber.endpoint
                 if endpoint not in current_subscribers:
                     self.log(
                         "adding SNS subscriber with endpoint '{0}'...".format(endpoint)
@@ -180,11 +179,11 @@ class SNSTopicState(nixops.resources.ResourceState[SNSTopicDefinition]):
 
         with self.depl._db:
             self.state = self.UP
-            self.topic_name = defn.config["name"]
-            self.display_name = defn.config["displayName"]
-            self.policy = defn.config["policy"]
+            self.topic_name = defn.config.name
+            self.display_name = defn.config.displayName
+            self.policy = defn.config.policy
             self.arn = arn
-            self.subscriptions = defn.config["subscriptions"]
+            self.subscriptions = defn.config.subscriptions
 
     def get_current_subscribers(self, arn):
         response = self._connect().get_all_subscriptions_by_topic(topic=arn)
@@ -201,11 +200,11 @@ class SNSTopicState(nixops.resources.ResourceState[SNSTopicDefinition]):
                 ]
         return current_endpoints, current_subscriptions_arns
 
-    def get_defn_endpoints(self, defn):
+    def get_defn_endpoints(self, defn: SNSTopicDefinition) -> List[str]:
         defn_endpoints = []
-        if len(defn.config["subscriptions"]) > 0:
-            for subscriber in defn.config["subscriptions"]:
-                defn_endpoints.append(subscriber["endpoint"])
+        if len(defn.config.subscriptions) > 0:
+            for subscriber in defn.config.subscriptions:
+                defn_endpoints.append(subscriber.endpoint)
         return defn_endpoints
 
     def destroy(self, wipe=False):
