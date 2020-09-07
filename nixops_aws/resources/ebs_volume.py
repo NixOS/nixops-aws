@@ -81,23 +81,23 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
         )
         return self._conn_boto3
 
-    def _get_vol(self, config):
+    def _get_vol(self, config: EbsVolumeOptions):
         try:
-            _vol = self._connect_boto3(config["region"]).describe_volumes(
-                VolumeIds=[config["volumeId"]]
+            _vol = self._connect_boto3(config.region).describe_volumes(
+                VolumeIds=[config.volumeId]
             )["Volumes"][0]
         except botocore.exceptions.ClientError as error:
             raise error
         if _vol["VolumeType"] == "io1":
             iops = _vol["Iops"]
         else:
-            iops = config["iops"]
+            iops = config.iops
         with self.depl._db:
             self.state = self.STARTING
-            self.region = config["region"]
+            self.region = config.region
             self.zone = _vol["AvailabilityZone"]
             self.size = _vol["Size"]
-            self.volume_id = config["volumeId"]
+            self.volume_id = config.volumeId
             self.iops = iops
             self.volume_type = _vol["VolumeType"]
 
@@ -188,6 +188,10 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
                 self.log("volume ID is ‘{0}’".format(self.volume_id))
 
         if self.state == self.STARTING or check:
+            # ensure the connection has been established before calling
+            # update_tags
+            self._connect(self.region)
+
             self.update_tags(self.volume_id, user_tags=defn.config.tags, check=check)
             nixops_aws.ec2_utils.wait_for_volume_available(
                 self._connect(self.region),
