@@ -204,7 +204,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
 
         def get_defn_attr(attr):
             if attr == "rds_dbinstance_security_groups":
-                return self.fetch_security_group_resources(
+                return self.fetch_rds_security_group_resources(
                     defn.rds_dbinstance_security_groups
                 )
             else:
@@ -267,7 +267,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
         # take care when comparing instance ids, as aws lowercases and converts to unicode
         return str(self.rds_dbinstance_id).lower() == str(instance_id).lower()
 
-    def fetch_security_group_resources(self, config):
+    def fetch_rds_security_group_resources(self, config):
         security_groups = []
         for sg in config:
             if sg.startswith("res-"):
@@ -356,7 +356,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                         )
                     )
                     # create a new dbinstance with desired config
-                    security_groups = self.fetch_security_group_resources(
+                    security_groups = self.fetch_rds_security_group_resources(
                         defn.rds_dbinstance_security_groups
                     )
                     dbinstance = self._connect().create_dbinstance(
