@@ -44,6 +44,9 @@ class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
         self.rds_dbinstance_security_groups = []
         for sg_name in self.config.securityGroups:
             self.rds_dbinstance_security_groups.append(sg_name)
+        self.vpc_security_groups = []
+        for sg_name in self.config.vpcSecurityGroups:
+            self.vpc_security_groups.append(sg_name)
         # TODO: implement remainder of boto.rds.RDSConnection.create_dbinstance parameters
 
         # common params
@@ -83,6 +86,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
     rds_dbinstance_security_groups = nixops.util.attr_property(
         "ec2.securityGroups", [], "json"
     )
+    vpc_security_groups = nixops.util.attr_property("ec2.vpcSecurityGroups", [], "json")
 
     requires_reboot_attrs = (
         "rds_dbinstance_id",
@@ -120,6 +124,9 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
             r
             for r in resources
             if isinstance(r, ec2_rds_dbsecurity_group.EC2RDSDbSecurityGroupState,)
+            or isinstance(
+                r, nixops_aws.resources.ec2_security_group.EC2SecurityGroupState
+            )
         }
 
     def _connect(self) -> boto.rds.RDSConnection:
@@ -192,6 +199,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
             "rds_dbinstance_master_password",
             "rds_dbinstance_allocated_storage",
             "rds_dbinstance_security_groups",
+            "vpc_security_groups",
         )
 
         def get_state_attr(attr):
@@ -207,6 +215,8 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                 return self.fetch_rds_security_group_resources(
                     defn.rds_dbinstance_security_groups
                 )
+            elif attr == "vpc_security_groups":
+                return self.fetch_vpc_security_group_resources(defn.vpc_security_groups)
             else:
                 return getattr(defn, attr)
 
@@ -241,7 +251,9 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                 break
             time.sleep(6)
 
-    def _copy_dbinstance_attrs(self, dbinstance, security_groups):
+    def _copy_dbinstance_attrs(
+        self, dbinstance, rds_security_groups, vpc_security_groups
+    ):
         with self.depl._db:
             self.rds_dbinstance_id = dbinstance.id
             self.rds_dbinstance_allocated_storage = int(dbinstance.allocated_storage)
@@ -251,7 +263,8 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
             self.rds_dbinstance_multi_az = dbinstance.multi_az
             self.rds_dbinstance_port = int(dbinstance.endpoint[1])
             self.rds_dbinstance_endpoint = "%s:%d" % dbinstance.endpoint
-            self.rds_dbinstance_security_groups = security_groups
+            self.rds_dbinstance_security_groups = rds_security_groups
+            self.vpc_security_groups = vpc_security_groups
 
     def _to_boto_kwargs(self, attrs):
         attr_to_kwarg = {
@@ -260,6 +273,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
             "rds_dbinstance_instance_class": "instance_class",
             "rds_dbinstance_multi_az": "multi_az",
             "rds_dbinstance_security_groups": "security_groups",
+            "vpc_security_groups": "vpc_security_groups",
         }
         return {attr_to_kwarg[attr]: attrs[attr] for attr in attrs.keys()}
 
@@ -286,9 +300,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
         for sg in config:
             if sg.startswith("res-"):
                 res = self.depl.get_typed_resource(
-                    sg[4:].split(".")[0],
-                    "ec2-security-group",
-                    EC2SecurityGroupState,
+                    sg[4:].split(".")[0], "ec2-security-group", EC2SecurityGroupState,
                 )
                 security_groups.append(res.security_group_name)
             else:
@@ -401,7 +413,9 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                     defn.rds_dbinstance_master_password
                 )
                 self._copy_dbinstance_attrs(
-                    dbinstance, defn.rds_dbinstance_security_groups
+                    dbinstance,
+                    defn.rds_dbinstance_security_groups,
+                    self.fetch_vpc_security_group_resources(defn.vpc_security_groups),
                 )
                 self.state = self.UP
 
@@ -438,7 +452,9 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                     self._wait_for_dbinstance(dbinstance, state="modifying")
                 self._wait_for_dbinstance(dbinstance)
                 self._copy_dbinstance_attrs(
-                    dbinstance, defn.rds_dbinstance_security_groups
+                    dbinstance,
+                    defn.rds_dbinstance_security_groups,
+                    self.fetch_vpc_security_group_resources(defn.vpc_security_groups),
                 )
 
     def after_activation(self, defn):

@@ -90,6 +90,15 @@ with import ./lib.nix lib;
       '';
     };
 
+    vpcSecurityGroups = mkOption {
+      default = [];
+      type = types.listOf (types.either types.str (resource "ec2-security-group"));
+      apply = map (x: if builtins.isString x then x else "res-" + x._name);
+      description = ''
+        List of VPC security groups to authorize on this DBInstance.
+      '';
+    };
+
   };
 
   config._type = "ec2-rds-dbinstance";

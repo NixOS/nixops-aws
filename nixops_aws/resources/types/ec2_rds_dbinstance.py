@@ -16,3 +16,4 @@ class Ec2RdsDbinstanceOptions(ResourceOptions):
     port: int
     region: str
     securityGroups: Sequence[str]
+    vpcSecurityGroups: Sequence[str]
