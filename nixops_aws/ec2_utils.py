@@ -13,7 +13,10 @@ from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
 from boto.pyami.config import Config
 import botocore
-from typing import Tuple
+from typing import Tuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import mypy_boto3_rds
 
 
 def fetch_aws_secret_key(access_key_id) -> Tuple[str, str]:
@@ -117,6 +120,18 @@ def connect_vpc(region, access_key_id):
     if not conn:
         raise Exception("invalid VPC region ‘{0}’".format(region))
     return conn
+
+
+def connect_rds_boto3(region, access_key_id) -> "mypy_boto3_rds.RDSClient":
+    assert region
+    (access_key_id, secret_access_key) = fetch_aws_secret_key(access_key_id)
+    client = boto3.session.Session().client(
+        "rds",
+        region_name=region,
+        aws_access_key_id=access_key_id,
+        aws_secret_access_key=secret_access_key,
+    )
+    return client
 
 
 def get_access_key_id():
