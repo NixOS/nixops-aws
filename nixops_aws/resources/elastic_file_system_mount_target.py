@@ -12,6 +12,7 @@ from . import ec2_security_group
 from . import elastic_file_system
 import time
 from .elastic_file_system import ElasticFileSystemState
+from .vpc_subnet import VPCSubnetState
 
 from .types.elastic_file_system_mount_target import ElasticFileSystemMountTargetOptions
 
@@ -118,6 +119,12 @@ class ElasticFileSystemMountTargetState(
                 args["IpAddress"] = defn.config["ipAddress"]
 
             subnetId = defn.config["subnet"]
+            if subnetId.startswith("res-"):
+                subnet_res = self.depl.get_typed_resource(
+                    subnetId[4:].split(".")[0], "vpc-subnet", VPCSubnetState
+                )
+                subnetId = subnet_res._state["subnetId"]
+
             securityGroups = self.security_groups_to_ids(
                 region, access_key_id, subnetId, defn.config["securityGroups"]
             )
