@@ -10,7 +10,7 @@ import time
 from uuid import uuid4
 from . import ec2_rds_dbsecurity_group
 from .ec2_rds_dbsecurity_group import EC2RDSDbSecurityGroupState
-
+from .ec2_security_group import EC2SecurityGroupState
 from .types.ec2_rds_dbinstance import Ec2RdsDbinstanceOptions
 from typing import Optional
 
@@ -281,6 +281,20 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                 security_groups.append(sg)
         return security_groups
 
+    def fetch_vpc_security_group_resources(self, config):
+        security_groups = []
+        for sg in config:
+            if sg.startswith("res-"):
+                res = self.depl.get_typed_resource(
+                    sg[4:].split(".")[0],
+                    "ec2-security-group",
+                    EC2SecurityGroupState,
+                )
+                security_groups.append(res.security_group_name)
+            else:
+                security_groups.append(sg)
+        return security_groups
+
     def create(self, defn, check, allow_reboot, allow_recreate):
         with self.depl._db:
             self.access_key_id = (
@@ -359,6 +373,9 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                     security_groups = self.fetch_rds_security_group_resources(
                         defn.rds_dbinstance_security_groups
                     )
+                    vpc_security_groups = self.fetch_vpc_security_group_resources(
+                        defn.vpc_security_groups
+                    )
                     dbinstance = self._connect().create_dbinstance(
                         defn.rds_dbinstance_id,
                         defn.rds_dbinstance_allocated_storage,
@@ -369,7 +386,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                         engine=defn.rds_dbinstance_engine,
                         db_name=defn.rds_dbinstance_db_name,
                         multi_az=defn.rds_dbinstance_multi_az,
-                        security_groups=security_groups,
+                        **self.get_vpc_options(defn),
                     )
 
                     self.state = self.STARTING
