@@ -24,7 +24,8 @@ with import ./lib.nix lib;
     };
 
     subnet = mkOption {
-      type = types.str;
+      type = types.either types.str (resource "vpc-subnet");
+      apply = x: if builtins.isString x then x else "res-" + x._name + "." + x._type;
       description = "The EC2 subnet in which to create this mount target.";
     };
 
