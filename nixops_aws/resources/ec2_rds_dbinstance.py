@@ -225,6 +225,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                 "backing-up",
                 "available",
                 "modifying",
+                "configuring-enhanced-monitoring",
             }:
                 raise Exception(
                     "RDS database instance ‘{0}’ in an error state (state is ‘{1}’)".format(
