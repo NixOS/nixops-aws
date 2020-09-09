@@ -164,7 +164,12 @@ def retry(f, error_codes=[], logger=None):
     def handle_boto3_exception(e):
         if i == num_retries:
             raise e
-        if logger is not None:
+        elif (
+            error_codes != []
+            and getattr(e, "response", {}).get("code") not in error_codes
+        ):
+            raise e
+        elif logger is not None:
             if hasattr(e, "response"):
                 logger.log(
                     "got (possibly transient) EC2 error '{}', retrying...".format(
