@@ -40,6 +40,8 @@ class ElasticFileSystemMountTargetState(
 ):
     """State of an AWS Elastic File System mount target."""
 
+    definition_type = ElasticFileSystemMountTargetDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )
@@ -83,12 +85,18 @@ class ElasticFileSystemMountTargetState(
             or isinstance(r, elastic_file_system.ElasticFileSystemState)
         }
 
-    def create(self, defn, check, allow_reboot, allow_recreate):
+    def create(
+        self,
+        defn: ElasticFileSystemMountTargetDefinition,
+        check,
+        allow_reboot,
+        allow_recreate,
+    ):
 
         access_key_id = (
-            defn.config["accessKeyId"] or nixops_aws.ec2_utils.get_access_key_id()
+            defn.config.accessKeyId or nixops_aws.ec2_utils.get_access_key_id()
         )
-        region = defn.config["region"]
+        region = defn.config.region
         client = self._get_efs_client(access_key_id, region)
 
         if self.state == self.MISSING:
@@ -96,7 +104,7 @@ class ElasticFileSystemMountTargetState(
             self.log("creating Elastic File System mount target...")
 
             # Resolve the file system ID if it refers to a file system resource.
-            fs_id = defn.config["fileSystem"]
+            fs_id = defn.config.fileSystem
             if fs_id.startswith("res-"):
                 file_system = self.depl.get_typed_resource(
                     fs_id[4:], "elastic-file-system", ElasticFileSystemState
@@ -115,10 +123,10 @@ class ElasticFileSystemMountTargetState(
             # MountTargetConflict error or a LifeCycleState=creating
             # response.
             args = {}
-            if defn.config["ipAddress"]:
-                args["IpAddress"] = defn.config["ipAddress"]
+            if defn.config.ipAddress:
+                args["IpAddress"] = defn.config.ipAddress
 
-            subnetId = defn.config["subnet"]
+            subnetId = defn.config.subnet
             if subnetId.startswith("res-"):
                 subnet_res = self.depl.get_typed_resource(
                     subnetId[4:].split(".")[0], "vpc-subnet", VPCSubnetState
@@ -126,7 +134,7 @@ class ElasticFileSystemMountTargetState(
                 subnetId = subnet_res._state["subnetId"]
 
             securityGroups = self.security_groups_to_ids(
-                region, access_key_id, subnetId, defn.config["securityGroups"]
+                region, access_key_id, subnetId, defn.config.securityGroups
             )
             res = client.create_mount_target(
                 FileSystemId=fs_id,
@@ -139,7 +147,7 @@ class ElasticFileSystemMountTargetState(
                 self.state = self.STARTING
                 self.fsmt_id = res["MountTargetId"]
                 self.fs_id = fs_id
-                self.region = defn.config["region"]
+                self.region = defn.config.region
                 self.access_key_id = access_key_id
                 self.private_ipv4 = res["IpAddress"]
 

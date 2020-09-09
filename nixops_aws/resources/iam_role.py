@@ -48,6 +48,8 @@ class IAMRoleDefinition(nixops.resources.ResourceDefinition):
 class IAMRoleState(nixops.resources.ResourceState[IAMRoleDefinition]):
     """State of an IAM Role."""
 
+    definition_type = IAMRoleDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )

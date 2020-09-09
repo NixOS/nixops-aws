@@ -9,7 +9,7 @@ class SubscriptionsOptions(ResourceOptions):
 
 
 class SnsTopicOptions(ResourceOptions):
-    accessKeyId: str
+    accessKeyId: Optional[str]
     arn: str
     displayName: Optional[str]
     name: str

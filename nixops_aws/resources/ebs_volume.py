@@ -32,6 +32,8 @@ class EBSVolumeDefinition(nixops.resources.ResourceDefinition):
 class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
     """State of an EBS volume."""
 
+    definition_type = EBSVolumeDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )
@@ -79,30 +81,30 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
         )
         return self._conn_boto3
 
-    def _get_vol(self, config):
+    def _get_vol(self, config: EbsVolumeOptions):
         try:
-            _vol = self._connect_boto3(config["region"]).describe_volumes(
-                VolumeIds=[config["volumeId"]]
+            _vol = self._connect_boto3(config.region).describe_volumes(
+                VolumeIds=[config.volumeId]
             )["Volumes"][0]
         except botocore.exceptions.ClientError as error:
             raise error
         if _vol["VolumeType"] == "io1":
             iops = _vol["Iops"]
         else:
-            iops = config["iops"]
+            iops = config.iops
         with self.depl._db:
             self.state = self.STARTING
-            self.region = config["region"]
+            self.region = config.region
             self.zone = _vol["AvailabilityZone"]
             self.size = _vol["Size"]
-            self.volume_id = config["volumeId"]
+            self.volume_id = config.volumeId
             self.iops = iops
             self.volume_type = _vol["VolumeType"]
 
-    def create(self, defn, check, allow_reboot, allow_recreate):
+    def create(self, defn: EBSVolumeDefinition, check, allow_reboot, allow_recreate):
 
         self.access_key_id = (
-            defn.config["accessKeyId"] or nixops_aws.ec2_utils.get_access_key_id()
+            defn.config.accessKeyId or nixops_aws.ec2_utils.get_access_key_id()
         )
         if not self.access_key_id:
             raise Exception(
@@ -110,65 +112,65 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
             )
 
         if self._exists():
-            if self.region != defn.config["region"] or self.zone != defn.config["zone"]:
+            if self.region != defn.config.region or self.zone != defn.config.zone:
                 raise Exception(
                     "changing the region or availability zone of an EBS volume is not supported"
                 )
 
-            if defn.config["size"] != 0 and self.size != defn.config["size"]:
+            if defn.config.size != 0 and self.size != defn.config.size:
                 raise Exception(
                     "changing the size an EBS volume is currently not supported"
                 )
 
             if (
                 self.volume_type is not None
-                and defn.config["volumeType"] != self.volume_type
+                and defn.config.volumeType != self.volume_type
             ):
                 raise Exception(
                     "changing the type of an EBS volume is currently not supported"
                 )
 
-            if defn.config["iops"] != self.iops:
+            if defn.config.iops != self.iops:
                 raise Exception(
                     "changing the IOPS of an EBS volume is currently not supported"
                 )
 
         if self.state == self.MISSING:
-            if defn.config["volumeId"]:
+            if defn.config.volumeId:
                 self.log(
-                    "Using provided EBS volume ‘{0}’...".format(defn.config["volumeId"])
+                    "Using provided EBS volume ‘{0}’...".format(defn.config.volumeId)
                 )
                 self._get_vol(defn.config)
             else:
-                if defn.config["size"] == 0 and defn.config["snapshot"] != "":
-                    snapshots = self._connect(defn.config["region"]).get_all_snapshots(
-                        snapshot_ids=[defn.config["snapshot"]]
+                if defn.config.size == 0 and defn.config.snapshot != "":
+                    snapshots = self._connect(defn.config.region).get_all_snapshots(
+                        snapshot_ids=[defn.config.snapshot]
                     )
                     assert len(snapshots) == 1
-                    defn.config["size"] = snapshots[0].volume_size
+                    defn.config.size = snapshots[0].volume_size
 
-                if defn.config["snapshot"]:
+                if defn.config.snapshot:
                     self.log(
                         "creating EBS volume of {0} GiB from snapshot ‘{1}’...".format(
-                            defn.config["size"], defn.config["snapshot"]
+                            defn.config.size, defn.config.snapshot
                         )
                     )
                 else:
                     self.log(
-                        "creating EBS volume of {0} GiB...".format(defn.config["size"])
+                        "creating EBS volume of {0} GiB...".format(defn.config.size)
                     )
 
-                if defn.config["zone"] is None:
+                if defn.config.zone is None:
                     raise Exception(
                         "please set a zone where the volume will be created"
                     )
 
-                volume = self._connect(defn.config["region"]).create_volume(
-                    zone=defn.config["zone"],
-                    size=defn.config["size"],
-                    snapshot=defn.config["snapshot"],
-                    iops=defn.config["iops"],
-                    volume_type=defn.config["volumeType"],
+                volume = self._connect(defn.config.region).create_volume(
+                    zone=defn.config.zone,
+                    size=defn.config.size,
+                    snapshot=defn.config.snapshot,
+                    iops=defn.config.iops,
+                    volume_type=defn.config.volumeType,
                 )
                 # FIXME: if we crash before the next step, we forget the
                 # volume we just created.  Doesn't seem to be anything we
@@ -176,17 +178,21 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
 
                 with self.depl._db:
                     self.state = self.STARTING
-                    self.region = defn.config["region"]
-                    self.zone = defn.config["zone"]
-                    self.size = defn.config["size"]
+                    self.region = defn.config.region
+                    self.zone = defn.config.zone
+                    self.size = defn.config.size
                     self.volume_id = volume.id
-                    self.iops = defn.config["iops"]
-                    self.volume_type = defn.config["volumeType"]
+                    self.iops = defn.config.iops
+                    self.volume_type = defn.config.volumeType
 
                 self.log("volume ID is ‘{0}’".format(self.volume_id))
 
         if self.state == self.STARTING or check:
-            self.update_tags(self.volume_id, user_tags=defn.config["tags"], check=check)
+            # ensure the connection has been established before calling
+            # update_tags
+            self._connect(self.region)
+
+            self.update_tags(self.volume_id, user_tags=defn.config.tags, check=check)
             nixops_aws.ec2_utils.wait_for_volume_available(
                 self._connect(self.region),
                 self.volume_id,

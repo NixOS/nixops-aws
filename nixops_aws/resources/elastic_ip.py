@@ -30,6 +30,8 @@ class ElasticIPDefinition(nixops.resources.ResourceDefinition):
 class ElasticIPState(nixops.resources.ResourceState[ElasticIPDefinition]):
     """State of an EC2 elastic IP address."""
 
+    definition_type = ElasticIPDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )
@@ -74,32 +76,32 @@ class ElasticIPState(nixops.resources.ResourceState[ElasticIPDefinition]):
         )
         return self._conn_boto3
 
-    def create(self, defn, check, allow_reboot, allow_recreate):
+    def create(self, defn: ElasticIPDefinition, check, allow_reboot, allow_recreate):
 
         self.access_key_id = (
-            defn.config["accessKeyId"] or nixops_aws.ec2_utils.get_access_key_id()
+            defn.config.accessKeyId or nixops_aws.ec2_utils.get_access_key_id()
         )
         if not self.access_key_id:
             raise Exception(
                 "please set ‘accessKeyId’, $EC2_ACCESS_KEY or $AWS_ACCESS_KEY_ID"
             )
 
-        if self.state == self.UP and (self.region != defn.config["region"]):
+        if self.state == self.UP and (self.region != defn.config.region):
             raise Exception(
                 "changing the region of an elastic IP address is not supported"
             )
 
         if self.state != self.UP:
 
-            is_vpc = defn.config["vpc"]
+            is_vpc = defn.config.vpc
             domain = "vpc" if is_vpc else "standard"
 
             self.log(
                 "creating elastic IP address (region ‘{0}’ - domain ‘{1}’)...".format(
-                    defn.config["region"], domain
+                    defn.config.region, domain
                 )
             )
-            address = self._connect_boto3(defn.config["region"]).allocate_address(
+            address = self._connect_boto3(defn.config.region).allocate_address(
                 Domain=domain
             )
 
@@ -109,7 +111,7 @@ class ElasticIPState(nixops.resources.ResourceState[ElasticIPDefinition]):
 
             with self.depl._db:
                 self.state = self.UP
-                self.region = defn.config["region"]
+                self.region = defn.config.region
                 self.public_ipv4 = address["PublicIp"]
                 if is_vpc:
                     self.allocation_id = address["AllocationId"]

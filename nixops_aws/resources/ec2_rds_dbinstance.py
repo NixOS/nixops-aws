@@ -12,6 +12,7 @@ from . import ec2_rds_dbsecurity_group
 from .ec2_rds_dbsecurity_group import EC2RDSDbSecurityGroupState
 
 from .types.ec2_rds_dbinstance import Ec2RdsDbinstanceOptions
+from typing import Optional
 
 
 class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
@@ -56,6 +57,9 @@ class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
 class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefinition]):
     """State of an RDS Database Instance."""
 
+    definition_type = EC2RDSDbInstanceDefinition
+
+    _conn: Optional[boto.rds.RDSConnection]
     region = nixops.util.attr_property("ec2.region", None)
     access_key_id = nixops.util.attr_property("ec2.accessKeyId", None)
     rds_dbinstance_id = nixops.util.attr_property("ec2.rdsDbInstanceID", None)
@@ -118,17 +122,18 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
             if isinstance(r, ec2_rds_dbsecurity_group.EC2RDSDbSecurityGroupState,)
         }
 
-    def _connect(self):
-        if self._conn:
-            return
-        (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
-            self.access_key_id
-        )
-        self._conn = boto.rds.connect_to_region(
-            region_name=self.region,
-            aws_access_key_id=access_key_id,
-            aws_secret_access_key=secret_access_key,
-        )
+    def _connect(self) -> boto.rds.RDSConnection:
+        if self._conn is None:
+            (
+                access_key_id,
+                secret_access_key,
+            ) = nixops_aws.ec2_utils.fetch_aws_secret_key(self.access_key_id)
+            self._conn = boto.rds.connect_to_region(
+                region_name=self.region,
+                aws_access_key_id=access_key_id,
+                aws_secret_access_key=secret_access_key,
+            )
+        return self._conn
 
     def _exists(self):
         return self.state != self.MISSING and self.state != self.UNKNOWN

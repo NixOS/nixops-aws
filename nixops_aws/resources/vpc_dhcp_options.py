@@ -36,6 +36,8 @@ class VPCDhcpOptionsDefinition(nixops.resources.ResourceDefinition):
 class VPCDhcpOptionsState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a VPC DHCP options."""
 
+    definition_type = VPCDhcpOptionsDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )
@@ -111,7 +113,7 @@ class VPCDhcpOptionsState(nixops.resources.DiffEngineResourceState, EC2CommonSta
         return configuration
 
     def realize_create_dhcp_options(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCDhcpOptionsDefinition = self.get_defn()
         if self.state == (self.UP or self.STARTING):
             if not allow_recreate:
                 raise Exception(
@@ -121,8 +123,8 @@ class VPCDhcpOptionsState(nixops.resources.DiffEngineResourceState, EC2CommonSta
             self.warn("the dhcp options {} will be destroyed and re-created")
             self._destroy()
 
-        self._state["region"] = config["region"]
-        vpc_id = config["vpcId"]
+        self._state["region"] = config.config.region
+        vpc_id = config.config.vpcId
         if vpc_id.startswith("res-"):
             res = self.depl.get_typed_resource(
                 vpc_id[4:].split(".")[0], "vpc", VPCState
@@ -143,11 +145,11 @@ class VPCDhcpOptionsState(nixops.resources.DiffEngineResourceState, EC2CommonSta
             self.state = self.STARTING
             self._state["vpcId"] = vpc_id
             self._state["dhcpOptionsId"] = dhcp_options_id
-            self._state["domainName"] = config["domainName"]
-            self._state["domainNameServers"] = config["domainNameServers"]
-            self._state["ntpServers"] = config["ntpServers"]
-            self._state["netbiosNameServers"] = config["netbiosNameServers"]
-            self._state["netbiosNodeType"] = config["netbiosNodeType"]
+            self._state["domainName"] = config.config.domainName
+            self._state["domainNameServers"] = config.config.domainNameServers
+            self._state["ntpServers"] = config.config.ntpServers
+            self._state["netbiosNameServers"] = config.config.netbiosNameServers
+            self._state["netbiosNodeType"] = config.config.netbiosNodeType
 
         self.get_client().associate_dhcp_options(
             DhcpOptionsId=dhcp_options_id, VpcId=vpc_id
@@ -156,8 +158,8 @@ class VPCDhcpOptionsState(nixops.resources.DiffEngineResourceState, EC2CommonSta
             self.state = self.UP
 
     def realize_update_tag(self, allow_recreate):
-        config = self.get_defn()
-        tags = config["tags"]
+        config: VPCDhcpOptionsDefinition = self.get_defn()
+        tags = {k: v for k, v in config.config.tags.items()}
         tags.update(self.get_common_tags())
         self.get_client().create_tags(
             Resources=[self._state["dhcpOptionsId"]],

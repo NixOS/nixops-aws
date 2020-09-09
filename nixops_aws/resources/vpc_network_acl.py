@@ -35,6 +35,8 @@ class VPCNetworkAclDefinition(nixops.resources.ResourceDefinition):
 class VPCNetworkAclState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """state of a vpc Network ACL."""
 
+    definition_type = VPCNetworkAclDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )
@@ -92,7 +94,7 @@ class VPCNetworkAclState(nixops.resources.DiffEngineResourceState, EC2CommonStat
         }
 
     def realize_create_network_acl(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCNetworkAclDefinition = self.get_defn()
         if self.state == self.UP:
             if not allow_recreate:
                 raise Exception(
@@ -104,9 +106,9 @@ class VPCNetworkAclState(nixops.resources.DiffEngineResourceState, EC2CommonStat
             self.warn("network ACL definition changed, recreating ...")
             self._destroy()
 
-        self._state["region"] = config["region"]
+        self._state["region"] = config.config.region
 
-        vpc_id = config["vpcId"]
+        vpc_id = config.config.vpcId
 
         if vpc_id.startswith("res-"):
             res = self.depl.get_typed_resource(
@@ -124,9 +126,9 @@ class VPCNetworkAclState(nixops.resources.DiffEngineResourceState, EC2CommonStat
             self._state["networkAclId"] = self.network_acl_id
 
     def realize_entries_change(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCNetworkAclDefinition = self.get_defn()
         old_entries = self._state.get("entries", [])
-        new_entries = config["entries"]
+        new_entries = config.config.entries
         to_remove = [e for e in old_entries if e not in new_entries]
         to_create = [e for e in new_entries if e not in old_entries]
         for entry in to_remove:
@@ -150,13 +152,13 @@ class VPCNetworkAclState(nixops.resources.DiffEngineResourceState, EC2CommonStat
             rule = self.process_rule_entry(entry)
             self.get_client().create_network_acl_entry(**rule)
         with self.depl._db:
-            self._state["entries"] = config["entries"]
+            self._state["entries"] = config.config.entries
 
     def realize_subnets_change(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCNetworkAclDefinition = self.get_defn()
         old_subnets = self._state.get("subnetIds", [])
         new_subnets = []
-        for s in config["subnetIds"]:
+        for s in config.config.subnetIds:
             if s.startswith("res-"):
                 res = self.depl.get_typed_resource(
                     s[4:].split(".")[0], "vpc-subnet", VPCSubnetState
@@ -165,7 +167,7 @@ class VPCNetworkAclState(nixops.resources.DiffEngineResourceState, EC2CommonStat
             else:
                 new_subnets.append(s)
 
-        vpc_id = config["vpcId"]
+        vpc_id = config.config.vpcId
 
         if vpc_id.startswith("res-"):
             res_vpc = self.depl.get_typed_resource(
@@ -274,8 +276,8 @@ class VPCNetworkAclState(nixops.resources.DiffEngineResourceState, EC2CommonStat
             self._state["entries"] = None
 
     def realize_update_tag(self, allow_recreate):
-        config = self.get_defn()
-        tags = config["tags"]
+        config: VPCNetworkAclDefinition = self.get_defn()
+        tags = {k: v for k, v in config.config.tags.items()}
         tags.update(self.get_common_tags())
         self.get_client().create_tags(
             Resources=[self._state["networkAclId"]],

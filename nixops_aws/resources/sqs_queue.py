@@ -37,6 +37,8 @@ class SQSQueueDefinition(nixops.resources.ResourceDefinition):
 class SQSQueueState(nixops.resources.ResourceState[SQSQueueDefinition]):
     """State of an SQS queue."""
 
+    definition_type = SQSQueueDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )

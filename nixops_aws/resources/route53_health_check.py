@@ -57,6 +57,8 @@ class Route53HealthCheckState(
 ):
     """State of a Route53 Health Check."""
 
+    definition_type = Route53HealthCheckDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )

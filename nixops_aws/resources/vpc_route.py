@@ -36,6 +36,8 @@ class VPCRouteDefinition(nixops.resources.ResourceDefinition):
 class VPCRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a VPC route"""
 
+    definition_type = VPCRouteDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )
@@ -98,7 +100,7 @@ class VPCRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         }
 
     def realize_create_route(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCRouteDefinition = self.get_defn()
 
         if self.state == self.UP:
             if not allow_recreate:
@@ -111,9 +113,9 @@ class VPCRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
             self.warn("route definition changed, recreating ...")
             self._destroy()
 
-        self._state["region"] = config["region"]
+        self._state["region"] = config.config.region
 
-        rtb_id = config["routeTableId"]
+        rtb_id = config.config.routeTableId
         if rtb_id.startswith("res-"):
             res = self.depl.get_typed_resource(
                 rtb_id[4:].split(".")[0], "vpc-route-table", VPCRouteTableState
@@ -121,10 +123,10 @@ class VPCRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
             rtb_id = res._state["routeTableId"]
 
         route = dict()
-        config = self.get_defn()
+
         num_targets = 0
         for item in self.TARGETS:
-            if config[item]:
+            if getattr(config.config, item, None):
                 num_targets += 1
                 target = item
 
@@ -133,37 +135,37 @@ class VPCRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
                 "you should specify only 1 target from {}".format(str(self.TARGETS))
             )
 
-        if (config["destinationCidrBlock"] is not None) and (
-            config["destinationIpv6CidrBlock"] is not None
+        if (config.config.destinationCidrBlock is not None) and (
+            config.config.destinationIpv6CidrBlock is not None
         ):
             raise Exception(
                 "you can't set both destinationCidrBlock and destinationIpv6CidrBlock in one route"
             )
 
-        if config["destinationCidrBlock"] is not None:
+        if config.config.destinationCidrBlock is not None:
             destination = "destinationCidrBlock"
-        if config["destinationIpv6CidrBlock"] is not None:
+        if config.config.destinationIpv6CidrBlock is not None:
             destination = "destinationIpv6CidrBlock"
 
         def retrieve_defn(option):
-            cfg = config[option]
+            cfg = getattr(config.config, option)
             if cfg.startswith("res-"):
                 name = cfg[4:].split(".")[0]
                 res_type = cfg.split(".")[1]
                 attr = cfg.split(".")[2] if len(cfg.split(".")) > 2 else option
                 # TODO: Type this how?
-                res: Any = self.depl.get_typed_resource(name, res_type, Any)  # type: ignore
+                res: Any = self.depl.get_generic_resource(name, res_type)  # type: ignore
                 return res._state[attr]
             else:
                 return cfg
 
         route["RouteTableId"] = rtb_id
         route[self.upper(target)] = retrieve_defn(target)
-        route[self.upper(destination)] = config[destination]
+        route[self.upper(destination)] = getattr(config.config, destination)
 
         self.log(
             "creating route {0} => {1} in route table {2}".format(
-                retrieve_defn(target), config[destination], rtb_id
+                retrieve_defn(target), getattr(config.config, destination), rtb_id
             )
         )
         self.get_client().create_route(**route)
@@ -171,7 +173,7 @@ class VPCRouteState(nixops.resources.DiffEngineResourceState, EC2CommonState):
         with self.depl._db:
             self.state = self.UP
             self._state[target] = route[self.upper(target)]
-            self._state[destination] = config[destination]
+            self._state[destination] = getattr(config.config, destination)
             self._state["routeTableId"] = rtb_id
 
     def upper(self, option):

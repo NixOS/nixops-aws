@@ -9,8 +9,8 @@ import nixops.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 from .vpc import VPCState
 from .vpc_route_table import VPCRouteTableState
-
 from .types.vpc_endpoint import VpcEndpointOptions
+from typing import Dict, Any
 
 
 class VPCEndpointDefinition(nixops.resources.ResourceDefinition):
@@ -32,6 +32,8 @@ class VPCEndpointDefinition(nixops.resources.ResourceDefinition):
 
 class VPCEndpointState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a VPC endpoint."""
+
+    definition_type = VPCEndpointDefinition
 
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
@@ -82,7 +84,7 @@ class VPCEndpointState(nixops.resources.DiffEngineResourceState, EC2CommonState)
         }
 
     def realize_create_endpoint(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCEndpointDefinition = self.get_defn()
         if self.state == self.UP:
             if not allow_recreate:
                 raise Exception(
@@ -94,9 +96,9 @@ class VPCEndpointState(nixops.resources.DiffEngineResourceState, EC2CommonState)
             self.warn("vpc endpoint changed, recreating...")
             self._destroy()
 
-        self._state["region"] = config["region"]
+        self._state["region"] = config.config.region
 
-        vpc_id = config["vpcId"]
+        vpc_id = config.config.vpcId
 
         if vpc_id.startswith("res-"):
             res = self.depl.get_typed_resource(
@@ -110,7 +112,7 @@ class VPCEndpointState(nixops.resources.DiffEngineResourceState, EC2CommonState)
 
         response = self.get_client().create_vpc_endpoint(
             ClientToken=self._state["creationToken"],
-            ServiceName=config["serviceName"],
+            ServiceName=config.config.serviceName,
             VpcId=vpc_id,
         )
 
@@ -119,13 +121,13 @@ class VPCEndpointState(nixops.resources.DiffEngineResourceState, EC2CommonState)
             self.state = self.UP
             self._state["endpointId"] = endpoint_id
             self._state["vpcId"] = vpc_id
-            self._state["serviceName"] = config["serviceName"]
+            self._state["serviceName"] = config.config.serviceName
 
     def realize_modify_endpoint(self, allow_recreate):
-        config = self.get_defn()
+        config: VPCEndpointDefinition = self.get_defn()
         old_rtbs = self._state.get("routeTableIds", [])
         new_rtbs = []
-        for rtb in config["routeTableIds"]:
+        for rtb in config.config.routeTableIds:
             if rtb.startswith("res-"):
                 res = self.depl.get_typed_resource(
                     rtb[4:].split(".")[0], "vpc-route-table", VPCRouteTableState
@@ -137,17 +139,17 @@ class VPCEndpointState(nixops.resources.DiffEngineResourceState, EC2CommonState)
         to_remove = [r for r in old_rtbs if r not in new_rtbs]
         to_add = [r for r in new_rtbs if r not in old_rtbs]
 
-        edp_input = dict()
+        edp_input: Dict[str, Any] = dict()
         edp_input["AddRouteTableIds"] = to_add
         edp_input["RemoveRouteTableIds"] = to_remove
-        if config["policy"] is not None:
-            edp_input["PolicyDocument"] = config["policy"]
+        if config.config.policy is not None:
+            edp_input["PolicyDocument"] = config.config.policy
         edp_input["VpcEndpointId"] = self._state["endpointId"]
 
         self.get_client().modify_vpc_endpoint(**edp_input)
 
         with self.depl._db:
-            self._state["policy"] = config["policy"]
+            self._state["policy"] = config.config.policy
             self._state["routeTableIds"] = new_rtbs
 
     def _destroy(self):

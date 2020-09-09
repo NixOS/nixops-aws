@@ -45,6 +45,8 @@ class S3BucketDefinition(nixops.resources.ResourceDefinition):
 class S3BucketState(nixops.resources.ResourceState[S3BucketDefinition]):
     """State of an S3 bucket."""
 
+    definition_type = S3BucketDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )
@@ -88,7 +90,9 @@ class S3BucketState(nixops.resources.ResourceState[S3BucketDefinition]):
         )
         return self._conn
 
-    def create(self, defn, check, allow_reboot, allow_recreate):  # noqa: C901
+    def create(  # noqa: C901
+        self, defn: S3BucketDefinition, check, allow_reboot, allow_recreate
+    ):
 
         self.access_key_id = (
             defn.access_key_id or nixops_aws.ec2_utils.get_access_key_id()

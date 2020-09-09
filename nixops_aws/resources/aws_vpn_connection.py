@@ -32,6 +32,8 @@ class AWSVPNConnectionDefinition(nixops.resources.ResourceDefinition):
 class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonState):
     """State of a AWS VPN gateway."""
 
+    definition_type = AWSVPNConnectionDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )
@@ -82,7 +84,7 @@ class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonS
         }
 
     def realize_create_vpn_conn(self, allow_recreate):
-        config = self.get_defn()
+        config: AWSVPNConnectionDefinition = self.get_defn()
 
         if self.state == self.UP:
             if not allow_recreate:
@@ -95,8 +97,8 @@ class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonS
             self.warn("vpn connection definition changed, recreating ...")
             self._destroy()
 
-        self._state["region"] = config["region"]
-        customer_gtw_id = config["customerGatewayId"]
+        self._state["region"] = config.config.region
+        customer_gtw_id = config.config.customerGatewayId
         if customer_gtw_id.startswith("res-"):
             res_vpc_customer_gw = self.depl.get_typed_resource(
                 customer_gtw_id[4:].split(".")[0],
@@ -105,7 +107,7 @@ class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonS
             )
             customer_gtw_id = res_vpc_customer_gw._state["customerGatewayId"]
 
-        vpn_gateway_id = config["vpnGatewayId"]
+        vpn_gateway_id = config.config.vpnGatewayId
         if vpn_gateway_id.startswith("res-"):
             res_vpn_gateway = self.depl.get_typed_resource(
                 vpn_gateway_id[4:].split(".")[0], "aws-vpn-gateway", AWSVPNGatewayState
@@ -121,7 +123,7 @@ class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonS
             CustomerGatewayId=customer_gtw_id,
             VpnGatewayId=vpn_gateway_id,
             Type="ipsec.1",
-            Options={"StaticRoutesOnly": config["staticRoutesOnly"]},
+            Options={"StaticRoutesOnly": config.config.staticRoutesOnly},
         )
 
         vpn_conn_id = vpn_connection["VpnConnection"]["VpnConnectionId"]
@@ -130,11 +132,11 @@ class AWSVPNConnectionState(nixops.resources.DiffEngineResourceState, EC2CommonS
             self._state["vpnConnectionId"] = vpn_conn_id
             self._state["vpnGatewayId"] = vpn_gateway_id
             self._state["customerGatewayId"] = customer_gtw_id
-            self._state["staticRoutesOnly"] = config["staticRoutesOnly"]
+            self._state["staticRoutesOnly"] = config.config.staticRoutesOnly
 
     def realize_update_tag(self, allow_recreate):
-        config = self.get_defn()
-        tags = config["tags"]
+        config: AWSVPNConnectionDefinition = self.get_defn()
+        tags = {k: v for k, v in config.config.tags.items()}
         tags.update(self.get_common_tags())
         self.get_client().create_tags(
             Resources=[self._state["vpnConnectionId"]],

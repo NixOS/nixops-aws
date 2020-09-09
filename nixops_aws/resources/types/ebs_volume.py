@@ -6,13 +6,13 @@ from typing_extensions import Literal
 
 
 class EbsVolumeOptions(ResourceOptions):
-    accessKeyId: str
+    accessKeyId: Optional[str]
     iops: Optional[int]
     region: str
     size: int
     snapshot: str
     tags: Mapping[str, str]
-    volumeId: str
+    volumeId: Optional[str]
     volumeType: Union[
         Literal["standard"],
         Literal["io1"],

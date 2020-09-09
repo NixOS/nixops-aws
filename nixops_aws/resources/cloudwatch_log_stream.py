@@ -34,6 +34,8 @@ class CloudWatchLogStreamState(
 ):
     """State of the cloudwatch log group"""
 
+    definition_type = CloudWatchLogStreamDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )

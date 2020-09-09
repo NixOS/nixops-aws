@@ -34,6 +34,8 @@ class EC2RDSDbSecurityGroupState(
     nixops.resources.DiffEngineResourceState, EC2CommonState
 ):
 
+    definition_type = EC2RDSDbSecurityGroupDefinition
+
     _rds_client: Optional["mypy_boto3_rds.RDSClient"]
 
     state = nixops.util.attr_property(
@@ -112,7 +114,7 @@ class EC2RDSDbSecurityGroupState(
                 self._state["rules"] = rules
 
     def realize_create_sg(self, allow_recreate):
-        config = self.get_defn()
+        config: EC2RDSDbSecurityGroupDefinition = self.get_defn()
         if self.state == self.UP:
             if not allow_recreate:
                 raise Exception(
@@ -126,25 +128,25 @@ class EC2RDSDbSecurityGroupState(
             self._destroy()
             self.reset_client()  # FIXME ideally this should be detected automatically
 
-        self.log("creating RDS security group {}".format(config["groupName"]))
-        self._state["region"] = config["region"]
+        self.log("creating RDS security group {}".format(config.config.groupName))
+        self._state["region"] = config.config.region
         self.get_rds_client().create_db_security_group(
-            DBSecurityGroupName=config["groupName"],
-            DBSecurityGroupDescription=config["description"],
+            DBSecurityGroupName=config.config.groupName,
+            DBSecurityGroupDescription=config.config.description,
         )
         with self.depl._db:
             self.state = self.UP
-            self._state["groupName"] = config["groupName"]
-            self._state["description"] = config["description"]
+            self._state["groupName"] = config.config.groupName
+            self._state["description"] = config.config.description
 
     def realize_rules_change(self, allow_recreate):
-        config = self.get_defn()
+        config: EC2RDSDbSecurityGroupDefinition = self.get_defn()
 
         rules_to_remove = [
-            r for r in self._state.get("rules", []) if r not in config["rules"]
+            r for r in self._state.get("rules", []) if r not in config.config.rules
         ]
         rules_to_add = [
-            r for r in config["rules"] if r not in self._state.get("rules", [])
+            r for r in config.config.rules if r not in self._state.get("rules", [])
         ]
 
         for rule in rules_to_remove:
@@ -166,7 +168,7 @@ class EC2RDSDbSecurityGroupState(
             self.get_rds_client().authorize_db_security_group_ingress(**kwargs)
 
         with self.depl._db:
-            self._state["rules"] = config["rules"]
+            self._state["rules"] = config.config.rules
 
     def process_rule(self, config):
         # FIXME do more checks before passing the args to the boto api call

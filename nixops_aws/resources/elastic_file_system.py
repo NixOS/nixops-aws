@@ -38,6 +38,8 @@ class ElasticFileSystemState(
 ):
     """State of an AWS Elastic File System."""
 
+    definition_type = ElasticFileSystemDefinition
+
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
     )
@@ -66,13 +68,15 @@ class ElasticFileSystemState(
     def resource_id(self):
         return self.fs_id
 
-    def create(self, defn, check, allow_reboot, allow_recreate):
+    def create(
+        self, defn: ElasticFileSystemDefinition, check, allow_reboot, allow_recreate
+    ):
 
         access_key_id = (
-            defn.config["accessKeyId"] or nixops_aws.ec2_utils.get_access_key_id()
+            defn.config.accessKeyId or nixops_aws.ec2_utils.get_access_key_id()
         )
 
-        client = self._get_efs_client(access_key_id, defn.config["region"])
+        client = self._get_efs_client(access_key_id, defn.config.region)
 
         if self.state == self.MISSING:
 
@@ -102,7 +106,7 @@ class ElasticFileSystemState(
                         with self.depl._db:
                             self.state = self.UP
                             self.fs_id = fs["FileSystemId"]
-                            self.region = defn.config["region"]
+                            self.region = defn.config.region
                             self.access_key_id = access_key_id
                             self.creation_token = None
                         break
@@ -125,7 +129,7 @@ class ElasticFileSystemState(
                 Tags=[{"Key": k, "Value": tags[k]} for k in tags],
             )
 
-        self.update_tags_using(tag_updater, user_tags=defn.config["tags"], check=check)
+        self.update_tags_using(tag_updater, user_tags=defn.config.tags, check=check)
 
     # Override the regular default tag because EFS doesn't allow '['
     # and ']' in tag values.

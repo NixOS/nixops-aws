@@ -34,8 +34,9 @@ class AWSVPNConnectionRouteDefinition(nixops.resources.ResourceDefinition):
 class AWSVPNConnectionRouteState(
     nixops.resources.DiffEngineResourceState, EC2CommonState
 ):
-    """State of a VPN connection route"""
+    definition_type = AWSVPNConnectionRouteDefinition
 
+    """State of a VPN connection route"""
     state = nixops.util.attr_property(
         "state", nixops.resources.DiffEngineResourceState.MISSING, int
     )
@@ -79,7 +80,7 @@ class AWSVPNConnectionRouteState(
         }
 
     def realize_create_vpn_route(self, allow_recreate):
-        config = self.get_defn()
+        config: AWSVPNConnectionRouteDefinition = self.get_defn()
 
         if self.state == self.UP:
             if not allow_recreate:
@@ -92,8 +93,8 @@ class AWSVPNConnectionRouteState(
             self.warn("route definition changed, recreating ...")
             self._destroy()
 
-        self._state["region"] = config["region"]
-        vpn_conn_id = config["vpnConnectionId"]
+        self._state["region"] = config.config.region
+        vpn_conn_id = config.config.vpnConnectionId
         if vpn_conn_id.startswith("res-"):
             res = self.depl.get_typed_resource(
                 vpn_conn_id[4:].split(".")[0],
@@ -104,18 +105,18 @@ class AWSVPNConnectionRouteState(
 
         self.log(
             "creating route to {0} using vpn connection {1}".format(
-                config["destinationCidrBlock"], vpn_conn_id
+                config.config.destinationCidrBlock, vpn_conn_id
             )
         )
         self.get_client().create_vpn_connection_route(
-            DestinationCidrBlock=config["destinationCidrBlock"],
+            DestinationCidrBlock=config.config.destinationCidrBlock,
             VpnConnectionId=vpn_conn_id,
         )
 
         with self.depl._db:
             self.state = self.UP
             self._state["vpnConnectionId"] = vpn_conn_id
-            self._state["destinationCidrBlock"] = config["destinationCidrBlock"]
+            self._state["destinationCidrBlock"] = config.config.destinationCidrBlock
 
     def _destroy(self):
         if self.state != self.UP:
