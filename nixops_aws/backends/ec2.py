@@ -1551,10 +1551,12 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
 
         # Detect if volumes were manually detached.  If so, reattach
         # them.
+        mapped_devices = self._get_instance().block_device_mapping.keys()
+
         for device_stored, v in self.block_device_mapping.items():
             if (
-                device_name_to_boto_expected(device_stored)
-                not in self._get_instance().block_device_mapping.keys()
+                device_name_to_boto_expected(device_stored) not in mapped_devices
+                and device_stored not in mapped_devices
                 and not v.get("needsAttach", False)
                 and v.get("volumeId", None)
             ):
@@ -2041,8 +2043,12 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
                     device_real
                 )  # boto expects only sd names
 
-                if device_that_boto_expects not in instance.block_device_mapping.keys() and v.get(
-                    "volumeId", None
+                mapped_devices = instance.block_device_mapping.keys()
+
+                if (
+                    device_that_boto_expects not in mapped_devices
+                    and device_real not in mapped_devices
+                    and v.get("volumeId", None)
                 ):
                     res.disks_ok = False
                     res.messages.append(
