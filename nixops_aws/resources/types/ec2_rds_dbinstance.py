@@ -1,5 +1,5 @@
 from nixops.resources import ResourceOptions
-from typing import Sequence
+from typing import Sequence, Optional
 
 
 class Ec2RdsDbinstanceOptions(ResourceOptions):
@@ -15,4 +15,6 @@ class Ec2RdsDbinstanceOptions(ResourceOptions):
     multiAZ: bool
     port: int
     region: str
+    subnetGroup: Optional[str]
     securityGroups: Sequence[str]
+    vpcSecurityGroups: Optional[Sequence[str]]

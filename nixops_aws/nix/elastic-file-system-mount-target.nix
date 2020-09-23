@@ -14,6 +14,7 @@ with import ./lib.nix lib;
 
     accessKeyId = mkOption {
       type = types.str;
+      default = "";
       description = "The AWS Access Key ID.";
     };
 

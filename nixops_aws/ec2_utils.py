@@ -12,8 +12,10 @@ from boto.exception import SQSError
 from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
 from boto.pyami.config import Config
-import botocore
-from typing import Tuple
+from typing import Tuple, TYPE_CHECKING, Iterable, Any, Optional
+
+if TYPE_CHECKING:
+    import mypy_boto3_rds
 
 
 def fetch_aws_secret_key(access_key_id) -> Tuple[str, str]:
@@ -119,15 +121,32 @@ def connect_vpc(region, access_key_id):
     return conn
 
 
+def connect_rds_boto3(region, access_key_id) -> "mypy_boto3_rds.RDSClient":
+    assert region
+    (access_key_id, secret_access_key) = fetch_aws_secret_key(access_key_id)
+    client = boto3.session.Session().client(
+        "rds",
+        region_name=region,
+        aws_access_key_id=access_key_id,
+        aws_secret_access_key=secret_access_key,
+    )
+    return client
+
+
 def get_access_key_id():
     return os.environ.get("EC2_ACCESS_KEY") or os.environ.get("AWS_ACCESS_KEY_ID")
 
 
-def retry(f, error_codes=[], logger=None):
+def retry(
+    f, error_codes: Optional[Iterable[Any]] = None, logger=None, num_retries: int = 7
+):
     """
         Retry function f up to 7 times. If error_codes argument is empty list, retry on all EC2 response errors,
         otherwise, only on the specified error codes.
     """
+
+    if error_codes is None:
+        error_codes = []
 
     def handle_exception(e):
         if hasattr(e, "error_code"):
@@ -137,8 +156,12 @@ def retry(f, error_codes=[], logger=None):
             err_code = e.response["Error"]["Code"]
             err_msg = e.response["Error"]["Message"]
 
-        if i == num_retries or (error_codes != [] and err_code not in error_codes):
-            raise e
+        if err_code == "RequestLimitExceeded":
+            return False
+
+        if error_codes and err_code not in error_codes:
+            return True
+
         if logger is not None:
             logger.log(
                 "got (possibly transient) EC2 error code '{0}': {1}. retrying...".format(
@@ -147,8 +170,9 @@ def retry(f, error_codes=[], logger=None):
             )
 
     def handle_boto3_exception(e):
-        if i == num_retries:
-            raise e
+        if error_codes and getattr(e, "response", {}).get("code") not in error_codes:
+            return True
+
         if logger is not None:
             if hasattr(e, "response"):
                 logger.log(
@@ -157,29 +181,23 @@ def retry(f, error_codes=[], logger=None):
                     )
                 )
 
+    def should_abort(e):
+        if isinstance(e, (SQSError, EC2ResponseError, BotoServerError)):
+            return handle_exception(e)
+        elif isinstance(e, ClientError):
+            return handle_boto3_exception(e)
+
     i = 0
-    num_retries = 7
     while i <= num_retries:
         i += 1
         next_sleep = 5 + random.random() * (2 ** i)
 
         try:
             return f()
-        except EC2ResponseError as e:
-            handle_exception(e)
-        except SQSError as e:
-            handle_exception(e)
-        except ClientError as e:
-            handle_boto3_exception(e)
-        except BotoServerError as e:
-            if e.error_code == "RequestLimitExceeded":
-                num_retries += 1
-            else:
-                handle_exception(e)
-        except botocore.exceptions.ClientError as e:
-            handle_exception(e)
         except Exception as e:
-            raise e
+            if num_retries == i or should_abort(e):
+                raise e
+            num_retries += 1
 
         time.sleep(next_sleep)
 

@@ -10,15 +10,26 @@ import time
 from uuid import uuid4
 from . import ec2_rds_dbsecurity_group
 from .ec2_rds_dbsecurity_group import EC2RDSDbSecurityGroupState
-
+from .ec2_security_group import EC2SecurityGroupState
+from .rds_db_subnet_group import RDSDbSubnetGroupState
 from .types.ec2_rds_dbinstance import Ec2RdsDbinstanceOptions
-from typing import Optional
+from typing import Optional, Sequence
+from typing_extensions import TypedDict
+
+
+class VpcOptions(TypedDict):
+    db_subnet_group_name: Optional[str]
+    security_groups: Optional[Sequence[str]]
+    vpc_security_groups: Optional[Sequence[str]]
 
 
 class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
     """Definition of an EC2 RDS Database Instance."""
 
     config: Ec2RdsDbinstanceOptions
+    subnet_group: Optional[str]
+    vpc_security_groups: Optional[Sequence[str]] = None
+    rds_dbinstance_security_groups: Optional[Sequence[str]] = None
 
     @classmethod
     def get_type(cls):
@@ -32,18 +43,36 @@ class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
         super(EC2RDSDbInstanceDefinition, self).__init__(name, config)
         # rds specific params
 
-        self.rds_dbinstance_id = self.config.id
-        self.rds_dbinstance_allocated_storage = self.config.allocatedStorage
-        self.rds_dbinstance_instance_class = self.config.instanceClass
-        self.rds_dbinstance_master_username = self.config.masterUsername
-        self.rds_dbinstance_master_password = self.config.masterPassword
-        self.rds_dbinstance_port = self.config.port
-        self.rds_dbinstance_engine = self.config.engine
-        self.rds_dbinstance_db_name = self.config.dbName
-        self.rds_dbinstance_multi_az = self.config.multiAZ
-        self.rds_dbinstance_security_groups = []
-        for sg_name in self.config.securityGroups:
-            self.rds_dbinstance_security_groups.append(sg_name)
+        self.rds_dbinstance_id: str = self.config.id
+        self.rds_dbinstance_allocated_storage: int = self.config.allocatedStorage
+        self.rds_dbinstance_instance_class: str = self.config.instanceClass
+        self.rds_dbinstance_master_username: str = self.config.masterUsername
+        self.rds_dbinstance_master_password: str = self.config.masterPassword
+        self.rds_dbinstance_port: int = self.config.port
+        self.rds_dbinstance_engine: str = self.config.engine
+        self.rds_dbinstance_db_name: str = self.config.dbName
+        self.rds_dbinstance_multi_az: bool = self.config.multiAZ
+        self.subnet_group: Optional[str] = self.config.subnetGroup
+
+        if self.subnet_group is not None:
+            if self.config.vpcSecurityGroups is None:
+                raise Exception(
+                    f"rdsDbInstances.{name}.vpcSecurityGroups is required when subnetGroup is specified"
+                )
+            elif tuple(self.config.securityGroups) != ("default",):
+                raise Exception(
+                    f"rdsDbInstances.{name}.securityGroups is invalid when subnetGroup is specified"
+                )
+            else:
+                self.vpc_security_groups = self.config.vpcSecurityGroups
+        else:
+            if self.config.vpcSecurityGroups is not None:
+                raise Exception(
+                    f"rdsDbInstances.{name}.vpcSecurityGroups is invalid when subnetGroup is not specified"
+                )
+            else:
+                self.rds_dbinstance_security_groups = self.config.securityGroups
+
         # TODO: implement remainder of boto.rds.RDSConnection.create_dbinstance parameters
 
         # common params
@@ -80,9 +109,11 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
     rds_dbinstance_db_name = nixops.util.attr_property("ec2.rdsDbName", None)
     rds_dbinstance_endpoint = nixops.util.attr_property("ec2.rdsEndpoint", None)
     rds_dbinstance_multi_az = nixops.util.attr_property("ec2.multiAZ", False)
+    subnet_group = nixops.util.attr_property("subnetGroup", None)
     rds_dbinstance_security_groups = nixops.util.attr_property(
         "ec2.securityGroups", [], "json"
     )
+    vpc_security_groups = nixops.util.attr_property("ec2.vpcSecurityGroups", [], "json")
 
     requires_reboot_attrs = (
         "rds_dbinstance_id",
@@ -115,11 +146,15 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
     def resource_id(self):
         return self.rds_dbinstance_id
 
-    def create_after(self, resources, defn):
+    def create_after(self, resources, defn: EC2RDSDbInstanceDefinition):
         return {
             r
             for r in resources
-            if isinstance(r, ec2_rds_dbsecurity_group.EC2RDSDbSecurityGroupState,)
+            if isinstance(r, ec2_rds_dbsecurity_group.EC2RDSDbSecurityGroupState)
+            or isinstance(r, RDSDbSubnetGroupState)
+            or isinstance(
+                r, nixops_aws.resources.ec2_security_group.EC2SecurityGroupState
+            )
         }
 
     def _connect(self) -> boto.rds.RDSConnection:
@@ -138,7 +173,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
     def _exists(self):
         return self.state != self.MISSING and self.state != self.UNKNOWN
 
-    def _assert_invariants(self, defn):
+    def _assert_invariants(self, defn: EC2RDSDbInstanceDefinition):
         # NOTE: it is possible to change region, master_username, port, or db_name
         # by creating a snapshot of the database and recreating the instance,
         # then restoring the snapshot.  Not sure if this is in the scope of what
@@ -180,7 +215,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
 
         return dbinstance
 
-    def _diff_defn(self, defn):
+    def _diff_defn(self, defn: EC2RDSDbInstanceDefinition):
         attrs = (
             "region",
             "rds_dbinstance_port",
@@ -192,6 +227,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
             "rds_dbinstance_master_password",
             "rds_dbinstance_allocated_storage",
             "rds_dbinstance_security_groups",
+            "vpc_security_groups",
         )
 
         def get_state_attr(attr):
@@ -204,9 +240,11 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
 
         def get_defn_attr(attr):
             if attr == "rds_dbinstance_security_groups":
-                return self.fetch_security_group_resources(
+                return self.fetch_rds_security_group_resources(
                     defn.rds_dbinstance_security_groups
                 )
+            elif attr == "vpc_security_groups":
+                return self.fetch_vpc_security_group_resources(defn.vpc_security_groups)
             else:
                 return getattr(defn, attr)
 
@@ -216,7 +254,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
             if get_defn_attr(attr) != get_state_attr(attr)
         }
 
-    def _requires_reboot(self, defn):
+    def _requires_reboot(self, defn: EC2RDSDbInstanceDefinition):
         diff = self._diff_defn(defn)
         return set(self.requires_reboot_attrs) & set(diff.keys())
 
@@ -241,7 +279,9 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                 break
             time.sleep(6)
 
-    def _copy_dbinstance_attrs(self, dbinstance, security_groups):
+    def _copy_dbinstance_attrs(
+        self, dbinstance, rds_security_groups, vpc_security_groups
+    ):
         with self.depl._db:
             self.rds_dbinstance_id = dbinstance.id
             self.rds_dbinstance_allocated_storage = int(dbinstance.allocated_storage)
@@ -249,9 +289,13 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
             self.rds_dbinstance_master_username = dbinstance.master_username
             self.rds_dbinstance_engine = dbinstance.engine
             self.rds_dbinstance_multi_az = dbinstance.multi_az
+            if dbinstance.subnet_group:
+                self.subnet_group = dbinstance.subnet_group.name
+
             self.rds_dbinstance_port = int(dbinstance.endpoint[1])
             self.rds_dbinstance_endpoint = "%s:%d" % dbinstance.endpoint
-            self.rds_dbinstance_security_groups = security_groups
+            self.rds_dbinstance_security_groups = rds_security_groups
+            self.vpc_security_groups = vpc_security_groups
 
     def _to_boto_kwargs(self, attrs):
         attr_to_kwarg = {
@@ -260,14 +304,33 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
             "rds_dbinstance_instance_class": "instance_class",
             "rds_dbinstance_multi_az": "multi_az",
             "rds_dbinstance_security_groups": "security_groups",
+            "vpc_security_groups": "vpc_security_groups",
         }
-        return {attr_to_kwarg[attr]: attrs[attr] for attr in attrs.keys()}
+        result = {attr_to_kwarg[attr]: attrs[attr] for attr in attrs.keys()}
+
+        # If the user has specified VPC security groups, and
+        # have left security groups as the default list of "default",
+        # they probably don't use the default security group --
+        # and it is incompatible with VPC security groups anyway.
+        if (
+            "vpc_security_groups" in result
+            and "security_groups" in result
+            and len(result["vpc_security_groups"]) > 0
+            and tuple(result["security_groups"]) == ("default",)
+        ):
+            del result["security_groups"]
+
+        return result
 
     def _compare_instance_id(self, instance_id):
         # take care when comparing instance ids, as aws lowercases and converts to unicode
         return str(self.rds_dbinstance_id).lower() == str(instance_id).lower()
 
-    def fetch_security_group_resources(self, config):
+    def fetch_rds_security_group_resources(
+        self, config: Optional[Sequence[str]]
+    ) -> Optional[Sequence[str]]:
+        if config is None:
+            return None
         security_groups = []
         for sg in config:
             if sg.startswith("res-"):
@@ -281,7 +344,25 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                 security_groups.append(sg)
         return security_groups
 
-    def create(self, defn, check, allow_reboot, allow_recreate):
+    def fetch_vpc_security_group_resources(
+        self, config: Optional[Sequence[str]]
+    ) -> Optional[Sequence[str]]:
+        if config is None:
+            return None
+        security_groups = []
+        for sg in config:
+            if sg.startswith("res-"):
+                res: EC2SecurityGroupState = self.depl.get_typed_resource(
+                    sg[4:].split(".")[0], "ec2-security-group", EC2SecurityGroupState,
+                )
+                security_groups.append(res.security_group_id)
+            else:
+                security_groups.append(sg)
+        return security_groups
+
+    def create(
+        self, defn: EC2RDSDbInstanceDefinition, check, allow_reboot, allow_recreate
+    ):
         with self.depl._db:
             self.access_key_id = (
                 defn.access_key_id or nixops_aws.ec2_utils.get_access_key_id()
@@ -355,10 +436,8 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                             defn.rds_dbinstance_id
                         )
                     )
+
                     # create a new dbinstance with desired config
-                    security_groups = self.fetch_security_group_resources(
-                        defn.rds_dbinstance_security_groups
-                    )
                     dbinstance = self._connect().create_dbinstance(
                         defn.rds_dbinstance_id,
                         defn.rds_dbinstance_allocated_storage,
@@ -369,7 +448,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                         engine=defn.rds_dbinstance_engine,
                         db_name=defn.rds_dbinstance_db_name,
                         multi_az=defn.rds_dbinstance_multi_az,
-                        security_groups=security_groups,
+                        **self.get_vpc_options(defn),
                     )
 
                     self.state = self.STARTING
@@ -384,7 +463,9 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                     defn.rds_dbinstance_master_password
                 )
                 self._copy_dbinstance_attrs(
-                    dbinstance, defn.rds_dbinstance_security_groups
+                    dbinstance,
+                    defn.rds_dbinstance_security_groups,
+                    self.fetch_vpc_security_group_resources(defn.vpc_security_groups),
                 )
                 self.state = self.UP
 
@@ -421,10 +502,39 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                     self._wait_for_dbinstance(dbinstance, state="modifying")
                 self._wait_for_dbinstance(dbinstance)
                 self._copy_dbinstance_attrs(
-                    dbinstance, defn.rds_dbinstance_security_groups
+                    dbinstance,
+                    defn.rds_dbinstance_security_groups,
+                    self.fetch_vpc_security_group_resources(defn.vpc_security_groups),
                 )
 
-    def after_activation(self, defn):
+    def get_vpc_options(self, defn: EC2RDSDbInstanceDefinition) -> VpcOptions:
+        opts: VpcOptions = {
+            "db_subnet_group_name": None,
+            "vpc_security_groups": None,
+            "security_groups": None,
+        }
+
+        if defn.subnet_group is not None:
+            if defn.subnet_group.startswith("res-"):
+                opts["db_subnet_group_name"] = self.depl.get_typed_resource(
+                    defn.subnet_group[4:].split(".")[0],
+                    "rds-subnet-group",
+                    RDSDbSubnetGroupState,
+                ).group_name
+            else:
+                opts["db_subnet_group_name"] = defn.subnet_group
+
+            opts["vpc_security_groups"] = self.fetch_vpc_security_group_resources(
+                defn.vpc_security_groups
+            )
+        else:
+            opts["security_groups"] = self.fetch_rds_security_group_resources(
+                defn.rds_dbinstance_security_groups
+            )
+
+        return opts
+
+    def after_activation(self, defn: EC2RDSDbInstanceDefinition):
         # TODO: Warn about old instances, but don't clean them up.
         pass
 
