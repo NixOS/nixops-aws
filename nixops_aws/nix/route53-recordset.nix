@@ -81,7 +81,11 @@ with (import ./lib.nix lib);
     };
 
     recordValues = mkOption {
-      type = types.listOf (types.either types.str (resource "machine"));
+      type = types.listOf (types.oneOf [
+        types.str
+        (resource "machine")
+        (resource "elastic-ip")
+      ]);
 
       apply = l: map (x: if (builtins.isString x) || ( x == null) then x else "res-" + x._name) l;
 

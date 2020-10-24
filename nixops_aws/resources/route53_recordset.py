@@ -6,8 +6,9 @@ import os
 import boto3
 import nixops.util
 import nixops.resources
+import nixops.deployment
 import nixops_aws.ec2_utils
-from . import route53_hosted_zone, route53_health_check
+from . import route53_hosted_zone, route53_health_check, elastic_ip
 from .route53_hosted_zone import Route53HostedZoneState
 from .route53_health_check import Route53HealthCheckState
 from nixops_aws.backends.ec2 import EC2State
@@ -218,18 +219,32 @@ class Route53RecordSetState(nixops.resources.ResourceState[Route53RecordSetDefin
                 )
             )
 
-        def resolve_machine_ip(v):
+        def resolve_ip(v):
             if v.startswith("res-"):
-                m = self.depl.get_machine(v[4:], EC2State)
-                if not m.public_ipv4:
-                    raise Exception(
-                        "cannot create record set for a machine that has not yet been created"
-                    )
-                return m.public_ipv4
+                name = v[4:]
+                res = self.depl.active_resources.get(name)
+                if res is None:
+                    raise Exception(f"Resource ‘{name}’ does not exist")
+
+                if isinstance(res, EC2State):
+                    m: EC2State = res
+                    if not m.public_ipv4:
+                        raise Exception(
+                            "cannot create record set for a machine that has not yet been created"
+                        )
+                    return m.public_ipv4
+                elif isinstance(res, elastic_ip.ElasticIPState):
+                    eip: elastic_ip.ElasticIPState = res
+                    if not eip.public_ipv4:
+                        raise Exception(
+                            "cannot create record set for an ElasticIP that has not yet been created"
+                        )
+                    return eip.public_ipv4
+            # elif v.startswith
             else:
                 return v
 
-        defn.record_values = [resolve_machine_ip(m) for m in defn.record_values]
+        defn.record_values = [resolve_ip(m) for m in defn.record_values]
 
         changed = (
             self.record_values != defn.record_values
@@ -350,4 +365,5 @@ class Route53RecordSetState(nixops.resources.ResourceState[Route53RecordSetDefin
             if isinstance(r, route53_hosted_zone.Route53HostedZoneState)
             or isinstance(r, route53_health_check.Route53HealthCheckState)
             or isinstance(r, nixops.backends.MachineState)
+            or isinstance(r, elastic_ip.ElasticIPState)
         }
