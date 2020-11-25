@@ -26,6 +26,20 @@ class RDSDbSubnetGroupDefinition(nixops.resources.ResourceDefinition):
     def get_resource_type(cls):
         return "rdsSubnetGroups"
 
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
+        super(RDSDbSubnetGroupDefinition, self).__init__(name, config)
+
+        self.group_name: str = self.config.name
+        self.description: Optional[str] = self.config.description
+        self.subnet_ids: List[str] = self.config.subnetIds
+
+        # common params
+        self.region: str = self.config.region
+        self.access_key_id: str = self.config.accessKeyId
+
+    def show_type(self):
+        return "{0} [{1}]".format(self.get_type(), self.region)
+
 
 class RDSDbSubnetGroupState(nixops.resources.ResourceState[RDSDbSubnetGroupDefinition]):
     """State of an EC2 security group."""
@@ -35,8 +49,8 @@ class RDSDbSubnetGroupState(nixops.resources.ResourceState[RDSDbSubnetGroupDefin
     region = nixops.util.attr_property("region", None)
     description = nixops.util.attr_property("description", None)
     subnet_ids = nixops.util.attr_property("subnet_ids", [], "json")
+    access_key_id = nixops.util.attr_property("accessKeyId", None)
 
-    access_key_id: Optional[str] = None
     _rds_conn: Optional["mypy_boto3_rds.RDSClient"] = None
 
     @classmethod
@@ -51,12 +65,11 @@ class RDSDbSubnetGroupState(nixops.resources.ResourceState[RDSDbSubnetGroupDefin
         return {r for r in resources if isinstance(r, VPCSubnetState)}
 
     def _connect_rds(self) -> "mypy_boto3_rds.RDSClient":
-        if self._rds_conn:
-            return self._rds_conn
-        self._conn = nixops_aws.ec2_utils.connect_rds_boto3(
-            self.region, self.access_key_id
-        )
-        return self._conn
+        if not self._rds_conn:
+            self._rds_conn = nixops_aws.ec2_utils.connect_rds_boto3(
+                self.region, self.access_key_id
+            )
+        return self._rds_conn
 
     def create(
         self,
@@ -67,7 +80,7 @@ class RDSDbSubnetGroupState(nixops.resources.ResourceState[RDSDbSubnetGroupDefin
     ):
         self.region = defn.config.region
         self.access_key_id = (
-            defn.config.accessKeyId or nixops_aws.ec2_utils.get_access_key_id()
+            defn.access_key_id or nixops_aws.ec2_utils.get_access_key_id()
         )
 
         if not self.access_key_id:
@@ -95,16 +108,24 @@ class RDSDbSubnetGroupState(nixops.resources.ResourceState[RDSDbSubnetGroupDefin
             else:
                 subnets.append(s)
 
+        rds_client = self._connect_rds()
         if self.state != self.UP:
-            self.logger.log(f"Creating RDS Subnet Group {self.group_name}")
-            self._connect_rds().create_db_subnet_group(
-                DBSubnetGroupName=self.group_name,
-                DBSubnetGroupDescription=self.description,
-                SubnetIds=subnets,
-            )
+            self.logger.log("creating RDS Subnet Group ‘{0}’..".format(self.group_name))
+            try:
+
+                rds_client.create_db_subnet_group(
+                    DBSubnetGroupName=self.group_name,
+                    DBSubnetGroupDescription=self.description,
+                    SubnetIds=subnets,
+                )
+            except rds_client.exceptions.DBSubnetGroupAlreadyExistsFault:
+                self.logger.error(
+                    "The DB subnet group ‘{0}’ already exists.".format(self.group_name)
+                )
+                raise
             self.state = self.UP
         else:
-            self._connect_rds().modify_db_subnet_group(
+            rds_client.modify_db_subnet_group(
                 DBSubnetGroupName=self.group_name,
                 DBSubnetGroupDescription=self.description,
                 SubnetIds=subnets,
@@ -112,17 +133,38 @@ class RDSDbSubnetGroupState(nixops.resources.ResourceState[RDSDbSubnetGroupDefin
 
     def destroy(self, wipe=False):
 
-        self.access_key_id = nixops_aws.ec2_utils.get_access_key_id()
-        client = self._connect_rds()
-        try:
-            nixops_aws.ec2_utils.retry(
-                lambda: client.delete_db_subnet_group(
-                    DBSubnetGroupName=self.group_name
-                ),
-                error_codes=["DependencyViolation"],
-                logger=self.logger,
-            )
-        except client.exceptions.DBSubnetGroupNotFoundFault:
-            pass
-        self.state = self.MISSING
+        if self.state == self.UP:
+            if not self.depl.logger.confirm(
+                "are you sure you want to destroy the RDS subnet group ‘{0}’?".format(
+                    self.group_name
+                )
+            ):
+                return False
+
+            rds_client = self._connect_rds()
+            try:
+                self.logger.log(
+                    "deleting RDS subnet group ‘{0}’..".format(self.group_name)
+                )
+                nixops_aws.ec2_utils.retry(
+                    lambda: rds_client.delete_db_subnet_group(
+                        DBSubnetGroupName=self.group_name
+                    ),
+                    error_codes=["DependencyViolation"],
+                    logger=self.logger,
+                )
+            except rds_client.exceptions.DBSubnetGroupNotFoundFault:
+                self.logger.log(
+                    "RDS subnet group ‘{0}’ does not exist, skipping.".format(
+                        self.group_name
+                    )
+                )
+            except rds_client.exceptions.InvalidDBSubnetGroupStateFault:
+                self.logger.error(
+                    "RDS Subnet group ‘{0}’ is being used by a database instance".format(
+                        self.group_name
+                    )
+                )
+                return False
+            self.state = self.MISSING
         return True
