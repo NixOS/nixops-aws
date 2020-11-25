@@ -16,5 +16,6 @@ class Ec2RdsDbinstanceOptions(ResourceOptions):
     port: int
     region: str
     subnetGroup: Optional[str]
+    snapshot: Optional[str]
     securityGroups: Sequence[str]
     vpcSecurityGroups: Optional[Sequence[str]]

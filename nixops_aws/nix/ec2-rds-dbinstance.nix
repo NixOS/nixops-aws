@@ -90,6 +90,15 @@ with import ./lib.nix lib;
       '';
     };
 
+    snapshot = mkOption {
+      default = null;
+      type = types.str;
+      example = "rds:super-database-2020-11-23-03-47";
+      description = ''
+        A DB snapshot name from which the RDS DB will be restored
+      '';
+    };
+
     securityGroups = mkOption {
       default = [ "default" ];
       type = types.listOf (types.either types.str (resource "ec2-rds-security-group"));

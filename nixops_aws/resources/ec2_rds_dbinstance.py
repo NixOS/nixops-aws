@@ -54,6 +54,7 @@ class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
         self.rds_dbinstance_engine: str = self.config.engine
         self.rds_dbinstance_db_name: str = self.config.dbName
         self.rds_dbinstance_multi_az: bool = self.config.multiAZ
+        self.rds_dbinstance_snap: Optional[str] = self.config.snapshot
         self.subnet_group: Optional[str] = self.config.subnetGroup
 
         if self.subnet_group is not None:
@@ -111,6 +112,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
     rds_dbinstance_db_name = nixops.util.attr_property("ec2.rdsDbName", None)
     rds_dbinstance_endpoint = nixops.util.attr_property("ec2.rdsEndpoint", None)
     rds_dbinstance_multi_az = nixops.util.attr_property("ec2.multiAZ", False)
+    rds_dbinstance_snap = nixops.util.attr_property("snapshot", None)
     subnet_group = nixops.util.attr_property("subnetGroup", None)
     rds_dbinstance_security_groups = nixops.util.attr_property(
         "ec2.securityGroups", [], "json"
@@ -299,12 +301,12 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
 
     def _to_boto_kwargs(self, attrs):
         attr_to_kwarg = {
-            "rds_dbinstance_allocated_storage": "allocated_storage",
-            "rds_dbinstance_master_password": "master_password",
-            "rds_dbinstance_instance_class": "instance_class",
-            "rds_dbinstance_multi_az": "multi_az",
-            "rds_dbinstance_security_groups": "security_groups",
-            "vpc_security_groups": "vpc_security_groups",
+            "rds_dbinstance_allocated_storage": "AllocatedStorage",
+            "rds_dbinstance_master_password": "MasterUserPassword",
+            "rds_dbinstance_instance_class": "DBInstanceClass",
+            "rds_dbinstance_multi_az": "MultiAZ",
+            "rds_dbinstance_security_groups": "DBSecurityGroups",
+            "vpc_security_groups": "VpcSecurityGroupIds",
         }
         result = {attr_to_kwarg[attr]: attrs[attr] for attr in attrs.keys()}
 
@@ -313,12 +315,12 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
         # they probably don't use the default security group --
         # and it is incompatible with VPC security groups anyway.
         if (
-            "vpc_security_groups" in result
-            and "security_groups" in result
-            and len(result["vpc_security_groups"]) > 0
-            and tuple(result["security_groups"]) == ("default",)
+            "VpcSecurityGroupIds" in result
+            and "DBSecurityGroups" in result
+            and len(result["VpcSecurityGroupIds"]) > 0
+            and tuple(result["DBSecurityGroups"]) == ("default",)
         ):
-            del result["security_groups"]
+            del result["DBSecurityGroups"]
 
         return result
 
@@ -407,6 +409,9 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                         )
                         while True:
                             if dbinstance["DBInstanceStatus"] == "deleting":
+                                dbinstance = self._try_fetch_dbinstance(
+                                    dbinstance["DBInstanceIdentifier"]
+                                )
                                 continue
                             else:
                                 break
@@ -440,26 +445,54 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                             defn.rds_dbinstance_id
                         )
                     )
-
+                    rds_client = self._connect()
                     vpc_opts = self.get_vpc_options(defn)
-                    # create a new dbinstance with desired config
-                    dbinstance = self._connect().create_db_instance(
-                        DBName=defn.rds_dbinstance_db_name,
-                        DBInstanceIdentifier=defn.rds_dbinstance_id,
-                        AllocatedStorage=defn.rds_dbinstance_allocated_storage,
-                        DBInstanceClass=defn.rds_dbinstance_instance_class,
-                        Engine=defn.rds_dbinstance_engine,
-                        MasterUsername=defn.rds_dbinstance_master_username,
-                        MasterUserPassword=defn.rds_dbinstance_master_password,
-                        Port=defn.rds_dbinstance_port,
-                        MultiAZ=defn.rds_dbinstance_multi_az,
-                        DBSubnetGroupName=vpc_opts["db_subnet_group_name"],
-                        VpcSecurityGroupIds=vpc_opts["vpc_security_groups"],
-                        DBSecurityGroups=vpc_opts["security_groups"],
-                    )["DBInstance"]
+
+                    if defn.rds_dbinstance_snap:
+                        self.logger.log(
+                            "restoring from RDS DB snapshot ‘{0}’..".format(
+                                defn.rds_dbinstance_snap
+                            )
+                        )
+                        dbinstance = rds_client.restore_db_instance_from_db_snapshot(
+                            DBInstanceIdentifier=defn.rds_dbinstance_id,
+                            DBSnapshotIdentifier=defn.rds_dbinstance_snap,
+                            DBInstanceClass=defn.rds_dbinstance_instance_class,
+                            Port=defn.rds_dbinstance_port,
+                            DBSubnetGroupName=vpc_opts["db_subnet_group_name"],
+                            MultiAZ=defn.rds_dbinstance_multi_az,
+                            Engine=defn.rds_dbinstance_engine,
+                        )["DBInstance"]
+                    else:
+                        # create a new dbinstance with desired config
+                        dbinstance = rds_client.create_db_instance(
+                            DBName=defn.rds_dbinstance_db_name,
+                            DBInstanceIdentifier=defn.rds_dbinstance_id,
+                            AllocatedStorage=defn.rds_dbinstance_allocated_storage,
+                            DBInstanceClass=defn.rds_dbinstance_instance_class,
+                            Engine=defn.rds_dbinstance_engine,
+                            MasterUsername=defn.rds_dbinstance_master_username,
+                            MasterUserPassword=defn.rds_dbinstance_master_password,
+                            Port=defn.rds_dbinstance_port,
+                            MultiAZ=defn.rds_dbinstance_multi_az,
+                            DBSubnetGroupName=vpc_opts["db_subnet_group_name"],
+                            VpcSecurityGroupIds=vpc_opts["vpc_security_groups"],
+                            DBSecurityGroups=vpc_opts["security_groups"],
+                        )["DBInstance"]
 
                     self.state = self.STARTING
                     dbinstance = self._wait_for_dbinstance(defn.rds_dbinstance_id)
+                    # VPC SG are not applied when we restore from snap
+                    if defn.rds_dbinstance_snap and vpc_opts["vpc_security_groups"]:
+                        self.logger.log(
+                            "applying the vpc security groups on the DB created from snapshot"
+                        )
+                        dbinstance = rds_client.modify_db_instance(
+                            DBInstanceIdentifier=defn.rds_dbinstance_id,
+                            VpcSecurityGroupIds=vpc_opts["vpc_security_groups"],
+                            ApplyImmediately=True,
+                        )
+                        dbinstance = self._wait_for_dbinstance(defn.rds_dbinstance_id)
 
                 self.region = defn.region
                 self.access_key_id = (
@@ -496,8 +529,10 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                 diff = self._diff_defn(defn)
                 boto_kwargs = self._to_boto_kwargs(diff)
                 if not self._compare_instance_id(defn.rds_dbinstance_id):
-                    boto_kwargs["new_instance_id"] = defn.rds_dbinstance_id
-                boto_kwargs["apply_immediately"] = True
+                    boto_kwargs["DBInstanceIdentifier"] = defn.rds_dbinstance_id
+                else:
+                    boto_kwargs["DBInstanceIdentifier"] = self.rds_dbinstance_id
+                boto_kwargs["ApplyImmediately"] = True
 
                 # first check is for the unlikely event we attempt to modify the db during its maintenance window
                 self._wait_for_dbinstance(defn.rds_dbinstance_id)
