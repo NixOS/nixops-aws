@@ -20,8 +20,8 @@ if TYPE_CHECKING:
 
 def fetch_aws_secret_key(access_key_id) -> Tuple[str, str]:
     """
-        Fetch the secret access key corresponding to the given access key ID from ~/.ec2-keys,
-        or from ~/.aws/credentials, or from the environment (in that priority).
+    Fetch the secret access key corresponding to the given access key ID from ~/.ec2-keys,
+    or from ~/.aws/credentials, or from the environment (in that priority).
     """
 
     def parse_ec2_keys():
@@ -141,8 +141,8 @@ def retry(
     f, error_codes: Optional[Iterable[Any]] = None, logger=None, num_retries: int = 7
 ):
     """
-        Retry function f up to 7 times. If error_codes argument is empty list, retry on all EC2 response errors,
-        otherwise, only on the specified error codes.
+    Retry function f up to 7 times. If error_codes argument is empty list, retry on all EC2 response errors,
+    otherwise, only on the specified error codes.
     """
 
     if error_codes is None:

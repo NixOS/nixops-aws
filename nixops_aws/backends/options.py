@@ -30,7 +30,8 @@ class DiskOptions(ResourceOptions):
     deleteOnTermination: bool
     encrypt: bool
     encryptionType: Union[
-        Literal["luks"], Literal["ebs"],
+        Literal["luks"],
+        Literal["ebs"],
     ]
     cipher: str
     keySize: int
