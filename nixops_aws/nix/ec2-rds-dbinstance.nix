@@ -92,7 +92,7 @@ with import ./lib.nix lib;
 
     snapshot = mkOption {
       default = null;
-      type = types.str;
+      type = types.nullOr types.str;
       example = "rds:super-database-2020-11-23-03-47";
       description = ''
         A DB snapshot name from which the RDS DB will be restored
