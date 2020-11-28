@@ -454,15 +454,25 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                                 defn.rds_dbinstance_snap
                             )
                         )
-                        dbinstance = rds_client.restore_db_instance_from_db_snapshot(
-                            DBInstanceIdentifier=defn.rds_dbinstance_id,
-                            DBSnapshotIdentifier=defn.rds_dbinstance_snap,
-                            DBInstanceClass=defn.rds_dbinstance_instance_class,
-                            Port=defn.rds_dbinstance_port,
-                            DBSubnetGroupName=vpc_opts["db_subnet_group_name"],
-                            MultiAZ=defn.rds_dbinstance_multi_az,
-                            Engine=defn.rds_dbinstance_engine,
-                        )["DBInstance"]
+                        try:
+                            dbinstance = (
+                                rds_client.restore_db_instance_from_db_snapshot(
+                                    DBInstanceIdentifier=defn.rds_dbinstance_id,
+                                    DBSnapshotIdentifier=defn.rds_dbinstance_snap,
+                                    DBInstanceClass=defn.rds_dbinstance_instance_class,
+                                    Port=defn.rds_dbinstance_port,
+                                    DBSubnetGroupName=vpc_opts["db_subnet_group_name"],
+                                    MultiAZ=defn.rds_dbinstance_multi_az,
+                                    Engine=defn.rds_dbinstance_engine,
+                                )["DBInstance"]
+                            )
+                        except rds_client.exceptions.DBSnapshotNotFoundFault:
+                            self.logger.error(
+                                "The RDS DB snapshot ‘{0}’ does not exist".format(
+                                    defn.rds_dbinstance_snap
+                                )
+                            )
+                            raise
                     else:
                         # create a new dbinstance with desired config
                         dbinstance = rds_client.create_db_instance(
