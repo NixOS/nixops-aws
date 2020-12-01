@@ -92,32 +92,26 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
     definition_type = EC2RDSDbInstanceDefinition
 
     _conn: Optional["mypy_boto3_rds.RDSClient"]
-    region = nixops.util.attr_property("ec2.region", None)
-    access_key_id = nixops.util.attr_property("ec2.accessKeyId", None)
-    rds_dbinstance_id = nixops.util.attr_property("ec2.rdsDbInstanceID", None)
+    region = nixops.util.attr_property("region", None)
+    access_key_id = nixops.util.attr_property("accessKeyId", None)
+    rds_dbinstance_id = nixops.util.attr_property("id", None)
     rds_dbinstance_allocated_storage = nixops.util.attr_property(
-        "ec2.rdsAllocatedStorage", None, int
+        "allocatedStorage", None, int
     )
-    rds_dbinstance_instance_class = nixops.util.attr_property(
-        "ec2.rdsInstanceClass", None
-    )
-    rds_dbinstance_master_username = nixops.util.attr_property(
-        "ec2.rdsMasterUsername", None
-    )
-    rds_dbinstance_master_password = nixops.util.attr_property(
-        "ec2.rdsMasterPassword", None
-    )
-    rds_dbinstance_port = nixops.util.attr_property("ec2.rdsPort", None, int)
-    rds_dbinstance_engine = nixops.util.attr_property("ec2.rdsEngine", None)
-    rds_dbinstance_db_name = nixops.util.attr_property("ec2.rdsDbName", None)
-    rds_dbinstance_endpoint = nixops.util.attr_property("ec2.rdsEndpoint", None)
-    rds_dbinstance_multi_az = nixops.util.attr_property("ec2.multiAZ", False)
+    rds_dbinstance_instance_class = nixops.util.attr_property("instanceClass", None)
+    rds_dbinstance_master_username = nixops.util.attr_property("masterUsername", None)
+    rds_dbinstance_master_password = nixops.util.attr_property("masterPassword", None)
+    rds_dbinstance_port = nixops.util.attr_property("port", None, int)
+    rds_dbinstance_engine = nixops.util.attr_property("engine", None)
+    rds_dbinstance_db_name = nixops.util.attr_property("dbName", None)
+    rds_dbinstance_endpoint = nixops.util.attr_property("endpoint", None)
+    rds_dbinstance_multi_az = nixops.util.attr_property("multiAZ", False)
     rds_dbinstance_snap = nixops.util.attr_property("snapshot", None)
     subnet_group = nixops.util.attr_property("subnetGroup", None)
     rds_dbinstance_security_groups = nixops.util.attr_property(
-        "ec2.securityGroups", [], "json"
+        "securityGroups", [], "json"
     )
-    vpc_security_groups = nixops.util.attr_property("ec2.vpcSecurityGroups", [], "json")
+    vpc_security_groups = nixops.util.attr_property("vpcSecurityGroups", [], "json")
 
     requires_reboot_attrs = (
         "rds_dbinstance_id",
@@ -175,7 +169,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
         # NOTE: it is possible to change region, master_username, port, or db_name
         # by creating a snapshot of the database and recreating the instance,
         # then restoring the snapshot.  Not sure if this is in the scope of what
-        # nixops intends to manager for the user, or if it violates the principle
+        # nixops intends to manage for the user, or if it violates the principle
         # of least surprise.
 
         diff = self._diff_defn(defn)
