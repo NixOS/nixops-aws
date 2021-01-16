@@ -314,6 +314,8 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
 
                 key_name = "luks-" + device_real.replace("/dev/", "")
                 keys[key_name] = {
+                    "name": key_name,
+                    "path": "/run/keys/" + key_name,
                     "text": v["generatedKey"],
                     "keyFile": "/run/keys/" + key_name,
                     "destDir": "/run/keys",
