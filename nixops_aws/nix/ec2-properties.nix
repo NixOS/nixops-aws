@@ -168,6 +168,7 @@
   "t3a.micro" = { cores = 2; memory = 1024; allowsEbsOptimized = true; supportsNVMe = false;};
   "t3.nano" = { cores = 2; memory = 512; allowsEbsOptimized = true; supportsNVMe = false;};
   "t3a.nano" = { cores = 2; memory = 512; allowsEbsOptimized = true; supportsNVMe = false;};
+  "t3.small" = { cores = 2; memory = 2048; allowsEbsOptimized = true; supportsNVMe = false;};
   "t3a.small" = { cores = 2; memory = 2048; allowsEbsOptimized = true; supportsNVMe = false;};
   "t3.xlarge" = { cores = 4; memory = 16384; allowsEbsOptimized = true; supportsNVMe = false;};
   "t3a.xlarge" = { cores = 4; memory = 16384; allowsEbsOptimized = true; supportsNVMe = false;};
