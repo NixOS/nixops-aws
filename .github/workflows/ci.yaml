@@ -9,46 +9,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.3.4
       - name: Nix
         uses: cachix/install-nix-action@v12
       - name: Build
-        run: 'nix-build -I nixpkgs=channel:nixos-unstable --quiet release.nix -A nixops-aws.x86_64-linux --show-trace'
-  # Run black v19.10b0 and ensure no diff, using a pinned channel to ensure the
-  # build doesn't break when the version of black on the release channel
-  # upgrades. The specific commit is not special; just a commit from the
-  # nixpkgs-unstable channel that deterministically provides the Black v19.10b0,
-  # which as of this writing is the latest version.
+        run: 'nix-build -I nixpkgs=channel:nixos-20.09 --quiet release.nix -A nixops-aws.x86_64-linux --show-trace'
+        env:
+          NIX_PATH: "nixpkgs=channel:nixos-20.09"
   black:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.3.4
       - name: Nix
         uses: cachix/install-nix-action@v12
       - name: Black
         run: 'nix-shell ./shell.nix --run "black --check ."'
         env:
-          NIX_PATH: "nixpkgs=https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz"
+          NIX_PATH: "nixpkgs=channel:nixos-20.09"
   flake8:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.3.4
       - name: Nix
         uses: cachix/install-nix-action@v12
       - name: Flake8
         run: 'nix-shell ./shell.nix --run "flake8 nixops_aws"'
         env:
-          NIX_PATH: "nixpkgs=https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz"
+          NIX_PATH: "nixpkgs=channel:nixos-20.09"
   mypy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.3.4
       - name: Nix
         uses: cachix/install-nix-action@v12
       - name: Mypy
         run: 'nix-shell ./shell.nix --run "mypy nixops_aws"'
         env:
-          NIX_PATH: "nixpkgs=https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz"
+          NIX_PATH: "nixpkgs=channel:nixos-20.09"
