@@ -45,5 +45,6 @@
     awsVPNGateways = evalResources ./aws-vpn-gateway.nix (zipAttrs resourcesByType.awsVPNGateways or []);
     awsVPNConnections = evalResources ./aws-vpn-connection.nix (zipAttrs resourcesByType.awsVPNConnections or []);
     awsVPNConnectionRoutes = evalResources ./aws-vpn-connection-route.nix (zipAttrs resourcesByType.awsVPNConnectionRoutes or []);
+    awsDataLifecycleManager = evalResources ./aws-data-lifecycle-manager.nix (zipAttrs resourcesByType.awsDataLifecycleManager or []);
   };
 }

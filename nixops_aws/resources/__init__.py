@@ -37,6 +37,7 @@ __all__ = (
     "vpc_route_table",
     "vpc_route_table_association",
     "vpc_subnet",
+    "aws_data_lifecycle_manager",
 )
 
 from . import aws_vpn_connection
@@ -77,3 +78,4 @@ from . import vpc_route
 from . import vpc_route_table
 from . import vpc_route_table_association
 from . import vpc_subnet
+from . import aws_data_lifecycle_manager
