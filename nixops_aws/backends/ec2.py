@@ -1285,15 +1285,25 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
 
             root_device = ami["RootDeviceName"]
             if resize_root:
-                root_mapping = dict(
-                    DeviceName=root_device,
-                    Ebs=dict(
-                        DeleteOnTermination=True,
-                        VolumeSize=defn.root_disk_size,
-                        VolumeType=ami["BlockDeviceMappings"][0]["Ebs"]["VolumeType"],
-                    ),
-                )
-                args["BlockDeviceMappings"].append(root_mapping)
+                for dev in ami["BlockDeviceMappings"]:
+                    if dev["DeviceName"] == root_device:
+                        root_mapping = dict(
+                            DeviceName=root_device,
+                            Ebs=dict(
+                                DeleteOnTermination=True,
+                                VolumeSize=defn.root_disk_size,
+                                VolumeType=dev["Ebs"]["VolumeType"],
+                            ),
+                        )
+                        args["BlockDeviceMappings"].append(root_mapping)
+                        break
+                else:
+                    raise Exception(
+                        "root device mapping not found for AMI {}".format(
+                            ami["ImageId"]
+                        )
+                    )
+
             # If we're attaching any EBS volumes, then make sure that
             # we create the instance in the right placement zone.
             zone = defn.zone or None
