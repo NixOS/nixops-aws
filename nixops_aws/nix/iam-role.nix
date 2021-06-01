@@ -29,6 +29,5 @@ with lib;
       default = "";
     };
 
-  };
-
+  } // import ./common-ec2-options.nix { inherit lib; };
 }

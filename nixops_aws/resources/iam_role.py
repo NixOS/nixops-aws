@@ -4,6 +4,7 @@
 
 import boto
 import boto.iam
+import boto3
 import nixops.util
 import nixops.resources
 import nixops_aws.resources
@@ -40,6 +41,7 @@ class IAMRoleDefinition(nixops.resources.ResourceDefinition):
         self.access_key_id = self.config.accessKeyId
         self.policy = self.config.policy
         self.assume_role_policy = self.config.assumeRolePolicy
+        self.tags = self.config.tags
 
     def show_type(self):
         return "{0}".format(self.get_type())
@@ -57,6 +59,7 @@ class IAMRoleState(nixops.resources.ResourceState[IAMRoleDefinition]):
     access_key_id = nixops.util.attr_property("ec2.accessKeyId", None)
     policy = nixops.util.attr_property("ec2.policy", None)
     assume_role_policy = nixops.util.attr_property("ec2.assumeRolePolicy", None)
+    tags = nixops.util.attr_property("tags", {}, "json")
 
     @classmethod
     def get_type(cls):
@@ -65,6 +68,7 @@ class IAMRoleState(nixops.resources.ResourceState[IAMRoleDefinition]):
     def __init__(self, depl, name, id):
         nixops.resources.ResourceState.__init__(self, depl, name, id)
         self._conn = None
+        self._conn_boto3 = None
 
     def show_type(self):
         s = super(IAMRoleState, self).show_type()
@@ -87,6 +91,12 @@ class IAMRoleState(nixops.resources.ResourceState[IAMRoleDefinition]):
             aws_access_key_id=access_key_id, aws_secret_access_key=secret_access_key
         )
         return self._conn
+
+    def _connect_boto3(self):
+        if self._conn_boto3:
+            return self._conn_boto3
+        self._conn_boto3 = boto3.client("iam")
+        return self._conn_boto3
 
     def _destroy(self):  # noqa: C901
         if self.state != self.UP:
@@ -247,11 +257,22 @@ class IAMRoleState(nixops.resources.ResourceState[IAMRoleDefinition]):
             self._connect().update_assume_role_policy(
                 defn.role_name, defn.assume_role_policy
             )
+        if defn.tags and defn.tags != self.tags:
+            self.log("applying tags...")
+            self._connect_boto3().tag_role(
+                RoleName=defn.role_name,
+                Tags=[{"Key": k, "Value": defn.tags[k]} for k in defn.tags],
+            )
+        old_tags = list(set(self.tags.keys()) - set(defn.tags.keys()))
+        if old_tags:
+            self.log(f"removing old tags : {old_tags}")
+            self._connect_boto3().untag_role(RoleName=defn.role_name, TagKeys=old_tags)
 
         with self.depl._db:
             self.state = self.UP
             self.role_name = defn.role_name
             self.policy = defn.policy
+            self.tags = defn.tags
 
     def destroy(self, wipe=False):
         self._destroy()
