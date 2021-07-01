@@ -18,6 +18,7 @@ class EbsVolumeOptions(ResourceOptions):
         Literal["io1"],
         Literal["io2"],
         Literal["gp2"],
+        Literal["gp3"],
         Literal["st1"],
         Literal["sc1"],
     ]
