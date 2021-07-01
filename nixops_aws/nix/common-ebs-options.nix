@@ -32,12 +32,13 @@ with lib;
     };
 
     volumeType = mkOption {
-      default = if config.iops == null then "standard" else "io1";
-      type = types.enum [ "standard" "io1" "gp2" "st1" "sc1" ];
+      default = if config.iops == null then "standard" else "io1"; # io2?
+      type = types.enum [ "standard" "io1" "io2" "gp2" "st1" "sc1" ];
       description = ''
         The volume type for the EBS volume, which must be one of
         <literal>"standard"</literal> (a magnetic volume),
-        <literal>"io1"</literal> (a provisioned IOPS SSD volume) or
+        <literal>"io1"</literal> (a provisioned IOPS SSD volume),
+        <literal>"io2"</literal> (an improved provisioned IOPS SSD volume) or
         <literal>"gp2"</literal> (a general purpose SSD volume).
         <literal>"st1"</literal> (a throughput optimized HDD volume).
         <literal>"sc1"</literal> (a cold HDD volume).

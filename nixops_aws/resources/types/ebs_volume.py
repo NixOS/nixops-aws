@@ -16,6 +16,7 @@ class EbsVolumeOptions(ResourceOptions):
     volumeType: Union[
         Literal["standard"],
         Literal["io1"],
+        Literal["io2"],
         Literal["gp2"],
         Literal["st1"],
         Literal["sc1"],
