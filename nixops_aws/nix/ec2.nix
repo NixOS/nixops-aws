@@ -528,7 +528,7 @@ in
       let
         type = config.deployment.ec2.instanceType or "unknown";
         mapping = import ./ec2-properties.nix;
-      in attrByPath [ type ] null mapping;
+      in attrByPath [ type ] {} mapping;
 
   };
 
