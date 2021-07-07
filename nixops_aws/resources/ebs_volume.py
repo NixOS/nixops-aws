@@ -88,7 +88,7 @@ class EBSVolumeState(nixops.resources.ResourceState, ec2_common.EC2CommonState):
             )["Volumes"][0]
         except botocore.exceptions.ClientError as error:
             raise error
-        if _vol["VolumeType"] == "io1":
+        if _vol["VolumeType"] == "io1" or _vol["VolumeType"] == "io2":
             iops = _vol["Iops"]
         else:
             iops = config.iops
