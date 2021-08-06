@@ -488,6 +488,18 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
         else:
             return self.public_ipv4
 
+    def get_ssh_host_keys(self):
+        return (
+            self.private_ipv4
+            + " "
+            + self.public_host_key
+            + "\n"
+            + self.public_ipv4
+            + " "
+            + self.public_host_key
+            + "\n"
+        )
+
     def _booted_from_ebs(self):
         return self.root_device_type == "ebs"
 
