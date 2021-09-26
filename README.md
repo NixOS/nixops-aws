@@ -40,6 +40,6 @@ You can build the Nix package by simply invoking nix-build on the project root:
 ```bash
 $ nix-build
 ```
-See the main NixOps repo for more up-to-date instructions for how to built NixOps
+See the main NixOps repo for more up-to-date instructions for how to build NixOps
 with this AWS plugin.
 
