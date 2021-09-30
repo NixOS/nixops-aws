@@ -13,7 +13,7 @@ if __name__ == "__main__":
         argv=[
             sys.argv[0],
             "--process-timeout=inf",
-            "--processes=%d".format(count),
+            "--processes={}".format(count),
             "-e",
             "^coverage-tests\\.py$",
         ]
