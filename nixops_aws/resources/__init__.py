@@ -1,5 +1,6 @@
 __all__ = (
     "aws_ec2_launch_template",
+    "aws_spot_fleet_request",
     "aws_vpn_connection",
     "aws_vpn_connection_route",
     "aws_vpn_gateway",
@@ -42,6 +43,7 @@ __all__ = (
 )
 
 from . import aws_ec2_launch_template
+from . import aws_spot_fleet_request
 from . import aws_vpn_connection
 from . import aws_vpn_connection_route
 from . import aws_vpn_gateway
