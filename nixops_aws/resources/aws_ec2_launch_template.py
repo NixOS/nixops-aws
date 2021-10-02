@@ -2,11 +2,12 @@
 import ast
 import sys
 import base64
+import datetime
 import nixops.util
-import nixopsaws.ec2_utils
-import nixops.resources
+import nixops_aws.ec2_utils
+import nixops_aws.resources
+from nixops_aws.resources.ec2_common import EC2CommonState
 import botocore.exceptions
-from ec2_common import EC2CommonState
 
 class awsEc2LaunchTemplateDefinition(nixops.resources.ResourceDefinition):
     """Definition of an ec2 launch template"""
@@ -79,20 +80,20 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
 
     def connect_boto3(self, region):
         if self._conn_boto3: return self._conn_boto3
-        self._conn_boto3 = nixopsaws.ec2_utils.connect_ec2_boto3(region, self.access_key_id)
+        self._conn_boto3 = nixops_aws.ec2_utils.connect_ec2_boto3(region, self.access_key_id)
         return self._conn_boto3
 
     def connect_vpc(self):
         if self._conn_vpc:
             return self._conn_vpc
-        self._conn_vpc = nixopsaws.ec2_utils.connect_vpc(self.region, self.access_key_id)
+        self._conn_vpc = nixops_aws.ec2_utils.connect_vpc(self.region, self.access_key_id)
         return self._conn_vpc
 
     def _update_tag(self, defn):
-        self.connect_boto3(self.region)
+        conn = self.connect_boto3(self.region)
         tags = defn.config['tags']
         tags.update(self.get_common_tags())
-        self._conn_boto3.create_tags(Resources=[self.templateId], Tags=[{"Key": k, "Value": tags[k]} for k in tags])
+        conn.create_tags(Resources=[self.templateId], Tags=[{"Key": k, "Value": tags[k]} for k in tags])
 
     # TODO: Work on how to update the template (create a new version and update default version to use or what)
     # i think this is done automatically so i think i need to remove it right ?
@@ -100,18 +101,17 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
         # EC2 launch templates can require key pairs, IAM roles, security
         # groups and placement groups
         return {r for r in resources if
-                isinstance(r, nixopsaws.resources.ec2_keypair.EC2KeyPairState) or
-                isinstance(r, nixopsaws.resources.iam_role.IAMRoleState) or
-                isinstance(r, nixopsaws.resources.ec2_security_group.EC2SecurityGroupState) or
-                isinstance(r, nixopsaws.resources.ec2_placement_group.EC2PlacementGroupState) or
-                isinstance(r, nixopsaws.resources.vpc_subnet.VPCSubnetState)}
+                isinstance(r, nixops_aws.resources.ec2_keypair.EC2KeyPairState) or
+                isinstance(r, nixops_aws.resources.iam_role.IAMRoleState) or
+                isinstance(r, nixops_aws.resources.ec2_security_group.EC2SecurityGroupState) or
+                isinstance(r, nixops_aws.resources.ec2_placement_group.EC2PlacementGroupState) or
+                isinstance(r, nixops_aws.resources.vpc_subnet.VPCSubnetState)}
 
     # fix security group stuff later
     def security_groups_to_ids(self, subnetId, groups):
         sg_names = filter(lambda g: not g.startswith('sg-'), groups)
         if sg_names != [ ] and subnetId != "":
-            self.connect_vpc()
-            vpc_id = self._conn_vpc.get_all_subnets([subnetId])[0].vpc_id
+            vpc_id = self.connect_vpc().get_all_subnets([subnetId])[0].vpc_id
 
             #Note: we can use ec2_utils.name_to_security_group but it only works with boto2
             group_ids = []
@@ -120,9 +120,11 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                     group_ids.append(i)
                 else:
                     try:
-                        group_ids.append(self._conn_boto3.describe_security_groups(Filters=[{'Name': 'group-name',
-                                                                                             'Values': [i]}]
-                                                                                   )['SecurityGroups'][0]['GroupId'])
+                        group_ids.append(
+                            self.connect_boto3(self.region).describe_security_groups(
+                                Filters=[{'Name': 'group-name', 'Values': [i]}]
+                            )['SecurityGroups'][0]['GroupId']
+                        )
                     except botocore.exceptions.ClientError as error:
                         raise error
             return group_ids
@@ -138,7 +140,7 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                     .format(self.region, defn.config['region']))
 
         self.access_key_id = defn.config['accessKeyId']
-        self.connect_boto3(self.region)
+        conn = self.connect_boto3(self.region)
         if self.state != self.UP:
             tags = defn.config['tags']
             tags.update(self.get_common_tags())
@@ -196,13 +198,19 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                     args['LaunchTemplateData']['NetworkInterfaces'][0]['Groups'] = self.security_groups_to_ids(defn.config['subnetId'], defn.config['securityGroupIds'])
                 if defn.config['networkInterfaceId'] != "":
                     if defn.config['networkInterfaceId'].startswith("res-"):
-                        res = self.depl.get_typed_resource(defn.config['networkInterfaceId'][4:].split(".")[0], "vpc-network-interface")
-                        defn.config['networkInterfaceId'] = res._state['networkInterfaceId']
+                        defn.config['networkInterfaceId'] = self.depl.get_typed_resource(
+                            defn.config['networkInterfaceId'][4:].split(".")[0],
+                            "vpc-network-interface",
+                            nixops_aws.resources.vpc_network_interface.VPCNetworkInterfaceState
+                        )._state['networkInterfaceId']
                     args['LaunchTemplateData']['NetworkInterfaces'][0]['networkInterfaceId']=defn.config['networkInterfaceId']
                 if defn.config['subnetId'] != "":
                     if defn.config['subnetId'].startswith("res-"):
-                        res = self.depl.get_typed_resource(defn.config['subnetId'][4:].split(".")[0], "vpc-subnet")
-                        defn.config['subnetId'] = res._state['subnetId']
+                        defn.config['subnetId'] = self.depl.get_typed_resource(
+                            defn.config['subnetId'][4:].split(".")[0],
+                            "vpc-subnet",
+                            nixops_aws.resources.vpc_subnet.VPCSubnetState
+                        )._state['subnetId']
                     args['LaunchTemplateData']['NetworkInterfaces'][0]['SubnetId']=defn.config['subnetId']
                 if defn.config['secondaryPrivateIpAddressCount']:
                     args['LaunchTemplateData']['NetworkInterfaces'][0]['SecondaryPrivateIpAddressCount']=defn.config['secondaryPrivateIpAddressCount']
@@ -211,7 +219,7 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
             if defn.config['keyPair'] != "":
                 args['LaunchTemplateData']['KeyName']=defn.config['keyPair']
 
-            ami = self._conn_boto3.describe_images(ImageIds=[defn.config['ami']])['Images'][0]
+            ami = conn.describe_images(ImageIds=[defn.config['ami']])['Images'][0]
 
             # TODO: BlockDeviceMappings for non root volumes
             args['LaunchTemplateData']['BlockDeviceMappings'] = [dict(
@@ -234,7 +242,7 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
             args['ClientToken'] = self.clientToken
             self.log("creating launch template {} ...".format(defn.config['templateName']))
             try:
-                launch_template = self._conn_boto3.create_launch_template(**args)
+                launch_template = conn.create_launch_template(**args)
             except botocore.exceptions.ClientError as error:
                 raise error
                 # Not sure whether to use lambda retry or keep it like this
@@ -249,8 +257,8 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
 
     def check(self):
 
-        self.connect_boto3(self.region)
-        launch_template = self._conn_boto3.describe_launch_templates(
+        conn = self.connect_boto3(self.region)
+        launch_template = conn.describe_launch_templates(
                     LaunchTemplateIds=[self.templateId]
                    )['LaunchTemplates']
         if launch_template is None:
@@ -261,10 +269,10 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
 
     def _destroy(self):
 
-        self.connect_boto3(self.region)
+        conn = self.connect_boto3(self.region)
         self.log("deleting ec2 launch template `{}`... ".format(self.templateName))
         try:
-            self._conn_boto3.delete_launch_template(LaunchTemplateId=self.templateId)
+            conn.delete_launch_template(LaunchTemplateId=self.templateId)
         except botocore.exceptions.ClientError as error:
             if error.response['Error']['Code'] == "InvalidLaunchTemplateId.NotFound":
                 self.warn("Template `{}` already deleted...".format(self.templateName))
