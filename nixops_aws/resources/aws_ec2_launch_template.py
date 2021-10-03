@@ -6,6 +6,16 @@ import nixops_aws.ec2_utils
 import nixops_aws.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 import botocore.exceptions
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mypy_boto3_ec2.type_defs import CreateLaunchTemplateRequestRequestTypeDef
+    from mypy_boto3_ec2.type_defs import RequestLaunchTemplateDataTypeDef
+    from mypy_boto3_ec2.type_defs import CreateLaunchTemplateResultTypeDef
+else:
+    CreateLaunchTemplateRequestRequestTypeDef = dict
+    RequestLaunchTemplateDataTypeDef = dict
+    CreateLaunchTemplateResultTypeDef = dict
 
 
 class awsEc2LaunchTemplateDefinition(nixops.resources.ResourceDefinition):
@@ -179,17 +189,19 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                     )  # = 64 ASCII chars
                     self.state = self.STARTING
 
-            args = dict(
-                LaunchTemplateName=defn.config["templateName"],
-                VersionDescription=defn.config["versionDescription"],
-                LaunchTemplateData=self._launch_template_data_from_config(defn.config),
-                ClientToken=self.clientToken,
-            )
-
             self.log(
                 "creating launch template {} ...".format(defn.config["templateName"])
             )
-            self._create_launch_template(args)
+            self._create_launch_template(
+                CreateLaunchTemplateRequestRequestTypeDef(
+                    LaunchTemplateName=defn.config["templateName"],
+                    VersionDescription=defn.config["versionDescription"],
+                    LaunchTemplateData=self._launch_template_data_from_config(
+                        defn.config
+                    ),
+                    ClientToken=self.clientToken,
+                )
+            )
 
             # these are the tags for the template
             self._update_tag(defn)
@@ -228,11 +240,13 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
         return True
 
     # Boto3 helpers
-    def _launch_template_data_from_config(self, config):
+    def _launch_template_data_from_config(
+        self, config
+    ) -> RequestLaunchTemplateDataTypeDef:
         tags = config["tags"]
         tags.update(self.get_common_tags())
 
-        data = dict(
+        data = RequestLaunchTemplateDataTypeDef(
             EbsOptimized=config["ebsOptimized"],
             ImageId=config["ami"],
             Placement=dict(Tenancy=config["tenancy"]),
@@ -255,8 +269,7 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
         if config["instanceProfile"] != "":
             data["IamInstanceProfile"] = dict(Name=config["instanceProfile"])
         if config["userData"]:
-            data["UserData"] = base64.b64encode(config["userData"])
-
+            data["UserData"] = str(base64.b64encode(config["userData"]), "utf-8")
         if config["instanceType"]:
             data["InstanceType"] = config["instanceType"]
         if config["placementGroup"] != "":
@@ -297,7 +310,7 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                         "vpc-network-interface",
                         nixops_aws.resources.vpc_network_interface.VPCNetworkInterfaceState,
                     )._state["networkInterfaceId"]
-                data["NetworkInterfaces"][0]["networkInterfaceId"] = config[
+                data["NetworkInterfaces"][0]["NetworkInterfaceId"] = config[
                     "networkInterfaceId"
                 ]
             if config["subnetId"] != "":
@@ -338,7 +351,9 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
         return data
 
     # Boto3 wrappers
-    def _create_launch_template(self, request):
+    def _create_launch_template(
+        self, request: CreateLaunchTemplateRequestRequestTypeDef
+    ) -> CreateLaunchTemplateResultTypeDef:
         try:
             response = self.connect_boto3(self.region).create_launch_template(**request)
         except botocore.exceptions.ClientError as error:
@@ -351,3 +366,4 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
             self.templateName = request["LaunchTemplateName"]
             self.templateVersion = response["LaunchTemplate"]["LatestVersionNumber"]
             self.versionDescription = request["VersionDescription"]
+        return response
