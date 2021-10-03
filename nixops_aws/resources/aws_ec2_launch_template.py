@@ -211,7 +211,6 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
             )
 
     def check(self):
-
         conn = self.connect_boto3(self.region)
         launch_template = conn.describe_launch_templates(
             LaunchTemplateIds=[self.templateId]
@@ -225,7 +224,6 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
             )
 
     def _destroy(self):
-
         conn = self.connect_boto3(self.region)
         self.log("deleting ec2 launch template `{}`... ".format(self.templateName))
         try:
