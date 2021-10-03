@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import ast
-import sys
 import base64
 import datetime
 import nixops.util
@@ -140,8 +138,6 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
     def security_groups_to_ids(self, subnetId, groups):
         sg_names = filter(lambda g: not g.startswith("sg-"), groups)
         if sg_names != [] and subnetId != "":
-            vpc_id = self.connect_vpc().get_all_subnets([subnetId])[0].vpc_id
-
             # Note: we can use ec2_utils.name_to_security_group but it only works with boto2
             group_ids = []
             for i in groups:
@@ -161,7 +157,6 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
             return groups
 
     def create(self, defn, check, allow_reboot, allow_recreate):
-
         if self.region is None:
             self.region = defn.config["region"]
         elif self.region != defn.config["region"]:
@@ -172,7 +167,6 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
             )
 
         self.access_key_id = defn.config["accessKeyId"]
-        conn = self.connect_boto3(self.region)
         if self.state != self.UP:
             tags = defn.config["tags"]
             tags.update(self.get_common_tags())
@@ -285,7 +279,7 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
             if defn.config["keyPair"] != "":
                 args["LaunchTemplateData"]["KeyName"] = defn.config["keyPair"]
 
-            ami = conn.describe_images(ImageIds=[defn.config["ami"]])["Images"][0]
+            ami = self.connect_boto3(self.region).describe_images(ImageIds=[defn.config["ami"]])["Images"][0]
 
             # TODO: BlockDeviceMappings for non root volumes
             args["LaunchTemplateData"]["BlockDeviceMappings"] = [
@@ -313,19 +307,8 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
             self.log(
                 "creating launch template {} ...".format(defn.config["templateName"])
             )
-            try:
-                launch_template = conn.create_launch_template(**args)
-            except botocore.exceptions.ClientError as error:
-                raise error
-                # Not sure whether to use lambda retry or keep it like this
-            with self.depl._db:
-                self.templateId = launch_template["LaunchTemplate"]["LaunchTemplateId"]
-                self.templateName = defn.config["templateName"]
-                self.templateVersion = launch_template["LaunchTemplate"][
-                    "LatestVersionNumber"
-                ]
-                self.versionDescription = defn.config["versionDescription"]
-                self.state = self.UP
+            self._create_launch_template(args)
+
             # these are the tags for the template
             self._update_tag(defn)
 
@@ -361,3 +344,18 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
 
         self._destroy()
         return True
+
+    # Boto3 wrappers
+    def _create_launch_template(self, request):
+        try:
+            response = self.connect_boto3(self.region).create_launch_template(**request)
+        except botocore.exceptions.ClientError as error:
+            raise error
+            # Not sure whether to use lambda retry or keep it like this
+        with self.depl._db:
+            self.state = self.UP
+
+            self.templateId = response["LaunchTemplate"]["LaunchTemplateId"]
+            self.templateName = request["LaunchTemplateName"]
+            self.templateVersion = response["LaunchTemplate"]["LatestVersionNumber"]
+            self.versionDescription = request["VersionDescription"]
