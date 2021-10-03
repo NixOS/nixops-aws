@@ -13,11 +13,13 @@ if TYPE_CHECKING:
     from mypy_boto3_ec2.type_defs import RequestLaunchTemplateDataTypeDef
     from mypy_boto3_ec2.type_defs import CreateLaunchTemplateResultTypeDef
     from mypy_boto3_ec2.type_defs import TagSpecificationTypeDef
+    from mypy_boto3_ec2.type_defs import LaunchTemplateTagSpecificationRequestTypeDef
 else:
     CreateLaunchTemplateRequestRequestTypeDef = dict
     RequestLaunchTemplateDataTypeDef = dict
     CreateLaunchTemplateResultTypeDef = dict
     TagSpecificationTypeDef = dict
+    LaunchTemplateTagSpecificationRequestTypeDef = dict
 
 
 class awsEc2LaunchTemplateDefinition(nixops.resources.ResourceDefinition):
@@ -256,11 +258,11 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                 "instanceInitiatedShutdownBehavior"
             ],
             TagSpecifications=[
-                dict(
+                LaunchTemplateTagSpecificationRequestTypeDef(
                     ResourceType="instance",
                     Tags=[{"Key": k, "Value": tags[k]} for k in tags],
                 ),
-                dict(
+                LaunchTemplateTagSpecificationRequestTypeDef(
                     ResourceType="volume",
                     Tags=[{"Key": k, "Value": tags[k]} for k in tags],
                 ),
