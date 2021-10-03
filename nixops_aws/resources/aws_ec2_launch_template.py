@@ -12,10 +12,12 @@ if TYPE_CHECKING:
     from mypy_boto3_ec2.type_defs import CreateLaunchTemplateRequestRequestTypeDef
     from mypy_boto3_ec2.type_defs import RequestLaunchTemplateDataTypeDef
     from mypy_boto3_ec2.type_defs import CreateLaunchTemplateResultTypeDef
+    from mypy_boto3_ec2.type_defs import TagSpecificationTypeDef
 else:
     CreateLaunchTemplateRequestRequestTypeDef = dict
     RequestLaunchTemplateDataTypeDef = dict
     CreateLaunchTemplateResultTypeDef = dict
+    TagSpecificationTypeDef = dict
 
 
 class awsEc2LaunchTemplateDefinition(nixops.resources.ResourceDefinition):
@@ -116,15 +118,6 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
         )
         return self._conn_vpc
 
-    def _update_tag(self, defn):
-        conn = self.connect_boto3(self.region)
-        tags = defn.config["tags"]
-        tags.update(self.get_common_tags())
-        conn.create_tags(
-            Resources=[self.templateId],
-            Tags=[{"Key": k, "Value": tags[k]} for k in tags],
-        )
-
     # TODO: Work on how to update the template (create a new version and update default version to use or what)
     # i think this is done automatically so i think i need to remove it right ?
     def create_after(self, resources, defn):
@@ -192,6 +185,10 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
             self.log(
                 "creating launch template {} ...".format(defn.config["templateName"])
             )
+
+            tags = defn.config["tags"]
+            tags.update(self.get_common_tags())
+
             self._create_launch_template(
                 CreateLaunchTemplateRequestRequestTypeDef(
                     LaunchTemplateName=defn.config["templateName"],
@@ -200,11 +197,14 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                         defn.config
                     ),
                     ClientToken=self.clientToken,
+                    TagSpecifications=[
+                        TagSpecificationTypeDef(
+                            ResourceType="launch-template",
+                            Tags=[{"Key": k, "Value": tags[k]} for k in tags],
+                        )
+                    ],
                 )
             )
-
-            # these are the tags for the template
-            self._update_tag(defn)
 
     def check(self):
 
