@@ -94,6 +94,28 @@ with lib;
       '';
     };
 
+    instanceTags = mkOption {
+        default = { };
+        example = { foo = "bar"; xyzzy = "bla"; };
+        type = types.attrsOf types.str;
+        description = ''
+          Default tags assigned to each instance launched using the template.  Each tag
+          name can be at most 128 characters, and each tag value can be at most 256
+          characters.  There can be at most 10 tags.
+        '';
+    };
+
+    volumeTags = mkOption {
+        default = { };
+        example = { foo = "bar"; xyzzy = "bla"; };
+        type = types.attrsOf types.str;
+        description = ''
+          Default tags assigned to each volume created using the template.  Each tag
+          name can be at most 128 characters, and each tag value can be at most 256
+          characters.  There can be at most 10 tags.
+        '';
+    };
+
   }// (import ./common-ec2-options.nix { inherit lib; }) // (import ./common-ec2-instance-options.nix { inherit lib; });
 
   config._type = "aws-ec2-launch-template";

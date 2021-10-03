@@ -14,12 +14,14 @@ if TYPE_CHECKING:
     from mypy_boto3_ec2.type_defs import CreateLaunchTemplateResultTypeDef
     from mypy_boto3_ec2.type_defs import TagSpecificationTypeDef
     from mypy_boto3_ec2.type_defs import LaunchTemplateTagSpecificationRequestTypeDef
+    from mypy_boto3_ec2.type_defs import TagTypeDef
 else:
     CreateLaunchTemplateRequestRequestTypeDef = dict
     RequestLaunchTemplateDataTypeDef = dict
     CreateLaunchTemplateResultTypeDef = dict
     TagSpecificationTypeDef = dict
     LaunchTemplateTagSpecificationRequestTypeDef = dict
+    TagTypeDef = dict
 
 
 class awsEc2LaunchTemplateDefinition(nixops.resources.ResourceDefinition):
@@ -202,7 +204,7 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                     TagSpecifications=[
                         TagSpecificationTypeDef(
                             ResourceType="launch-template",
-                            Tags=[{"Key": k, "Value": tags[k]} for k in tags],
+                            Tags=[TagTypeDef(Key=k, Value=tags[k]) for k in tags],
                         )
                     ],
                 )
@@ -245,8 +247,23 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
     def _launch_template_data_from_config(
         self, config
     ) -> RequestLaunchTemplateDataTypeDef:
-        tags = config["tags"]
-        tags.update(self.get_common_tags())
+        common_tags = self.get_common_tags()
+        instance_tags = config["instanceTags"]
+        volume_tags = config["volumeTags"]
+
+        # Common tags don't necessarily make sense for resources launched using the template
+        # Instances launched using this template may override common tags
+        instance_tags["CharonTemplateNetworkUUID"] = common_tags["CharonNetworkUUID"]
+        instance_tags["CharonTemplateName"] = common_tags["CharonMachineName"]
+        instance_tags["CharonTemplateStateFile"] = common_tags["CharonStateFile"]
+        volume_tags["CharonTemplateNetworkUUID"] = common_tags["CharonNetworkUUID"]
+        volume_tags["CharonTemplateName"] = common_tags["CharonMachineName"]
+        volume_tags["CharonTemplateStateFile"] = common_tags["CharonStateFile"]
+        if common_tags.get("CharonNetworkName"):
+            instance_tags["CharonTemplateNetworkName"] = common_tags[
+                "CharonNetworkName"
+            ]
+            volume_tags["CharonTemplateNetworkName"] = common_tags["CharonNetworkName"]
 
         data = RequestLaunchTemplateDataTypeDef(
             EbsOptimized=config["ebsOptimized"],
@@ -260,11 +277,13 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
             TagSpecifications=[
                 LaunchTemplateTagSpecificationRequestTypeDef(
                     ResourceType="instance",
-                    Tags=[{"Key": k, "Value": tags[k]} for k in tags],
+                    Tags=[
+                        TagTypeDef(Key=k, Value=instance_tags[k]) for k in instance_tags
+                    ],
                 ),
                 LaunchTemplateTagSpecificationRequestTypeDef(
                     ResourceType="volume",
-                    Tags=[{"Key": k, "Value": tags[k]} for k in tags],
+                    Tags=[TagTypeDef(Key=k, Value=volume_tags[k]) for k in volume_tags],
                 ),
             ],
         )
