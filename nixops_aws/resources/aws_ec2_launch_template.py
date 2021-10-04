@@ -8,6 +8,8 @@ from nixops_aws.resources.ec2_common import EC2CommonState
 import botocore.exceptions
 from typing import TYPE_CHECKING
 
+from .types.aws_ec2_launch_template import Ec2LaunchTemplateOptions
+
 if TYPE_CHECKING:
     from mypy_boto3_ec2.type_defs import CreateLaunchTemplateRequestRequestTypeDef
     from mypy_boto3_ec2.type_defs import RequestLaunchTemplateDataTypeDef
@@ -15,6 +17,7 @@ if TYPE_CHECKING:
     from mypy_boto3_ec2.type_defs import TagSpecificationTypeDef
     from mypy_boto3_ec2.type_defs import LaunchTemplateTagSpecificationRequestTypeDef
     from mypy_boto3_ec2.type_defs import TagTypeDef
+    from mypy_boto3_ec2.type_defs import PrivateIpAddressSpecificationTypeDef
 else:
     CreateLaunchTemplateRequestRequestTypeDef = dict
     RequestLaunchTemplateDataTypeDef = dict
@@ -22,10 +25,16 @@ else:
     TagSpecificationTypeDef = dict
     LaunchTemplateTagSpecificationRequestTypeDef = dict
     TagTypeDef = dict
+    PrivateIpAddressSpecificationTypeDef = dict
 
 
 class awsEc2LaunchTemplateDefinition(nixops.resources.ResourceDefinition):
     """Definition of an ec2 launch template"""
+
+    config: Ec2LaunchTemplateOptions
+
+    def __init__(self, name: str, config: nixops.resources.ResourceEval):
+        nixops.resources.ResourceDefinition.__init__(self, name, config)
 
     @classmethod
     def get_type(cls):
@@ -165,15 +174,15 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
 
     def create(self, defn, check, allow_reboot, allow_recreate):
         if self.region is None:
-            self.region = defn.config["region"]
-        elif self.region != defn.config["region"]:
+            self.region = defn.config.region
+        elif self.region != defn.config.region:
             self.warn(
                 "cannot change region of a running instance (from ‘{}‘ to ‘{}‘)".format(
-                    self.region, defn.config["region"]
+                    self.region, defn.config.region
                 )
             )
 
-        self.access_key_id = defn.config["accessKeyId"]
+        self.access_key_id = defn.config.accessKeyId
         if self.state != self.UP:
             # Use a client token to ensure that the template creation is
             # idempotent; i.e., if we get interrupted before recording
@@ -186,17 +195,15 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                     )  # = 64 ASCII chars
                     self.state = self.STARTING
 
-            self.log(
-                "creating launch template {} ...".format(defn.config["templateName"])
-            )
+            self.log("creating launch template {} ...".format(defn.config.templateName))
 
-            tags = defn.config["tags"]
+            tags = defn.config.tags
             tags.update(self.get_common_tags())
 
             self._create_launch_template(
                 CreateLaunchTemplateRequestRequestTypeDef(
-                    LaunchTemplateName=defn.config["templateName"],
-                    VersionDescription=defn.config["versionDescription"],
+                    LaunchTemplateName=defn.config.templateName,
+                    VersionDescription=defn.config.versionDescription,
                     LaunchTemplateData=self._launch_template_data_from_config(
                         defn.config
                     ),
@@ -243,11 +250,11 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
 
     # Boto3 helpers
     def _launch_template_data_from_config(
-        self, config
+        self, config: Ec2LaunchTemplateOptions
     ) -> RequestLaunchTemplateDataTypeDef:
         common_tags = self.get_common_tags()
-        instance_tags = config["instanceTags"]
-        volume_tags = config["volumeTags"]
+        instance_tags = dict(config.instanceTags)
+        volume_tags = dict(config.volumeTags)
 
         # Common tags don't necessarily make sense for resources launched using the template
         # Instances launched using this template may override common tags
@@ -264,14 +271,12 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
             volume_tags["CharonTemplateNetworkName"] = common_tags["CharonNetworkName"]
 
         data = RequestLaunchTemplateDataTypeDef(
-            EbsOptimized=config["ebsOptimized"],
-            ImageId=config["ami"],
-            Placement=dict(Tenancy=config["tenancy"]),
-            Monitoring=dict(Enabled=config["monitoring"]),
-            DisableApiTermination=config["disableApiTermination"],
-            InstanceInitiatedShutdownBehavior=config[
-                "instanceInitiatedShutdownBehavior"
-            ],
+            EbsOptimized=config.ebsOptimized,
+            ImageId=config.ami,
+            Placement=dict(Tenancy=config.tenancy),
+            Monitoring=dict(Enabled=config.monitoring),
+            DisableApiTermination=config.disableApiTermination,
+            InstanceInitiatedShutdownBehavior=config.instanceInitiatedShutdownBehavior,
             TagSpecifications=[
                 LaunchTemplateTagSpecificationRequestTypeDef(
                     ResourceType="instance",
@@ -285,73 +290,77 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                 ),
             ],
         )
-        if config["instanceProfile"] != "":
-            data["IamInstanceProfile"] = dict(Name=config["instanceProfile"])
-        if config["userData"]:
-            data["UserData"] = str(base64.b64encode(config["userData"]), "utf-8")
-        if config["instanceType"]:
-            data["InstanceType"] = config["instanceType"]
-        if config["placementGroup"] != "":
-            data["Placement"]["GroupName"] = config["placementGroup"]
-        if config["zone"]:
-            data["Placement"]["AvailabilityZone"] = config["zone"]
+        if config.instanceProfile != "":
+            data["IamInstanceProfile"] = dict(Name=config.instanceProfile)
+        if config.userData:
+            data["UserData"] = str(
+                base64.b64encode(config.userData.encode("ascii")), "utf-8"
+            )
+        if config.instanceType:
+            data["InstanceType"] = config.instanceType  # type: ignore
+        if config.placementGroup != "":
+            data["Placement"]["GroupName"] = config.placementGroup
+        if config.zone:
+            data["Placement"]["AvailabilityZone"] = config.zone
 
-        if config["spotInstancePrice"] != 0:
+        if config.spotInstancePrice != 0:
             data["InstanceMarketOptions"] = dict(
                 MarketType="spot",
                 SpotOptions=dict(
-                    MaxPrice=str(config["spotInstancePrice"] / 100.0),
-                    SpotInstanceType=config["spotInstanceRequestType"],
+                    MaxPrice=str(config.spotInstancePrice / 100.0),
+                    SpotInstanceType=config.spotInstanceRequestType,
                     ValidUntil=(
                         datetime.datetime.utcnow()
-                        + datetime.timedelta(0, config["spotInstanceTimeout"])
+                        + datetime.timedelta(0, config.spotInstanceTimeout)
                     ).isoformat(),
-                    InstanceInterruptionBehavior=config[
-                        "spotInstanceInterruptionBehavior"
-                    ],
+                    InstanceInterruptionBehavior=config.spotInstanceInterruptionBehavior,
                 ),
             )
-        if config["networkInterfaceId"] != "" or config["subnetId"] != "":
+        if config.networkInterfaceId != "" or config.subnetId != "":
             data["NetworkInterfaces"] = [
                 dict(
                     DeviceIndex=0,
-                    AssociatePublicIpAddress=config["associatePublicIpAddress"],
+                    AssociatePublicIpAddress=config.associatePublicIpAddress,
                 )
             ]
-            if config["securityGroupIds"] != []:
+            if config.securityGroupIds != []:
                 data["NetworkInterfaces"][0]["Groups"] = self.security_groups_to_ids(
-                    config["subnetId"], config["securityGroupIds"]
+                    config.subnetId, config.securityGroupIds
                 )
-            if config["networkInterfaceId"] != "":
-                if config["networkInterfaceId"].startswith("res-"):
-                    config["networkInterfaceId"] = self.depl.get_typed_resource(
-                        config["networkInterfaceId"][4:].split(".")[0],
+            if config.networkInterfaceId != "":
+                if config.networkInterfaceId.startswith("res-"):
+                    config.networkInterfaceId = self.depl.get_typed_resource(
+                        config.networkInterfaceId[4:].split(".")[0],
                         "vpc-network-interface",
                         nixops_aws.resources.vpc_network_interface.VPCNetworkInterfaceState,
                     )._state["networkInterfaceId"]
-                data["NetworkInterfaces"][0]["NetworkInterfaceId"] = config[
-                    "networkInterfaceId"
-                ]
-            if config["subnetId"] != "":
-                if config["subnetId"].startswith("res-"):
-                    config["subnetId"] = self.depl.get_typed_resource(
-                        config["subnetId"][4:].split(".")[0],
+                data["NetworkInterfaces"][0][
+                    "NetworkInterfaceId"
+                ] = config.networkInterfaceId
+            if config.subnetId != "":
+                if config.subnetId.startswith("res-"):
+                    config.subnetId = self.depl.get_typed_resource(
+                        config.subnetId[4:].split(".")[0],
                         "vpc-subnet",
                         nixops_aws.resources.vpc_subnet.VPCSubnetState,
                     )._state["subnetId"]
-                data["NetworkInterfaces"][0]["SubnetId"] = config["subnetId"]
-            if config["secondaryPrivateIpAddressCount"]:
-                data["NetworkInterfaces"][0]["SecondaryPrivateIpAddressCount"] = config[
-                    "secondaryPrivateIpAddressCount"
+                data["NetworkInterfaces"][0]["SubnetId"] = config.subnetId
+            if config.secondaryPrivateIpAddressCount:
+                data["NetworkInterfaces"][0][
+                    "SecondaryPrivateIpAddressCount"
+                ] = config.secondaryPrivateIpAddressCount
+            if config.privateIpAddresses:
+                data["NetworkInterfaces"][0]["PrivateIpAddresses"] = [
+                    PrivateIpAddressSpecificationTypeDef(
+                        # Primary= # TODO
+                        PrivateIpAddress=ip_address,
+                    )
+                    for ip_address in config.privateIpAddresses
                 ]
-            if config["privateIpAddresses"]:
-                data["NetworkInterfaces"][0]["PrivateIpAddresses"] = config[
-                    "privateIpAddresses"
-                ]
-        if config["keyPair"] != "":
-            data["KeyName"] = config["keyPair"]
+        if config.keyPair != "":
+            data["KeyName"] = config.keyPair
 
-        ami = self.connect_boto3(self.region).describe_images(ImageIds=[config["ami"]])[
+        ami = self.connect_boto3(self.region).describe_images(ImageIds=[config.ami])[
             "Images"
         ][0]
 
@@ -361,7 +370,7 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                 DeviceName="/dev/sda1",
                 Ebs=dict(
                     DeleteOnTermination=True,
-                    VolumeSize=config["ebsInitialRootDiskSize"],
+                    VolumeSize=config.ebsInitialRootDiskSize,
                     VolumeType=ami["BlockDeviceMappings"][0]["Ebs"]["VolumeType"],
                 ),
             )
