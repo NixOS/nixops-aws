@@ -31,30 +31,30 @@ class Ec2LaunchTemplateOptions(ResourceOptions):
     tags: Mapping[str, str]
 
     # Common EC2 instance options
-    zone: str
     monitoring: bool
-    tenancy: Union[
-        Literal["default"],
-        Literal["dedicated"],
-        Literal["host"],
-    ]
-    ebsInitialRootDiskSize: int
     ami: str
-    instanceType: str
-    instanceProfile: str
-    keyPair: str
-    securityGroupIds: Sequence[str]
-    subnetId: str
     associatePublicIpAddress: bool
+    ebsInitialRootDiskSize: int
+    instanceProfile: str
+    instanceType: str
+    keyPair: str
     placementGroup: str
-    spotInstancePrice: int
-    spotInstanceRequestType: Union[
-        Literal["one-time"],
-        Literal["persistent"],
-    ]
+    securityGroupIds: Sequence[str]
     spotInstanceInterruptionBehavior: Union[
         Literal["terminate"],
         Literal["stop"],
         Literal["hibernate"],
     ]
+    spotInstancePrice: int
+    spotInstanceRequestType: Union[
+        Literal["one-time"],
+        Literal["persistent"],
+    ]
     spotInstanceTimeout: int
+    subnetId: str
+    tenancy: Union[
+        Literal["default"],
+        Literal["dedicated"],
+        Literal["host"],
+    ]
+    zone: str
