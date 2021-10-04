@@ -56,7 +56,7 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
     )
     access_key_id = nixops.util.attr_property("accessKeyId", None)
     region = nixops.util.attr_property("region", None)
-    templateName = nixops.util.attr_property("templateName", None)
+    templateName = nixops.util.attr_property("name", None)
     templateId = nixops.util.attr_property("templateId", None)
     templateVersion = nixops.util.attr_property("templateVersion", None)
     versionDescription = nixops.util.attr_property("versionDescription", None)
@@ -195,14 +195,14 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                     )  # = 64 ASCII chars
                     self.state = self.STARTING
 
-            self.log("creating launch template {} ...".format(defn.config.templateName))
+            self.log("creating launch template {} ...".format(defn.config.name))
 
             tags = defn.config.tags
             tags.update(self.get_common_tags())
 
             self._create_launch_template(
                 CreateLaunchTemplateRequestRequestTypeDef(
-                    LaunchTemplateName=defn.config.templateName,
+                    LaunchTemplateName=defn.config.name,
                     VersionDescription=defn.config.versionDescription,
                     LaunchTemplateData=self._launch_template_data_from_config(
                         defn.config

@@ -8,7 +8,6 @@ from nixops.resources import ResourceOptions
 
 class Ec2LaunchTemplateOptions(ResourceOptions):
     name: str
-    templateName: str
     templateId: str
     versionDescription: str
     ebsOptimized: bool

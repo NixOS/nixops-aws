@@ -8,7 +8,7 @@ with lib;
 
   options = {
 
-    templateName = mkOption {
+    name = mkOption {
       default = "nixops-${uuid}-${name}";
       type = types.str;
       description = "Name of the launch template.";
@@ -116,7 +116,9 @@ with lib;
         '';
     };
 
-  }// (import ./common-ec2-options.nix { inherit lib; }) // (import ./common-ec2-instance-options.nix { inherit lib; });
+  }
+  // (import ./common-ec2-options.nix { inherit lib; })
+  // (import ./common-ec2-instance-options.nix { inherit lib; });
 
   config._type = "aws-ec2-launch-template";
 }
