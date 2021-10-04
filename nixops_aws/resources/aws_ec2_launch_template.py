@@ -11,13 +11,16 @@ from typing import TYPE_CHECKING
 from .types.aws_ec2_launch_template import Ec2LaunchTemplateOptions
 
 if TYPE_CHECKING:
-    from mypy_boto3_ec2.type_defs import CreateLaunchTemplateRequestRequestTypeDef
-    from mypy_boto3_ec2.type_defs import RequestLaunchTemplateDataTypeDef
-    from mypy_boto3_ec2.type_defs import CreateLaunchTemplateResultTypeDef
-    from mypy_boto3_ec2.type_defs import TagSpecificationTypeDef
-    from mypy_boto3_ec2.type_defs import LaunchTemplateTagSpecificationRequestTypeDef
-    from mypy_boto3_ec2.type_defs import TagTypeDef
-    from mypy_boto3_ec2.type_defs import PrivateIpAddressSpecificationTypeDef
+    from mypy_boto3_ec2.type_defs import (
+        CreateLaunchTemplateRequestRequestTypeDef,
+        RequestLaunchTemplateDataTypeDef,
+        CreateLaunchTemplateResultTypeDef,
+        TagSpecificationTypeDef,
+        LaunchTemplateTagSpecificationRequestTypeDef,
+        TagTypeDef,
+        PrivateIpAddressSpecificationTypeDef,
+        DescribeImagesRequestRequestTypeDef,
+    )
 else:
     CreateLaunchTemplateRequestRequestTypeDef = dict
     RequestLaunchTemplateDataTypeDef = dict
@@ -26,15 +29,13 @@ else:
     LaunchTemplateTagSpecificationRequestTypeDef = dict
     TagTypeDef = dict
     PrivateIpAddressSpecificationTypeDef = dict
+    DescribeImagesRequestRequestTypeDef = dict
 
 
 class awsEc2LaunchTemplateDefinition(nixops.resources.ResourceDefinition):
     """Definition of an ec2 launch template"""
 
     config: Ec2LaunchTemplateOptions
-
-    def __init__(self, name: str, config: nixops.resources.ResourceEval):
-        nixops.resources.ResourceDefinition.__init__(self, name, config)
 
     @classmethod
     def get_type(cls):
@@ -50,6 +51,8 @@ class awsEc2LaunchTemplateDefinition(nixops.resources.ResourceDefinition):
 
 class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
     """State of an ec2 launch template"""
+
+    definition_type = awsEc2LaunchTemplateDefinition
 
     state = nixops.util.attr_property(
         "state", nixops.resources.ResourceState.MISSING, int
@@ -360,9 +363,9 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
         if config.keyPair != "":
             data["KeyName"] = config.keyPair
 
-        ami = self.connect_boto3(self.region).describe_images(ImageIds=[config.ami])[
-            "Images"
-        ][0]
+        ami = self.connect_boto3(self.region).describe_images(
+            **DescribeImagesRequestRequestTypeDef(ImageIds=[config.ami])
+        )["Images"][0]
 
         # TODO: BlockDeviceMappings for non root volumes
         data["BlockDeviceMappings"] = [
