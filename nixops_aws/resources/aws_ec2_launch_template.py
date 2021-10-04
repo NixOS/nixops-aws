@@ -185,7 +185,10 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                 )
             )
 
-        self.access_key_id = defn.config.accessKeyId
+        self.access_key_id = (
+            defn.config.accessKeyId or nixops_aws.ec2_utils.get_access_key_id()
+        )
+
         if self.state != self.UP:
             # Use a client token to ensure that the template creation is
             # idempotent; i.e., if we get interrupted before recording
