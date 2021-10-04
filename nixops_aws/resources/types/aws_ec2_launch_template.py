@@ -43,7 +43,7 @@ class Ec2LaunchTemplateOptions(ResourceOptions):
     instanceType: str
     instanceProfile: str
     keyPair: str
-    securityGroupIds: str
+    securityGroupIds: Sequence[str]
     subnetId: str
     associatePublicIpAddress: bool
     placementGroup: str
