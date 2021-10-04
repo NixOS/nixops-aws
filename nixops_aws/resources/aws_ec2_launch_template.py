@@ -197,7 +197,7 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
 
             self.log("creating launch template {} ...".format(defn.config.name))
 
-            tags = defn.config.tags
+            tags = dict(defn.config.tags)
             tags.update(self.get_common_tags())
 
             self._create_launch_template(
