@@ -14,8 +14,7 @@ class Ec2LaunchTemplateOptions(ResourceOptions):
     userData: Optional[str]
     disableApiTermination: bool
     instanceInitiatedShutdownBehavior: Union[
-        Literal["stop"],
-        Literal["terminate"],
+        Literal["stop"], Literal["terminate"],
     ]
     networkInterfaceId: str
     privateIpAddresses: Optional[Sequence[str]]
@@ -41,20 +40,15 @@ class Ec2LaunchTemplateOptions(ResourceOptions):
     placementGroup: str
     securityGroupIds: Sequence[str]
     spotInstanceInterruptionBehavior: Union[
-        Literal["terminate"],
-        Literal["stop"],
-        Literal["hibernate"],
+        Literal["terminate"], Literal["stop"], Literal["hibernate"],
     ]
     spotInstancePrice: int
     spotInstanceRequestType: Union[
-        Literal["one-time"],
-        Literal["persistent"],
+        Literal["one-time"], Literal["persistent"],
     ]
     spotInstanceTimeout: int
     subnetId: str
     tenancy: Union[
-        Literal["default"],
-        Literal["dedicated"],
-        Literal["host"],
+        Literal["default"], Literal["dedicated"], Literal["host"],
     ]
     zone: str
