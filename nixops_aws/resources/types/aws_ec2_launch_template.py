@@ -1,6 +1,6 @@
 from typing import Union
 from typing import Optional
-from typing import List
+from typing import Sequence
 from typing import Mapping
 from typing_extensions import Literal
 from nixops.resources import ResourceOptions
@@ -18,7 +18,7 @@ class Ec2LaunchTemplateOptions(ResourceOptions):
         Literal["terminate"],
     ]
     networkInterfaceId: str
-    privateIpAddresses: Optional[List[str]]
+    privateIpAddresses: Optional[Sequence[str]]
     secondaryPrivateIpAddressCount: Optional[int]
     instanceTags: Mapping[str, str]
     volumeTags: Mapping[str, str]
