@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import dataclasses
-from typing import Union
-from typing import Optional
+from typing import TYPE_CHECKING, Union, Optional, List
 import boto3
 import nixops.util
 from nixops.resources import ResourceDefinition
@@ -13,17 +12,18 @@ from . import ec2_common
 from .iam_role import IAMRoleState
 
 from .types.aws_spot_fleet import SpotFleetRequestOptions
-from .types.aws_spot_fleet import RequestSpotFleet
-from .types.aws_spot_fleet import RequestSpotFleetResponse
-from .types.aws_spot_fleet import DescribeSpotFleetRequests
-from .types.aws_spot_fleet import DescribeSpotFleetRequestsResponse
-from .types.aws_spot_fleet import ModifySpotFleetRequest
-from .types.aws_spot_fleet import ModifySpotFleetRequestResponse
-from .types.aws_spot_fleet import CancelSpotFleetRequests
-from .types.aws_spot_fleet import CancelSpotFleetRequestsResponse
-from .types import aws_shapes as aws
 
 from mypy_boto3_ec2 import type_defs as ec2types
+from mypy_boto3_ec2 import literals as ec2literals
+
+if TYPE_CHECKING:
+    from mypy_boto3_ec2.type_defs import (
+        LaunchTemplateConfigTypeDef,
+        FleetLaunchTemplateSpecificationTypeDef,
+    )
+else:
+    LaunchTemplateConfigTypeDef = dict
+    FleetLaunchTemplateSpecificationTypeDef = dict
 
 
 class awsSpotFleetRequestDefinition(ResourceDefinition):
@@ -53,48 +53,49 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
     )
     access_key_id = nixops.util.attr_property("accessKeyId", None)
     region = nixops.util.attr_property("region", None)
+
+    spotFleetRequestId = nixops.util.attr_property("spotFleetRequestId", None)
+    allocationStrategy = nixops.util.attr_property("allocationStrategy", None)
     # allocationStrategy: Optional[Union[
     #    Literal["lowestPrice"],
     #    Literal["diversified"],
     #    Literal["capacityOptimized"],
     #    Literal["capacityOptimizedPrioritized"]
     # ]],
-    # clientToken: Optional[str],
+    # clientToken: Optional[str]
     # excessCapacityTerminationPolicy: Optional[Union[
     #    Literal["noTermination"],
     #    Literal["default"]
     # ]],
-    # fulfilledCapacity: Optional[float],
+    # fulfilledCapacity: Optional[float]
+
     iamFleetRole = nixops.util.attr_property("iamFleetRole", None)
+
     # instanceInterruptionBehavior: Optional[Union[
     #     Literal["hibernate"],
     #     Literal["top"],
     #     Literal["terminate"]
     # ]],
-    # instancePoolsToUseCount: Optional[int],
+    # instancePoolsToUseCount: Optional[int]
     # launchSpecifications = nixops.util.attr_property("launchSpecifications", [], "json")
-    # launchTemplateConfigs: Optional[List[LaunchTemplateConfigOptions]],
-    # loadBalancersConfig: Optional[List[LoadBalancersConfigOptions]],
+    # launchTemplateConfigs: Optional[List[LaunchTemplateConfigOptions]]
+    # loadBalancersConfig: Optional[List[LoadBalancersConfigOptions]]
     # onDemandAllocationStrategy: Optional[Union[
     #    Literal["lowestPrice"],
     #    Literal["prioritized"]
-    # ]],
-    # onDemandFulfilledCapacity: Optional[float],
-    # onDemandMaxTotalPrice: Optional[str], # todo: price
-    # onDemandTargetCapacity: Optional[int],
-    # replaceUnhealthyInstances: Optional[bool],
-    # spotMaintenaneStrategies: Optional[SpotMaintenanceStrategiesOptions],
-    # spotMaxTotalPrice: Optional[str], # todo: price
-    # spotPrice: Optional[str], # todo: price
-    # # tagSpecifications / tags = Mapping[str, str],
-    # targetCapacity = nixops.util.attr_property("targetCapacity", None, int)
-    # terminateInstancesWithExpiration: Optional[bool],
-    # requestType: Optional[Union[
-    #     Literal["request"],
-    #     Literal["maintain"],
-    #     Literal["instant"]
-    # ]],
-    # validFrom: Optional[Timestamp],
+    # ]]
+    # onDemandFulfilledCapacity: Optional[float]
+    # onDemandMaxTotalPrice: Optional[str] # todo: price
+    # onDemandTargetCapacity: Optional[int]
+    # replaceUnhealthyInstances: Optional[bool]
+    # spotMaintenaneStrategies: Optional[SpotMaintenanceStrategiesOptions]
+    # spotMaxTotalPrice: Optional[str] # todo: price
+    # spotPrice: Optional[str] # todo: price
+    # # tagSpecifications / tags = Mapping[str, str]
+    targetCapacity = nixops.util.attr_property("targetCapacity", 0, int)
+    # terminateInstancesWithExpiration: Optional[bool]
+    type = nixops.util.attr_property("type", None)
+    # validFrom: Optional[Timestamp]
     # validUntil: Optional[Timestamp]
 
     @classmethod
@@ -103,7 +104,6 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
 
     def __init__(self, depl, name, id):
         nixops.resources.ResourceState.__init__(self, depl, name, id)
-        self._conn_boto3 = None
 
     def _exists(self):
         return self.state != self.MISSING
@@ -119,94 +119,22 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
     def create_after(self, resources, defn):
         return {r for r in resources if isinstance(r, IAMRoleState)}
 
-    def save_deploy_state(
-        self,
-        aws_config: Union[
-            ec2types.RequestSpotFleetRequestRequestTypeDef,
-            # ec2types.RequestSpotFleetResponse,
-            RequestSpotFleetResponse,
-            ModifySpotFleetRequest,
-            ModifySpotFleetRequestResponse,
-        ],
-    ):
-        with self.depl._db:
-            if isinstance(aws_config, RequestSpotFleet):
-                data = aws_config.SpotFleetRequestConfig
-                # if data.AllocationStrategy != None:
-                #     self.allocationStrategy = data.AllocationStrategy
-                # if data.OnDemandAllocationStrategy != None:
-                #     self.onDemandAllocationStrategy = data.OnDemandAllocationStrategy
-                # if data.SpotMaintenanceStrategies != None:
-                #     self.spotMaintenanceStrategies = data.SpotMaintenanceStrategies
-                # if data.ClientToken != None:
-                #     self.clientToken = data.ClientToken
-                # if data.ExcessCapacityTerminationPolicy != None:
-                #     self.excessCapacityTerminationPolicy = (
-                #         data.ExcessCapacityTerminationPolicy
-                #     )
-                # if data.FulfilledCapacity != None:
-                #     self.fulfilledCapacity = data.FulfilledCapacity
-                # if data.OnDemandFulfilledCapacity != None:
-                #     self.onDemandFulfilledCapacity = data.OnDemandFulfilledCapacity
-                self.iamFleetRole = data.IamFleetRole
-                # if data.LaunchSpecifications != None:
-                #     self.launchSpecifications = data.LaunchSpecifications
-                # if data.LaunchTemplateConfigs != None:
-                #     self.launchTemplateConfigs = data.LaunchTemplateConfigs
-                # if data.SpotPrice != None:
-                #     self.spotPrice = data.SpotPrice
-                self.targetCapacity = data.TargetCapacity
-                # if data.OnDemandTargetCapacity != None:
-                #     self.onDemandTargetCapacity = data.OnDemandTargetCapacity
-                # if data.OnDemandMaxTotalPrice != None:
-                #     self.onDemandMaxTotalPrice = data.OnDemandMaxTotalPrice
-                # if data.SpotMaxTotalPrice != None:
-                #     self.spotMaxTotalPrice = data.SpotMaxTotalPrice
-                # if data.TerminateInstancesWithExpiration != None:
-                #     self.terminateInstancesWithExpiration = (
-                #         data.TerminateInstancesWithExpiration
-                #     )
-                if data.Type is not None:
-                    self.type = data.Type
-                # if data.ValidFrom != None:
-                #     self.validFrom = data.ValidFrom
-                # if data.ValidUntil != None:
-                #     self.validUntil = data.ValidUntil
-                # if data.ReplaceUnhealthyInstances != None:
-                #     self.replaceUnhealthyInstances = data.ReplaceUnhealthyInstances
-                # if data.InstanceInterruptionBehavior != None:
-                #     self.instanceInterruptionBehavior = (
-                #         data.InstanceInterruptionBehavior
-                #     )
-                # if data.LoadBalancersConfig != None:
-                #     self.loadBalancersConfig = data.LoadBalancersConfig
-                # if data.InstancePoolsToUseCount != None:
-                #     self.instancePoolsToUseCount = data.InstancePoolsToUseCount
-                # if data.TagSpecifications != None:
-                #     self.tagSpecifications = data.TagSpecifications
+    def get_client(self, service):
+        if hasattr(self, "_client"):
+            if self._client:
+                return self._client
 
-            elif isinstance(aws_config, RequestSpotFleetResponse):
-                self.state = self.UP
-                self.spotFleetRequestId = aws_config.SpotFleetRequestId
-
-            elif isinstance(aws_config, ModifySpotFleetRequest):
-                # if aws_config.ExcessCapacityTerminationPolicy != None:
-                #     self.excessCapacityTerminationPolicy = (
-                #         aws_config.ExcessCapacityTerminationPolicy
-                #     )
-                # if aws_config.LaunchTemplateConfigs != None:
-                #     self.launchTemplateConfigs = aws_config.LaunchTemplateConfigs
-                # if aws_config.TargetCapacity != None:
-                #     self.targetCapacity = aws_config.TargetCapacity
-                # if aws_config.OnDemandTargetCapacity != None:
-                #     self.onDemandTargetCapacity = aws_config.OnDemandTargetCapacity
-                pass
-
-            elif isinstance(aws_config, ModifySpotFleetRequestResponse):
-                pass
-
-            else:
-                assert False, "Unknown type to save deploy state"
+        assert self.region
+        (access_key_id, secret_access_key) = nixops_aws.ec2_utils.fetch_aws_secret_key(
+            self.access_key_id
+        )
+        client = boto3.session.Session().client(
+            service_name=service,
+            region_name=self.region,
+            aws_access_key_id=access_key_id,
+            aws_secret_access_key=secret_access_key,
+        )
+        return client
 
     def create(
         self,
@@ -249,12 +177,12 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
                 k for k in mutable_keys if getattr(self, k) != getattr(defn.config, k)
             ]
             if mutable_diff:
-                modify_spot_fleet_request = ModifySpotFleetRequest(
-                    ExcessCapacityTerminationPolicy=None,
-                    # LaunchTemplateConfigs=None,
+                request = ec2types.ModifySpotFleetRequestRequestRequestTypeDef(
+                    # ExcessCapacityTerminationPolicy=
+                    # LaunchTemplateConfigs=
                     SpotFleetRequestId=self.spotFleetRequestId,
-                    TargetCapacity=None,
-                    OnDemandTargetCapacity=None,
+                    # TargetCapacity=
+                    # OnDemandTargetCapacity=
                 )
 
                 self.log(
@@ -262,53 +190,79 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
                         self.spotFleetRequestId
                     )
                 )
-                try:
-                    self.get_client().modify_spot_fleet_request(
-                        **dataclasses.asdict(modify_spot_fleet_request)
-                    )
-                except botocore.exceptions.ClientError as error:
-                    raise error
+                self._modify_spot_fleet_request(request)
 
-                self.save_deploy_state(modify_spot_fleet_request)
+                # TODO update tags?
 
         if self.state == self.MISSING:
-            request_spot_fleet = ec2types.RequestSpotFleetRequestRequestTypeDef(
-                # SpotFleetRequestConfig=aws.SpotFleetRequestConfigData(
-                SpotFleetRequestConfig=ec2types.SpotFleetRequestConfigDataTypeDef(
-                    # AllocationStrategy=None,
-                    # OnDemandAllocationStrategy=None,
-                    # SpotMaintenanceStrategies=None,
-                    # ClientToken=None,
-                    # ExcessCapacityTerminationPolicy=None,
-                    # FulfilledCapacity=None,
-                    # OnDemandFulfilledCapacity=None,
-                    IamFleetRole=defn.config.iamFleetRole,
-                    # LaunchSpecifications=None,
-                    # LaunchTemplateConfigs=None,
-                    # SpotPrice=None,
-                    TargetCapacity=0,
-                    # OnDemandTargetCapacity=None,
-                    # OnDemandMaxTotalPrice=None,
-                    # SpotMaxTotalPrice=None,
-                    # TerminateInstancesWithExpiration=None,
-                    Type=defn.config.type,
-                    # ValidFrom=None,
-                    # ValidUntil=None,
-                    # ReplaceUnhealthyInstances=None,
-                    # InstanceInterruptionBehavior=None,
-                    # LoadBalancersConfig=None,
-                    # InstancePoolsToUseCount=None,
-                    # TagSpecifications=None,
-                ),
-            )
-
             self.log(
                 "creating spot fleet request with target capacity of ‘{0}’...".format(
                     # self.targetCapacity
                     0
                 )
             )
-            self._request_spot_fleet(request_spot_fleet)
+
+            tags = dict(defn.config.tags)
+            tags.update(self.get_common_tags())
+
+            # # TODO instance tags
+            # instance_tags = dict(defn.config.tags)
+            # instance_tags.update(self.get_common_tags())
+
+            # The region may only be set once, when a new spot fleet is being requested
+            with self.depl._db:
+                self.region = defn.config.region
+
+            launch_template_configs = [
+                LaunchTemplateConfigTypeDef(
+                    LaunchTemplateSpecification=FleetLaunchTemplateSpecificationTypeDef(
+                        # LaunchTemplateId: str
+                        LaunchTemplateName=config.launchTemplateSpecification.launchTemplateName,
+                        Version=config.launchTemplateSpecification.version,
+                    ),
+                    # Overrides=
+                )
+                for config in defn.config.launchTemplateConfigs
+            ]
+
+            self._request_spot_fleet(
+                ec2types.RequestSpotFleetRequestRequestTypeDef(
+                    SpotFleetRequestConfig=ec2types.SpotFleetRequestConfigDataTypeDef(
+                        # AllocationStrategy=
+                        # OnDemandAllocationStrategy=
+                        # SpotMaintenanceStrategies=
+                        # ClientToken=
+                        # ExcessCapacityTerminationPolicy=
+                        # FulfilledCapacity=
+                        # OnDemandFulfilledCapacity=
+                        IamFleetRole=self._arn_from_role_name(defn.config.iamFleetRole),
+                        # LaunchSpecifications=
+                        LaunchTemplateConfigs=launch_template_configs,
+                        # SpotPrice=
+                        TargetCapacity=0,
+                        # OnDemandTargetCapacity=
+                        # OnDemandMaxTotalPrice=
+                        # SpotMaxTotalPrice=
+                        # TerminateInstancesWithExpiration=
+                        Type=defn.config.type,
+                        # ValidFrom=
+                        # ValidUntil=
+                        # ReplaceUnhealthyInstances=
+                        # InstanceInterruptionBehavior=
+                        # LoadBalancersConfig=
+                        # InstancePoolsToUseCount=
+                        TagSpecifications=[
+                            ec2types.TagSpecificationTypeDef(
+                                ResourceType="spot-fleet-request",
+                                Tags=[
+                                    ec2types.TagTypeDef(Key=k, Value=tags[k])
+                                    for k in tags
+                                ],
+                            )
+                        ],
+                    )
+                )
+            )
 
     def check(self):
         if self.spotFleetRequestId is None:
@@ -316,7 +270,7 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
             return
 
         self._describe_spot_fleet_requests(
-            DescribeSpotFleetRequests(
+            ec2types.DescribeSpotFleetRequestsRequestRequestTypeDef(
                 # DryRun=None,
                 # MaxResults=None,
                 # NextToken=None,
@@ -338,7 +292,7 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
         )
         try:
             self._cancel_spot_fleet_requests(
-                CancelSpotFleetRequests(
+                ec2types.CancelSpotFleetRequestsRequestRequestTypeDef(
                     SpotFleetRequestIds=[self.spotFleetRequestId],
                     TerminateInstances=True,
                 )
@@ -355,17 +309,134 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
 
         return True
 
+    # Boto3 helpers
+
+    def _to_resource_state(self, state: ec2literals.BatchStateType) -> int:
+        if state == "active":
+            return self.UP
+        elif state == "cancelled":
+            return self.MISSING
+        elif state == "cancelled_running":
+            return self.MISSING
+        elif state == "cancelled_terminating":
+            return self.MISSING
+        elif state == "failed":
+            return self.MISSING
+        elif state == "modifying":
+            return self.UP
+        elif state == "submitted":
+            return self.UP
+        else:
+            return self.UNKNOWN
+
+    def _arn_from_role_name(self, role_name):
+        if role_name.startswith("arn:aws:iam"):
+            return role_name
+
+        role_arn = self.get_client("iam").get_role(RoleName=role_name)
+        return role_arn["Role"]["Arn"]
+
+    def _save_config_data(self, config: ec2types.SpotFleetRequestConfigDataTypeDef):
+        if config.get("AllocationStrategy") is not None:
+            self.allocationStrategy = config["AllocationStrategy"]
+        # if config['OnDemandAllocationStrategy'] is not None:
+        #     self.onDemandAllocationStrategy = config['OnDemandAllocationStrategy']
+        # if config['SpotMaintenanceStrategies'] is not None:
+        #     self.spotMaintenanceStrategies = config['SpotMaintenanceStrategies']
+        # if config['ClientToken'] is not None:
+        #     self.clientToken = config['ClientToken']
+        # if config['ExcessCapacityTerminationPolicy'] is not None:
+        #     self.excessCapacityTerminationPolicy = (
+        #         config['ExcessCapacityTerminationPolicy']
+        #     )
+        # if config['FulfilledCapacity'] is not None:
+        #     self.fulfilledCapacity = config['FulfilledCapacity']
+        # if config['OnDemandFulfilledCapacity'] is not None:
+        #     self.onDemandFulfilledCapacity = config['OnDemandFulfilledCapacity']
+        self.iamFleetRole = config["IamFleetRole"]
+        # if config['LaunchSpecifications'] is not None:
+        #     self.launchSpecifications = config['LaunchSpecifications']
+        # if config['LaunchTemplateConfigs'] is not None:
+        #     self.launchTemplateConfigs = config['LaunchTemplateConfigs']
+        # if config['SpotPrice'] is not None:
+        #     self.spotPrice = config['SpotPrice']
+        self.targetCapacity = config["TargetCapacity"]
+        # if config['OnDemandTargetCapacity'] is not None:
+        #     self.onDemandTargetCapacity = config['OnDemandTargetCapacity']
+        # if config['OnDemandMaxTotalPrice'] is not None:
+        #     self.onDemandMaxTotalPrice = config['OnDemandMaxTotalPrice']
+        # if config['SpotMaxTotalPrice'] is not None:
+        #     self.spotMaxTotalPrice = config['SpotMaxTotalPrice']
+        # if config['TerminateInstancesWithExpiration'] is not None:
+        #     self.terminateInstancesWithExpiration = (
+        #         config['TerminateInstancesWithExpiration']
+        #     )
+        if config["Type"] is not None:
+            self.type = config["Type"]
+        # if config['ValidFrom'] is not None:
+        #     self.validFrom = config['ValidFrom']
+        # if config['ValidUntil'] is not None:
+        #     self.validUntil = config['ValidUntil']
+        # if config['ReplaceUnhealthyInstances'] is not None:
+        #     self.replaceUnhealthyInstances = config['ReplaceUnhealthyInstances']
+        # if config['InstanceInterruptionBehavior'] is not None:
+        #     self.instanceInterruptionBehavior = (
+        #         config['InstanceInterruptionBehavior']
+        #     )
+        # if config['LoadBalancersConfig'] is not None:
+        #     self.loadBalancersConfig = config['LoadBalancersConfig']
+        # if config['InstancePoolsToUseCount'] is not None:
+        #     self.instancePoolsToUseCount = config['InstancePoolsToUseCount']
+        # if config['TagSpecifications'] is not None:
+        #     self.tagSpecifications = config['TagSpecifications']
+
+    def _save_tags(self, tags: List[ec2types.TagTypeDef]):
+        pass
+
     # Boto3 wrappers
 
     def _describe_spot_fleet_requests(
-        self, request: DescribeSpotFleetRequests
-    ) -> Optional[DescribeSpotFleetRequestsResponse]:
-        try:
-            response = DescribeSpotFleetRequestsResponse(
-                **self.get_client().describe_spot_fleet_requests(
-                    **dataclasses.asdict(request)
+        self, request: ec2types.DescribeSpotFleetRequestsRequestRequestTypeDef
+    ) -> Optional[ec2types.DescribeSpotFleetRequestsResponseTypeDef]:
+        def check_response_field(name, value, expected_value):
+            if value != expected_value:
+                raise Exception(
+                    "Unexpected value ‘{0} = {1}’ in response, expected ‘{0} = {2}’".format(
+                        name, value, expected_value
+                    )
                 )
+
+        try:
+            response = self.get_client("ec2").describe_spot_fleet_requests(
+                # **dataclasses.asdict(request)
+                **request
             )
+            for config in response["SpotFleetRequestConfigs"]:
+                check_response_field(
+                    "SpotFleetRequestId",
+                    config["SpotFleetRequestId"],
+                    self.spotFleetRequestId,
+                )
+
+                # TODO:
+                # Why is activity status not always present?
+                # Is it due to spot fleet being canceled without any instances?
+                if response.get("ActivityStatus") == "error":
+                    self.warn(
+                        "spot fleet activity status is {}, please investigate...".format(
+                            response["ActivityStatus"]
+                        )
+                    )
+
+                if not request.get("DryRun"):
+                    with self.depl._db:
+                        # Update deployment state from response
+                        self.state = self._to_resource_state(
+                            config["SpotFleetRequestState"]
+                        )
+                        self._save_config_data(config["SpotFleetRequestConfig"])
+                        self._save_tags(config["Tags"])
+
             return response
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "ResourceNotFoundException":
@@ -376,47 +447,95 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
 
     def _request_spot_fleet(
         self, request: ec2types.RequestSpotFleetRequestRequestTypeDef
-    ):
-        response = RequestSpotFleetResponse(
-            **self.get_client().request_spot_fleet(**dataclasses.asdict(request))
+    ) -> ec2types.RequestSpotFleetResponseTypeDef:
+        response = self.get_client("ec2").request_spot_fleet(
+            # **dataclasses.asdict(request)
+            **request
         )
-        self.save_deploy_state(request)
-        self.save_deploy_state(response)
+
+        if not request.get("DryRun"):
+            with self.depl._db:
+                self.state = self.UP
+
+                # Save response to deployment state
+                self.spotFleetRequestId = response["SpotFleetRequestId"]
+
+                # Save request to deployment state
+                self._save_config_data(request["SpotFleetRequestConfig"])
+
+
         return response
 
     def _modify_spot_fleet_request(
-        self, request: ModifySpotFleetRequest
-    ) -> Optional[ModifySpotFleetRequestResponse]:
+        self, request: ec2types.ModifySpotFleetRequestRequestRequestTypeDef
+    ) -> Optional[ec2types.ModifySpotFleetRequestResponseTypeDef]:
         try:
-            response = ModifySpotFleetRequestResponse(
-                self.get_client().modify_spot_fleet_request(
-                    **dataclasses.asdict(request)
-                )
+            response = self.get_client("ec2").modify_spot_fleet_request(
+                # **dataclasses.asdict(request)
+                **request
             )
-            self.save_deploy_state(request)
-            self.save_deploy_state(response)
+
+            if response.Return:
+                with self.depl._db:
+                    # Save request to deployment state
+                    # if request.ExcessCapacityTerminationPolicy is not None:
+                    #     self.excessCapacityTerminationPolicy = (
+                    #         request.ExcessCapacityTerminationPolicy
+                    #     )
+                    # if request.LaunchTemplateConfigs is not None:
+                    #     self.launchTemplateConfigs = request.LaunchTemplateConfigs
+                    if request["TargetCapacity"] is not None:
+                        self.targetCapacity = request["TargetCapacity"]
+                    if request["OnDemandTargetCapacity"] is not None:
+                        self.onDemandTargetCapacity = request["OnDemandTargetCapacity"]
+
             return response
+
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "ResourceNotFoundException":
-                self.state = self.MISSING
+                with self.depl._db:
+                    self.state = self.MISSING
                 return None
             else:
                 raise e
 
     def _cancel_spot_fleet_requests(
-        self, request: CancelSpotFleetRequests
-    ) -> CancelSpotFleetRequestsResponse:
-        return CancelSpotFleetRequestsResponse(
-            **self.get_client().cancel_spot_fleet_requests(
-                **dataclasses.asdict(request)
-            )
+        self, request: ec2types.CancelSpotFleetRequestsRequestRequestTypeDef
+    ) -> ec2types.CancelSpotFleetRequestsResponseTypeDef:
+        response = self.get_client("ec2").cancel_spot_fleet_requests(
+            # **dataclasses.asdict(request)
+            **request
         )
-        # response['SuccessfulFleetRequests]
-        # ['CurrentSpotFleetRequestState']
-        # "cancelled_running", "cancelled_terminating",
-        # ['PreviousSpotFleetRequestState']
-        # ['SpotFleetRequestId']
 
-        # response['UnsuccessfulFleetRequests]
-        # ['Error']
-        # ['SpotFleetRequestId']
+        def check_response_field(name, value, expected_value):
+            if value != expected_value:
+                raise Exception(
+                    "Unexpected value ‘{0} = {1}’ in response, expected ‘{0} = {2}’".format(
+                        name, value, expected_value
+                    )
+                )
+
+        for item in response["SuccessfulFleetRequests"]:
+            check_response_field(
+                "SpotFleetRequestId",
+                item["SpotFleetRequestId"],
+                self.spotFleetRequestId,
+            )
+            self.state = self._to_resource_state(item["CurrentSpotFleetRequestState"])
+
+        for item in response["UnsuccessfulFleetRequests"]:
+            check_response_field(
+                "SpotFleetRequestId",
+                item["SpotFleetRequestId"],
+                self.spotFleetRequestId,
+            )
+            self.warn(
+                "spot fleet request with id ‘{0}’ cancelation failed with error ‘{1}: {2}’".format(
+                    self.spotFleetRequestId,
+                    response["Error"]["Code"],
+                    response["Error"]["Message"],
+                )
+            )
+            self.state = self.UNKNOWN
+
+        return response
