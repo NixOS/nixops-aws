@@ -6,7 +6,7 @@ import nixops_aws.ec2_utils
 import nixops_aws.resources
 from nixops_aws.resources.ec2_common import EC2CommonState
 import botocore.exceptions
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence
 
 from .types.aws_ec2_launch_template import Ec2LaunchTemplateOptions
 
@@ -20,6 +20,8 @@ if TYPE_CHECKING:
         TagTypeDef,
         PrivateIpAddressSpecificationTypeDef,
         DescribeImagesRequestRequestTypeDef,
+        LaunchTemplateBlockDeviceMappingRequestTypeDef,
+        LaunchTemplateEbsBlockDeviceRequestTypeDef,
     )
 else:
     CreateLaunchTemplateRequestRequestTypeDef = dict
@@ -30,6 +32,8 @@ else:
     TagTypeDef = dict
     PrivateIpAddressSpecificationTypeDef = dict
     DescribeImagesRequestRequestTypeDef = dict
+    LaunchTemplateBlockDeviceMappingRequestTypeDef = dict
+    LaunchTemplateEbsBlockDeviceRequestTypeDef = dict
 
 
 class awsEc2LaunchTemplateDefinition(nixops.resources.ResourceDefinition):
@@ -255,6 +259,51 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
         return True
 
     # Boto3 helpers
+    def _block_device_mappings_from_ami(
+        self, image_id,
+    ) -> Sequence[LaunchTemplateBlockDeviceMappingRequestTypeDef]:
+        ami = self.connect_boto3(self.region).describe_images(
+            **DescribeImagesRequestRequestTypeDef(ImageIds=[image_id])
+        )["Images"][0]
+
+        block_device_mappings = []
+        for block_device_mapping in ami["BlockDeviceMappings"]:
+            if block_device_mapping.get("Ebs"):
+                template_block_device_mapping = LaunchTemplateBlockDeviceMappingRequestTypeDef(
+                    DeviceName=block_device_mapping["DeviceName"],
+                    Ebs=LaunchTemplateEbsBlockDeviceRequestTypeDef(),
+                )
+                if block_device_mapping.get("Encrypted") is not None:
+                    template_block_device_mapping["Ebs"][
+                        "Encrypted"
+                    ] = block_device_mapping["Ebs"]["Encrypted"]
+                if block_device_mapping["Ebs"].get("DeleteOnTermination") is not None:
+                    template_block_device_mapping["Ebs"][
+                        "DeleteOnTermination"
+                    ] = block_device_mapping["Ebs"]["DeleteOnTermination"]
+                if block_device_mapping["Ebs"].get("KmsKeyId") is not None:
+                    template_block_device_mapping["Ebs"][
+                        "KmsKeyId"
+                    ] = block_device_mapping["Ebs"]["KmsKeyId"]
+                if block_device_mapping["Ebs"].get("SnapshotId") is not None:
+                    template_block_device_mapping["Ebs"][
+                        "SnapshotId"
+                    ] = block_device_mapping["Ebs"]["SnapshotId"]
+                if block_device_mapping["Ebs"].get("VolumeSize") is not None:
+                    template_block_device_mapping["Ebs"][
+                        "VolumeSize"
+                    ] = block_device_mapping["Ebs"]["VolumeSize"]
+                if block_device_mapping["Ebs"].get("VolumeType") is not None:
+                    template_block_device_mapping["Ebs"][
+                        "VolumeType"
+                    ] = block_device_mapping["Ebs"]["VolumeType"]
+                if block_device_mapping.get("VirtualName") is not None:
+                    template_block_device_mapping[
+                        "VirtualName"
+                    ] = block_device_mapping.get("VirtualName")
+                block_device_mappings.append(template_block_device_mapping)
+        return block_device_mappings
+
     def _launch_template_data_from_config(
         self, config: Ec2LaunchTemplateOptions
     ) -> RequestLaunchTemplateDataTypeDef:
@@ -366,22 +415,7 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
         if config.keyPair != "":
             data["KeyName"] = config.keyPair
 
-        ami = self.connect_boto3(self.region).describe_images(
-            **DescribeImagesRequestRequestTypeDef(ImageIds=[config.ami])
-        )["Images"][0]
-
-        # TODO: BlockDeviceMappings for non root volumes
-        data["BlockDeviceMappings"] = [
-            dict(
-                DeviceName="/dev/sda1",
-                Ebs=dict(
-                    DeleteOnTermination=True,
-                    VolumeSize=config.ebsInitialRootDiskSize,
-                    VolumeType=ami["BlockDeviceMappings"][0]["Ebs"]["VolumeType"],
-                ),
-            )
-        ]
-
+        data["BlockDeviceMappings"] = self._block_device_mappings_from_ami(config.ami)
         return data
 
     # Boto3 wrappers
