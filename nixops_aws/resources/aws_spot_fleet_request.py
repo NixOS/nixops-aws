@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-import dataclasses
-from typing import TYPE_CHECKING, Union, Optional, List
+from typing import TYPE_CHECKING, Optional, List
 import boto3
 import nixops.util
 from nixops.resources import ResourceDefinition
 from nixops.resources import ResourceState
-from nixops.util import ImmutableValidatedObject
 import nixops_aws.ec2_utils
 import botocore.exceptions
 from . import ec2_common
@@ -13,17 +11,41 @@ from .iam_role import IAMRoleState
 
 from .types.aws_spot_fleet import SpotFleetRequestOptions
 
-from mypy_boto3_ec2 import type_defs as ec2types
-from mypy_boto3_ec2 import literals as ec2literals
 
 if TYPE_CHECKING:
+    from mypy_boto3_ec2.literals import BatchStateType
     from mypy_boto3_ec2.type_defs import (
         LaunchTemplateConfigTypeDef,
         FleetLaunchTemplateSpecificationTypeDef,
+        LaunchTemplateOverridesTypeDef,
+        TagSpecificationTypeDef,
+        SpotFleetRequestConfigDataTypeDef,
+        TagTypeDef,
+        DescribeSpotFleetRequestsRequestRequestTypeDef,
+        DescribeSpotFleetRequestsResponseTypeDef,
+        RequestSpotFleetRequestRequestTypeDef,
+        RequestSpotFleetResponseTypeDef,
+        ModifySpotFleetRequestRequestRequestTypeDef,
+        ModifySpotFleetRequestResponseTypeDef,
+        CancelSpotFleetRequestsRequestRequestTypeDef,
+        CancelSpotFleetRequestsResponseTypeDef,
     )
 else:
+    BatchStateType = object
     LaunchTemplateConfigTypeDef = dict
     FleetLaunchTemplateSpecificationTypeDef = dict
+    LaunchTemplateOverridesTypeDef = dict
+    TagSpecificationTypeDef = dict
+    SpotFleetRequestConfigDataTypeDef = dict
+    TagTypeDef = dict
+    DescribeSpotFleetRequestsRequestRequestTypeDef = dict
+    DescribeSpotFleetRequestsResponseTypeDef = dict
+    RequestSpotFleetRequestRequestTypeDef = dict
+    RequestSpotFleetResponseTypeDef = dict
+    ModifySpotFleetRequestRequestRequestTypeDef = dict
+    ModifySpotFleetRequestResponseTypeDef = dict
+    CancelSpotFleetRequestsRequestRequestTypeDef = dict
+    CancelSpotFleetRequestsResponseTypeDef = dict
 
 
 class awsSpotFleetRequestDefinition(ResourceDefinition):
@@ -78,7 +100,9 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
     # ]],
     # instancePoolsToUseCount: Optional[int]
     # launchSpecifications = nixops.util.attr_property("launchSpecifications", [], "json")
-    # launchTemplateConfigs: Optional[List[LaunchTemplateConfigOptions]]
+    launchTemplateConfigs = nixops.util.attr_property(
+        "launchTemplateConfigs", [], "json"
+    )
     # loadBalancersConfig: Optional[List[LoadBalancersConfigOptions]]
     # onDemandAllocationStrategy: Optional[Union[
     #    Literal["lowestPrice"],
@@ -89,8 +113,8 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
     # onDemandTargetCapacity: Optional[int]
     # replaceUnhealthyInstances: Optional[bool]
     # spotMaintenaneStrategies: Optional[SpotMaintenanceStrategiesOptions]
-    # spotMaxTotalPrice: Optional[str] # todo: price
-    # spotPrice: Optional[str] # todo: price
+    spotMaxTotalPrice = nixops.util.attr_property("spotMaxTotalPrice", None)
+    spotPrice = nixops.util.attr_property("spotPrice", None)
     # # tagSpecifications / tags = Mapping[str, str]
     targetCapacity = nixops.util.attr_property("targetCapacity", 0, int)
     # terminateInstancesWithExpiration: Optional[bool]
@@ -152,36 +176,38 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
             )
 
         if self._exists():
-            immutable_keys = [
-                "region",
-                "type",
-                "iamFleetRole",
-            ]
-            immutable_diff = [
-                k for k in immutable_keys if getattr(self, k) != getattr(defn.config, k)
-            ]
+            immutable_values = {
+                "region": defn.config.region,
+                "type": defn.config.type,
+                "iamFleetRole": self._arn_from_role_name(defn.config.iamFleetRole),
+            }
+            immutable_diff = {
+                k for k in immutable_values if getattr(self, k) != immutable_values[k]
+            }  # TODO dict diff
             if immutable_diff:
                 raise Exception(
-                    "changing keys `{}` of an existing spot fleet request is not supported".format(
-                        immutable_diff
+                    "changing keys ‘{0}’ (from ‘{1}’ to ‘{2}’) of an existing spot fleet request is not supported".format(
+                        immutable_diff,
+                        [getattr(self, k) for k in immutable_diff],
+                        [getattr(defn.config, k) for k in immutable_diff],
                     )
                 )
 
-            mutable_keys = [
+            mutable_values = {
                 # "excessCapacityTerminationPolicy",
                 # "launchTemplateConfigs",
-                "targetCapacity",
+                "targetCapacity": 0,  # defn.config.targetCapacity
                 # "onDemandTargetCapacity",
-            ]
+            }
             mutable_diff = [
-                k for k in mutable_keys if getattr(self, k) != getattr(defn.config, k)
-            ]
-            if mutable_diff:
-                request = ec2types.ModifySpotFleetRequestRequestRequestTypeDef(
+                k for k in mutable_values if getattr(self, k) != mutable_values[k]
+            ]  # TODO dict diff
+            if True or mutable_diff:
+                request = ModifySpotFleetRequestRequestRequestTypeDef(
                     # ExcessCapacityTerminationPolicy=
                     # LaunchTemplateConfigs=
                     SpotFleetRequestId=self.spotFleetRequestId,
-                    # TargetCapacity=
+                    TargetCapacity=mutable_values["targetCapacity"]
                     # OnDemandTargetCapacity=
                 )
 
@@ -201,68 +227,11 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
                     0
                 )
             )
-
-            tags = dict(defn.config.tags)
-            tags.update(self.get_common_tags())
-
-            # # TODO instance tags
-            # instance_tags = dict(defn.config.tags)
-            # instance_tags.update(self.get_common_tags())
-
             # The region may only be set once, when a new spot fleet is being requested
             with self.depl._db:
                 self.region = defn.config.region
 
-            launch_template_configs = [
-                LaunchTemplateConfigTypeDef(
-                    LaunchTemplateSpecification=FleetLaunchTemplateSpecificationTypeDef(
-                        # LaunchTemplateId: str
-                        LaunchTemplateName=config.launchTemplateSpecification.launchTemplateName,
-                        Version=config.launchTemplateSpecification.version,
-                    ),
-                    # Overrides=
-                )
-                for config in defn.config.launchTemplateConfigs
-            ]
-
-            self._request_spot_fleet(
-                ec2types.RequestSpotFleetRequestRequestTypeDef(
-                    SpotFleetRequestConfig=ec2types.SpotFleetRequestConfigDataTypeDef(
-                        # AllocationStrategy=
-                        # OnDemandAllocationStrategy=
-                        # SpotMaintenanceStrategies=
-                        # ClientToken=
-                        # ExcessCapacityTerminationPolicy=
-                        # FulfilledCapacity=
-                        # OnDemandFulfilledCapacity=
-                        IamFleetRole=self._arn_from_role_name(defn.config.iamFleetRole),
-                        # LaunchSpecifications=
-                        LaunchTemplateConfigs=launch_template_configs,
-                        # SpotPrice=
-                        TargetCapacity=0,
-                        # OnDemandTargetCapacity=
-                        # OnDemandMaxTotalPrice=
-                        # SpotMaxTotalPrice=
-                        # TerminateInstancesWithExpiration=
-                        Type=defn.config.type,
-                        # ValidFrom=
-                        # ValidUntil=
-                        # ReplaceUnhealthyInstances=
-                        # InstanceInterruptionBehavior=
-                        # LoadBalancersConfig=
-                        # InstancePoolsToUseCount=
-                        TagSpecifications=[
-                            ec2types.TagSpecificationTypeDef(
-                                ResourceType="spot-fleet-request",
-                                Tags=[
-                                    ec2types.TagTypeDef(Key=k, Value=tags[k])
-                                    for k in tags
-                                ],
-                            )
-                        ],
-                    )
-                )
-            )
+            self._request_spot_fleet(self._to_spot_fleet_request(defn.config))
 
     def check(self):
         if self.spotFleetRequestId is None:
@@ -270,7 +239,7 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
             return
 
         self._describe_spot_fleet_requests(
-            ec2types.DescribeSpotFleetRequestsRequestRequestTypeDef(
+            DescribeSpotFleetRequestsRequestRequestTypeDef(
                 # DryRun=None,
                 # MaxResults=None,
                 # NextToken=None,
@@ -288,11 +257,13 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
             return True
 
         self.log(
-            "canceling spot fleet request with id ‘{0}’...", self.spotFleetRequestId
+            "canceling spot fleet request with id ‘{0}’...".format(
+                self.spotFleetRequestId
+            )
         )
         try:
             self._cancel_spot_fleet_requests(
-                ec2types.CancelSpotFleetRequestsRequestRequestTypeDef(
+                CancelSpotFleetRequestsRequestRequestTypeDef(
                     SpotFleetRequestIds=[self.spotFleetRequestId],
                     TerminateInstances=True,
                 )
@@ -311,7 +282,7 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
 
     # Boto3 helpers
 
-    def _to_resource_state(self, state: ec2literals.BatchStateType) -> int:
+    def _to_resource_state(self, state: BatchStateType) -> int:
         if state == "active":
             return self.UP
         elif state == "cancelled":
@@ -329,6 +300,86 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
         else:
             return self.UNKNOWN
 
+    def _to_launch_template_overrides(
+        self, overrides
+    ) -> LaunchTemplateOverridesTypeDef:
+        result = LaunchTemplateOverridesTypeDef()
+        if overrides.instanceType:
+            result["InstanceType"] = overrides.instanceType
+        if overrides.spotPrice:
+            result["SpotPrice"] = overrides.spotPrice
+        if overrides.subnetId:
+            result["SubnetId"] = overrides.subnetId
+        if overrides.availabilityZone:
+            result["AvailabilityZone"] = overrides.availabilityZone
+        if overrides.weightedCapacity:
+            result["WeightedCapacity"] = overrides.weightedCapacity
+        if overrides.priority:
+            result["Priority"] = overrides.priority
+        return result
+
+    def _to_spot_fleet_request(self, config):
+        tags = dict(config.tags)
+        tags.update(self.get_common_tags())
+
+        # # TODO instance tags
+        # instance_tags = dict(config.tags)
+        # instance_tags.update(self.get_common_tags())
+
+        launch_template_configs = [
+            LaunchTemplateConfigTypeDef(
+                LaunchTemplateSpecification=FleetLaunchTemplateSpecificationTypeDef(
+                    # LaunchTemplateId: str
+                    LaunchTemplateName=template_config.launchTemplateSpecification.launchTemplateName,
+                    Version=template_config.launchTemplateSpecification.version,
+                ),
+                Overrides=[
+                    self._to_launch_template_overrides(overrides)
+                    for overrides in template_config.overrides
+                ],
+            )
+            for template_config in config.launchTemplateConfigs
+        ]
+
+        request = RequestSpotFleetRequestRequestTypeDef(
+            SpotFleetRequestConfig=SpotFleetRequestConfigDataTypeDef(
+                # AllocationStrategy=
+                # OnDemandAllocationStrategy=
+                # SpotMaintenanceStrategies=
+                # ClientToken=
+                # ExcessCapacityTerminationPolicy=
+                # FulfilledCapacity=
+                # OnDemandFulfilledCapacity=
+                IamFleetRole=self._arn_from_role_name(config.iamFleetRole),
+                # LaunchSpecifications=
+                LaunchTemplateConfigs=launch_template_configs,
+                TargetCapacity=1,  # TODO
+                # OnDemandTargetCapacity=
+                # OnDemandMaxTotalPrice=
+                # TerminateInstancesWithExpiration=
+                Type=config.type,
+                # ValidFrom=
+                # ValidUntil=
+                # ReplaceUnhealthyInstances=
+                # InstanceInterruptionBehavior=
+                # LoadBalancersConfig=
+                # InstancePoolsToUseCount=
+                TagSpecifications=[
+                    TagSpecificationTypeDef(
+                        ResourceType="spot-fleet-request",
+                        Tags=[TagTypeDef(Key=k, Value=tags[k]) for k in tags],
+                    )
+                ],
+            )
+        )
+        if config.spotPrice:
+            request["SpotFleetRequestConfig"]["SpotPrice"] = config.spotPrice
+        if config.spotMaxTotalPrice:
+            request["SpotFleetRequestConfig"][
+                "SpotMaxTotalPrice"
+            ] = config.spotMaxTotalPrice
+        return request
+
     def _arn_from_role_name(self, role_name):
         if role_name.startswith("arn:aws:iam"):
             return role_name
@@ -336,68 +387,68 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
         role_arn = self.get_client("iam").get_role(RoleName=role_name)
         return role_arn["Role"]["Arn"]
 
-    def _save_config_data(self, config: ec2types.SpotFleetRequestConfigDataTypeDef):
+    def _save_config_data(self, config: SpotFleetRequestConfigDataTypeDef):
         if config.get("AllocationStrategy") is not None:
             self.allocationStrategy = config["AllocationStrategy"]
-        # if config['OnDemandAllocationStrategy'] is not None:
-        #     self.onDemandAllocationStrategy = config['OnDemandAllocationStrategy']
-        # if config['SpotMaintenanceStrategies'] is not None:
-        #     self.spotMaintenanceStrategies = config['SpotMaintenanceStrategies']
-        # if config['ClientToken'] is not None:
-        #     self.clientToken = config['ClientToken']
-        # if config['ExcessCapacityTerminationPolicy'] is not None:
+        # if config["OnDemandAllocationStrategy"] is not None:
+        #     self.onDemandAllocationStrategy = config["OnDemandAllocationStrategy"]
+        # if config["SpotMaintenanceStrategies"] is not None:
+        #     self.spotMaintenanceStrategies = config["SpotMaintenanceStrategies"]
+        # if config["ClientToken"] is not None:
+        #     self.clientToken = config["ClientToken"]
+        # if config["ExcessCapacityTerminationPolicy"] is not None:
         #     self.excessCapacityTerminationPolicy = (
-        #         config['ExcessCapacityTerminationPolicy']
+        #         config["ExcessCapacityTerminationPolicy"]
         #     )
-        # if config['FulfilledCapacity'] is not None:
-        #     self.fulfilledCapacity = config['FulfilledCapacity']
-        # if config['OnDemandFulfilledCapacity'] is not None:
-        #     self.onDemandFulfilledCapacity = config['OnDemandFulfilledCapacity']
+        # if config["FulfilledCapacity"] is not None:
+        #     self.fulfilledCapacity = config["FulfilledCapacity"]
+        # if config["OnDemandFulfilledCapacity"] is not None:
+        #     self.onDemandFulfilledCapacity = config["OnDemandFulfilledCapacity"]
         self.iamFleetRole = config["IamFleetRole"]
-        # if config['LaunchSpecifications'] is not None:
-        #     self.launchSpecifications = config['LaunchSpecifications']
-        # if config['LaunchTemplateConfigs'] is not None:
-        #     self.launchTemplateConfigs = config['LaunchTemplateConfigs']
-        # if config['SpotPrice'] is not None:
-        #     self.spotPrice = config['SpotPrice']
+        # if config["LaunchSpecifications"] is not None:
+        #     self.launchSpecifications = config["LaunchSpecifications"]
+        if config["LaunchTemplateConfigs"] is not None:
+            self.launchTemplateConfigs = config["LaunchTemplateConfigs"]
+        if config["SpotPrice"] is not None:
+            self.spotPrice = config["SpotPrice"]
         self.targetCapacity = config["TargetCapacity"]
-        # if config['OnDemandTargetCapacity'] is not None:
-        #     self.onDemandTargetCapacity = config['OnDemandTargetCapacity']
-        # if config['OnDemandMaxTotalPrice'] is not None:
-        #     self.onDemandMaxTotalPrice = config['OnDemandMaxTotalPrice']
-        # if config['SpotMaxTotalPrice'] is not None:
-        #     self.spotMaxTotalPrice = config['SpotMaxTotalPrice']
-        # if config['TerminateInstancesWithExpiration'] is not None:
+        # if config["OnDemandTargetCapacity"] is not None:
+        #     self.onDemandTargetCapacity = config["OnDemandTargetCapacity"]
+        # if config["OnDemandMaxTotalPrice"] is not None:
+        #     self.onDemandMaxTotalPrice = config["OnDemandMaxTotalPrice"]
+        if config["SpotMaxTotalPrice"] is not None:
+            self.spotMaxTotalPrice = config["SpotMaxTotalPrice"]
+        # if config["TerminateInstancesWithExpiration"] is not None:
         #     self.terminateInstancesWithExpiration = (
-        #         config['TerminateInstancesWithExpiration']
+        #         config["TerminateInstancesWithExpiration"]
         #     )
         if config["Type"] is not None:
             self.type = config["Type"]
-        # if config['ValidFrom'] is not None:
-        #     self.validFrom = config['ValidFrom']
-        # if config['ValidUntil'] is not None:
-        #     self.validUntil = config['ValidUntil']
-        # if config['ReplaceUnhealthyInstances'] is not None:
-        #     self.replaceUnhealthyInstances = config['ReplaceUnhealthyInstances']
-        # if config['InstanceInterruptionBehavior'] is not None:
+        # if config["ValidFrom"] is not None:
+        #     self.validFrom = config["ValidFrom"]
+        # if config["ValidUntil"] is not None:
+        #     self.validUntil = config["ValidUntil"]
+        # if config["ReplaceUnhealthyInstances"] is not None:
+        #     self.replaceUnhealthyInstances = config["ReplaceUnhealthyInstances"]
+        # if config["InstanceInterruptionBehavior"] is not None:
         #     self.instanceInterruptionBehavior = (
-        #         config['InstanceInterruptionBehavior']
+        #         config["InstanceInterruptionBehavior"]
         #     )
-        # if config['LoadBalancersConfig'] is not None:
-        #     self.loadBalancersConfig = config['LoadBalancersConfig']
-        # if config['InstancePoolsToUseCount'] is not None:
-        #     self.instancePoolsToUseCount = config['InstancePoolsToUseCount']
-        # if config['TagSpecifications'] is not None:
-        #     self.tagSpecifications = config['TagSpecifications']
+        # if config["LoadBalancersConfig"] is not None:
+        #     self.loadBalancersConfig = config["LoadBalancersConfig"]
+        # if config["InstancePoolsToUseCount"] is not None:
+        #     self.instancePoolsToUseCount = config["InstancePoolsToUseCount"]
+        # if config["TagSpecifications"] is not None:
+        #     self.tagSpecifications = config["TagSpecifications"]
 
-    def _save_tags(self, tags: List[ec2types.TagTypeDef]):
+    def _save_tags(self, tags: List[TagTypeDef]):
         pass
 
     # Boto3 wrappers
 
     def _describe_spot_fleet_requests(
-        self, request: ec2types.DescribeSpotFleetRequestsRequestRequestTypeDef
-    ) -> Optional[ec2types.DescribeSpotFleetRequestsResponseTypeDef]:
+        self, request: DescribeSpotFleetRequestsRequestRequestTypeDef
+    ) -> Optional[DescribeSpotFleetRequestsResponseTypeDef]:
         def check_response_field(name, value, expected_value):
             if value != expected_value:
                 raise Exception(
@@ -446,8 +497,8 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
                 raise e
 
     def _request_spot_fleet(
-        self, request: ec2types.RequestSpotFleetRequestRequestTypeDef
-    ) -> ec2types.RequestSpotFleetResponseTypeDef:
+        self, request: RequestSpotFleetRequestRequestTypeDef
+    ) -> RequestSpotFleetResponseTypeDef:
         response = self.get_client("ec2").request_spot_fleet(
             # **dataclasses.asdict(request)
             **request
@@ -463,12 +514,11 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
                 # Save request to deployment state
                 self._save_config_data(request["SpotFleetRequestConfig"])
 
-
         return response
 
     def _modify_spot_fleet_request(
-        self, request: ec2types.ModifySpotFleetRequestRequestRequestTypeDef
-    ) -> Optional[ec2types.ModifySpotFleetRequestResponseTypeDef]:
+        self, request: ModifySpotFleetRequestRequestRequestTypeDef
+    ) -> Optional[ModifySpotFleetRequestResponseTypeDef]:
         try:
             response = self.get_client("ec2").modify_spot_fleet_request(
                 # **dataclasses.asdict(request)
@@ -500,8 +550,8 @@ class awsSpotFleetRequestState(ResourceState, ec2_common.EC2CommonState):
                 raise e
 
     def _cancel_spot_fleet_requests(
-        self, request: ec2types.CancelSpotFleetRequestsRequestRequestTypeDef
-    ) -> ec2types.CancelSpotFleetRequestsResponseTypeDef:
+        self, request: CancelSpotFleetRequestsRequestRequestTypeDef
+    ) -> CancelSpotFleetRequestsResponseTypeDef:
         response = self.get_client("ec2").cancel_spot_fleet_requests(
             # **dataclasses.asdict(request)
             **request
