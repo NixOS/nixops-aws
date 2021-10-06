@@ -214,9 +214,7 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                 CreateLaunchTemplateRequestRequestTypeDef(
                     LaunchTemplateName=defn.config.name,
                     VersionDescription=defn.config.versionDescription,
-                    LaunchTemplateData=self._launch_template_data_from_config(
-                        defn.config
-                    ),
+                    LaunchTemplateData=self._to_launch_template_data(defn.config),
                     ClientToken=self.clientToken,
                     TagSpecifications=[
                         TagSpecificationTypeDef(
@@ -304,7 +302,7 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
                 block_device_mappings.append(template_block_device_mapping)
         return block_device_mappings
 
-    def _launch_template_data_from_config(
+    def _to_launch_template_data(
         self, config: Ec2LaunchTemplateOptions
     ) -> RequestLaunchTemplateDataTypeDef:
         common_tags = self.get_common_tags()
