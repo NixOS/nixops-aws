@@ -349,7 +349,7 @@ class awsEc2LaunchTemplateState(nixops.resources.ResourceState, EC2CommonState):
             data["UserData"] = str(
                 base64.b64encode(config.userData.encode("ascii")), "utf-8"
             )
-        if config.instanceType:
+        if config.instanceType != "":
             data["InstanceType"] = config.instanceType  # type: ignore
         if config.placementGroup != "":
             data["Placement"]["GroupName"] = config.placementGroup
