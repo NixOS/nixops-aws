@@ -625,12 +625,12 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
                 # Check if original volume is available, aka detached from the machine.
                 if volume:
                     nixops_aws.ec2_utils.wait_for_volume_available(
-                        self._conn, volume.id, self.logger
+                        self._connect(), volume.id, self.logger
                     )
 
                 # Check if new volume is available.
                 nixops_aws.ec2_utils.wait_for_volume_available(
-                    self._conn, new_volume.id, self.logger
+                    self._connect(), new_volume.id, self.logger
                 )
 
                 self.log(
@@ -1311,7 +1311,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
                 if not v["disk"].startswith("vol-"):
                     continue
                 # Make note of the placement zone of the volume.
-                volume = nixops_aws.ec2_utils.get_volume_by_id(self._conn, v["disk"])
+                volume = nixops_aws.ec2_utils.get_volume_by_id(
+                    self._connect(), v["disk"]
+                )
                 if not zone:
                     self.log(
                         "starting EC2 instance in zone ‘{0}’ due to volume ‘{1}’".format(
@@ -1581,7 +1583,7 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
         for device_stored, v in self.block_device_mapping.items():
             if v.get("needsAttach", False):
                 volume = nixops_aws.ec2_utils.get_volume_by_id(
-                    self._conn, v["volumeId"], allow_missing=True
+                    self._connect(), v["volumeId"], allow_missing=True
                 )
                 if volume:
                     continue
@@ -1700,7 +1702,7 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
             # happens (e.g. in other machine's deployments).
             if volume:
                 nixops_aws.ec2_utils.wait_for_volume_available(
-                    self._conn, volume.id, self.logger
+                    self._connect(), volume.id, self.logger
                 )
 
         # Always apply tags to the volumes we just created.
@@ -1847,7 +1849,7 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
         ]
 
         changes = boto.route53.record.ResourceRecordSets(
-            connection=self._conn_route53, hosted_zone_id=zoneid
+            connection=self._connect_route53(), hosted_zone_id=zoneid
         )
         if len(prev_a_rrs) > 0:
             for prevrr in prev_a_rrs:
