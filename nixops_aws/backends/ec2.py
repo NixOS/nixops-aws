@@ -1326,6 +1326,12 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
                 volume = nixops_aws.ec2_utils.get_volume_by_id(
                     self._connect(), v["disk"]
                 )
+                if not volume:
+                    raise Exception(
+                        "unable to start EC2 instance ‘{0}’ in because volume ‘{1}’ does not exist".format(
+                            self.name, v["disk"]
+                        )
+                    )
                 if not zone:
                     self.log(
                         "starting EC2 instance in zone ‘{0}’ due to volume ‘{1}’".format(
