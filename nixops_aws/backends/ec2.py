@@ -837,7 +837,7 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
                     )
                 else:
                     self.log("associating IP address ‘{0}’...".format(elastic_ipv4))
-                    addresses[0].associate(self.vm_id)
+                    addresses[0].associate(self.vm_id, allow_reassociation=True)
                     self.log_start(
                         "waiting for address to be associated with this machine... "
                     )
