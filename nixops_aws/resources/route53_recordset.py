@@ -215,7 +215,7 @@ class Route53RecordSetState(nixops.resources.ResourceState[Route53RecordSetDefin
         if not defn.domain_name.endswith(zone_name):
             raise Exception(
                 "The domain name '{0}' does not end in the zone name '{1}'. You have to specify the FQDN for the zone name.".format(
-                    defn.domain_name, self.zone_name
+                    defn.domain_name, zone_name
                 )
             )
 
