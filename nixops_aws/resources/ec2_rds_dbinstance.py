@@ -146,7 +146,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
     def resource_id(self):
         return self.rds_dbinstance_id
 
-    def create_after(self, resources, defn: EC2RDSDbInstanceDefinition):
+    def create_after(self, resources, defn):
         return {
             r
             for r in resources
@@ -534,7 +534,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
 
         return opts
 
-    def after_activation(self, defn: EC2RDSDbInstanceDefinition):
+    def after_activation(self, defn):
         # TODO: Warn about old instances, but don't clean them up.
         pass
 

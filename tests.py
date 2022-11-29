@@ -3,7 +3,7 @@ import sys
 
 if __name__ == "__main__":
     config = nose.config.Config(plugins=nose.plugins.manager.DefaultPluginManager())
-    config.configure(argv=[sys.argv[0], "-e", "^coverage-tests\.py$"] + sys.argv[1:])
+    config.configure(argv=[sys.argv[0], "-e", "^coverage-tests\\.py$"] + sys.argv[1:])
     count = (
         nose.loader.defaultTestLoader(config=config)
         .loadTestsFromNames(["."])
@@ -13,9 +13,9 @@ if __name__ == "__main__":
         argv=[
             sys.argv[0],
             "--process-timeout=inf",
-            "--processes=%d".format(count),
+            "--processes={}".format(count),
             "-e",
-            "^coverage-tests\.py$",
+            "^coverage-tests\\.py$",
         ]
         + sys.argv[1:]
     )

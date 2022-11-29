@@ -15,7 +15,7 @@ if __name__ == "__main__":
             "--cover-package=nixops",
             "--nocapture",
             "-e",
-            "^tests\.py$",
+            "^tests\\.py$",
         ]
         + sys.argv[1:]
     )
