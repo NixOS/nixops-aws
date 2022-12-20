@@ -267,8 +267,7 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
                 RawValue("<nixpkgs/nixos/modules/virtualisation/amazon-image.nix>")
             ],
             ("deployment", "ec2", "blockDeviceMapping"): block_device_mapping,
-            ("deployment", "ec2", "instanceId"): self.vm_id,
-            ("ec2", "hvm"): self.virtualization_type == "hvm"
+            ("deployment", "ec2", "instanceId"): self.vm_id
             or self.virtualization_type is None,
         }
 
