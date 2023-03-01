@@ -484,7 +484,7 @@ in
 
   config = mkIf (config.deployment.targetEnv == "ec2") {
 
-    nixpkgs.system = mkOverride 900 "x86_64-linux";
+    nixpkgs.hostPlatform = mkOverride 900 "x86_64-linux";
 
     deployment.ec2.ami = mkDefault (
       let
