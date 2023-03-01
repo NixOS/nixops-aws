@@ -513,7 +513,7 @@ in
         in if hasAttr type r then r."${type}" else
           throw "I don't know an AMI for virtualisation type ${type} with instance type ${cfg.instanceType}"
         else
-          throw "I don't know an AMI for region ‘${cfg.region}’ and platform type ‘${config.nixpkgs.system}’"
+          throw "I don't know an AMI for region ‘${cfg.region}’ and platform type ‘${config.nixpkgs.hostPlatform.system}’"
       );
 
     # Workaround: the evaluation of blockDeviceMapping requires fileSystems to be defined.
