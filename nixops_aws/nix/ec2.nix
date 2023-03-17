@@ -421,7 +421,7 @@ in
     deployment.ec2.physicalProperties = mkOption {
       default = {};
       example = { cores = 4; memory = 14985; };
-      type = types.attrsOf (types.oneOf [ types.int types.str types.bool ]);
+      type = types.attrsOf (types.oneOf [ types.int types.str types.bool (types.listOf (types.attrsOf types.str)) ]);
       description = ''
         Attribute set containing number of CPUs and memory available to
         the machine.
@@ -484,7 +484,18 @@ in
 
   config = mkIf (config.deployment.targetEnv == "ec2") {
 
-    nixpkgs.system = mkOverride 900 "x86_64-linux";
+    nixpkgs.hostPlatform =
+      let
+        checked =
+          throwIf (config.deployment.ec2.physicalProperties.platforms or [] == [])
+            "Please set a supported deployment.ec2.instanceType, or set nixpkgs.hostPlatform.";
+        plat = lib.head config.deployment.ec2.physicalProperties.platforms;
+        systemString =
+          lib.throwIf (plat.os or "linux" != "linux")
+            "Instance does not seem to be intended for running Linux. Please set nixpkgs.hostPlatform manually."
+          plat.cpu + "-linux";
+      in
+        mkOverride 900 (checked systemString);
 
     deployment.ec2.ami = mkDefault (
       let
@@ -502,7 +513,7 @@ in
         in if hasAttr type r then r."${type}" else
           throw "I don't know an AMI for virtualisation type ${type} with instance type ${cfg.instanceType}"
         else
-          throw "I don't know an AMI for region ‘${cfg.region}’ and platform type ‘${config.nixpkgs.system}’"
+          throw "I don't know an AMI for region ‘${cfg.region}’ and platform type ‘${config.nixpkgs.hostPlatform.system}’"
       );
 
     # Workaround: the evaluation of blockDeviceMapping requires fileSystems to be defined.
