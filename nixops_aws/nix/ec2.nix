@@ -489,7 +489,23 @@ in
         checked =
           throwIf (config.deployment.ec2.physicalProperties.platforms or [] == [])
             "Please set a supported deployment.ec2.instanceType, or set nixpkgs.hostPlatform.";
-        plat = lib.head config.deployment.ec2.physicalProperties.platforms;
+
+        # inverse value of cpu; lower number is better
+        # number is not exposed
+        unrankedRank = 1000;
+        ranking = {
+          "x86_64" = 0;
+          "i686" = 1;
+          "aarch64" = 0; # prefer over older arm (which is currently not listed)
+        };
+
+        # sorts better cpu first. If cpus are equal the first will be picked (sort is stable).
+        plat = lib.head (lib.sort byRanking config.deployment.ec2.physicalProperties.platforms);
+
+        byRanking = a: b:
+          ranking.${a.cpu} or unrankedRank
+          < ranking.${b.cpu} or unrankedRank;
+
         systemString =
           lib.throwIf (plat.os or "linux" != "linux")
             "Instance does not seem to be intended for running Linux. Please set nixpkgs.hostPlatform manually."
