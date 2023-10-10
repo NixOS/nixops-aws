@@ -201,6 +201,11 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
             self.spot_instance_request_id = None
             self.spot_instance_price = None
 
+        # The `_cached_instance` also contains an instance `.id`;
+        # reset it just as we reset `vm_id`, otherwise `_get_instance()`
+        # will incorrectly refer to the old one after resetting.
+        self._cached_instance = None
+
     def get_ssh_name(self):
         retVal = None
         if self.use_private_ip_address:
@@ -920,6 +925,8 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
             time.sleep(3)
         self.log_end("")
 
+        assert self._cached_instance is None
+
         instance = self._retry(
             lambda: self._get_instance(instance_id=request.instance_id)
         )
@@ -1044,8 +1051,9 @@ class EC2State(MachineState[EC2Definition], EC2CommonState):
             if request.instance_id is not None and request.instance_id != self.vm_id:
                 if self.vm_id is not None:
                     raise Exception(
-                        "spot instance request got fulfilled unexpectedly as instance ‘{0}’".format(
-                            request.instance_id
+                        "spot instance request got fulfilled unexpectedly as instance ‘{0}’; expected ‘{1}’".format(
+                            request.instance_id,
+                            self.vm_id,
                         )
                     )
                 self.vm_id = request.instance_id
