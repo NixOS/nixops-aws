@@ -138,7 +138,9 @@ class SNSTopicState(nixops.resources.ResourceState[SNSTopicDefinition]):
 
         if defn.config.displayName is not None:
             self._connect().set_topic_attributes(
-                topic=arn, attr_name="DisplayName", attr_value=defn.config.displayName,
+                topic=arn,
+                attr_name="DisplayName",
+                attr_value=defn.config.displayName,
             )
 
         if defn.config.policy != "":
