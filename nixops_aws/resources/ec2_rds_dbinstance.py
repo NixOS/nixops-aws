@@ -50,6 +50,7 @@ class EC2RDSDbInstanceDefinition(nixops.resources.ResourceDefinition):
         self.rds_dbinstance_master_password: str = self.config.masterPassword
         self.rds_dbinstance_port: int = self.config.port
         self.rds_dbinstance_engine: str = self.config.engine
+        self.rds_dbinstance_engine_version: str = self.config.engine_version
         self.rds_dbinstance_db_name: str = self.config.dbName
         self.rds_dbinstance_multi_az: bool = self.config.multiAZ
         self.subnet_group: Optional[str] = self.config.subnetGroup
@@ -106,6 +107,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
     )
     rds_dbinstance_port = nixops.util.attr_property("ec2.rdsPort", None, int)
     rds_dbinstance_engine = nixops.util.attr_property("ec2.rdsEngine", None)
+    rds_dbinstance_engine_version = nixops.util.attr_property("ec2.rdsEngineVersion", None)
     rds_dbinstance_db_name = nixops.util.attr_property("ec2.rdsDbName", None)
     rds_dbinstance_endpoint = nixops.util.attr_property("ec2.rdsEndpoint", None)
     rds_dbinstance_multi_az = nixops.util.attr_property("ec2.multiAZ", False)
@@ -288,6 +290,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
             self.rds_dbinstance_instance_class = dbinstance.instance_class
             self.rds_dbinstance_master_username = dbinstance.master_username
             self.rds_dbinstance_engine = dbinstance.engine
+            self.rds_dbinstance_engine_version = dbinstance.engine_version
             self.rds_dbinstance_multi_az = dbinstance.multi_az
             if dbinstance.subnet_group:
                 self.subnet_group = dbinstance.subnet_group.name
@@ -446,6 +449,7 @@ class EC2RDSDbInstanceState(nixops.resources.ResourceState[EC2RDSDbInstanceDefin
                         defn.rds_dbinstance_master_password,
                         port=defn.rds_dbinstance_port,
                         engine=defn.rds_dbinstance_engine,
+                        engine_version=defn.rds_dbinstance_engine_version,
                         db_name=defn.rds_dbinstance_db_name,
                         multi_az=defn.rds_dbinstance_multi_az,
                         **self.get_vpc_options(defn),

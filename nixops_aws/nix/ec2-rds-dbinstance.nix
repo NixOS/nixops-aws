@@ -70,6 +70,11 @@ with import ./lib.nix lib;
       for valid engines.'';
     };
 
+    engineVersion = mkOption {
+      type = types.str;
+      description = ''Database engine version. The version number of the database engine to use.'';
+    };
+
     dbName = mkOption {
       type = types.str;
       description = "Optional database name to be created when instance is first created.";
