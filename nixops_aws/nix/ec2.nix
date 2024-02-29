@@ -1,12 +1,13 @@
 # Configuration specific to the EC2 backend.
 
-{ config, pkgs, lib, utils, ... }:
+{ config, pkgs, lib, options, utils, ... }:
 
 with utils;
 with lib;
 with import ./lib.nix lib;
 
 let
+  throwIf = lib.throwIf or (cond: msg: if cond then throw msg else x: x);
 
   types =
     if lib.types ? either then
@@ -179,9 +180,8 @@ let
         .${system} or (throw "No AMIs for instance type ${system} in region ${region}"))
         .${virtType} or (throw "No AMI for virtualisation type ${virtType} on instance type ${system} in region ${region}")
     else
-      builtins.seq warnLegacy
       (amisLegacy.${nixosVersion} or amisLegacy.latest).${region}.${virtType};
-  warnLegacy = lib.warn "Trying to use legacy ec2-amis.nix. This code pass is untested; consider updating your Nixpkgs." true;
+
 in
 
 {
@@ -499,7 +499,7 @@ in
 
   config = mkIf (config.deployment.targetEnv == "ec2") {
 
-    nixpkgs.hostPlatform =
+    nixpkgs.${if options?nixpkgs.hostPlatform then "hostPlatform" else "system"} =
       let
         checked =
           throwIf (config.deployment.ec2.physicalProperties.platforms or [] == [])
@@ -522,7 +522,7 @@ in
           < ranking.${b.cpu} or unrankedRank;
 
         systemString =
-          lib.throwIf (plat.os or "linux" != "linux")
+          throwIf (plat.os or "linux" != "linux")
             "Instance does not seem to be intended for running Linux. Please set nixpkgs.hostPlatform manually."
           plat.cpu + "-linux";
       in
@@ -541,7 +541,7 @@ in
           inherit virtType;
           inherit nixosVersion;
           inherit (cfg) region;
-          system = config.nixpkgs.hostPlatform.system;
+          system = config.nixpkgs.hostPlatform.system or config.nixpkgs.system;
         }
       );
 
