@@ -165,8 +165,23 @@ let
 
   nixosVersion = builtins.substring 0 5 (config.system.nixos.version or config.system.nixosVersion);
 
-  amis = import <nixpkgs/nixos/modules/virtualisation/ec2-amis.nix>;
+  amisLegacy = import (pkgs.path + "/nixos/modules/virtualisation/ec2-amis.nix");
 
+  amisPath = pkgs.path + "/nixos/modules/virtualisation/amazon-ec2-amis.nix";
+  amis = import amisPath;
+
+  lookupAMI = { nixosVersion, region, system, virtType }:
+    assert builtins.trace "Looking up AMI for ${nixosVersion} in ${region} for ${system} with ${virtType}..." true;
+    if builtins.pathExists amisPath
+    then
+        (((amis.${nixosVersion} or amis.latest)
+        .${region} or (throw "No AMIs for region ${region}"))
+        .${system} or (throw "No AMIs for instance type ${system} in region ${region}"))
+        .${virtType} or (throw "No AMI for virtualisation type ${virtType} on instance type ${system} in region ${region}")
+    else
+      builtins.seq warnLegacy
+      (amisLegacy.${nixosVersion} or amisLegacy.latest).${region}.${virtType};
+  warnLegacy = lib.warn "Trying to use legacy ec2-amis.nix. This code pass is untested; consider updating your Nixpkgs." true;
 in
 
 {
@@ -516,20 +531,18 @@ in
     deployment.ec2.ami = mkDefault (
       let
         # FIXME: select hvm-s3 AMIs if appropriate.
-        type =
+        virtType =
           if isEc2Hvm then
             if cfg.ebsBoot then "hvm-ebs" else "hvm-s3"
           else
             if cfg.ebsBoot then "pv-ebs" else "pv-s3";
-        amis' = amis."${nixosVersion}" or amis.latest;
       in
-        with builtins;
-        if hasAttr cfg.region amis' then
-          let r = amis'."${cfg.region}";
-        in if hasAttr type r then r."${type}" else
-          throw "I don't know an AMI for virtualisation type ${type} with instance type ${cfg.instanceType}"
-        else
-          throw "I don't know an AMI for region ‘${cfg.region}’ and platform type ‘${config.nixpkgs.hostPlatform.system}’"
+        lookupAMI { 
+          inherit virtType;
+          inherit nixosVersion;
+          inherit (cfg) region;
+          system = config.nixpkgs.hostPlatform.system;
+        }
       );
 
     # Workaround: the evaluation of blockDeviceMapping requires fileSystems to be defined.
