@@ -1,12 +1,13 @@
 # Configuration specific to the EC2 backend.
 
-{ config, pkgs, lib, utils, ... }:
+{ config, pkgs, lib, options, utils, ... }:
 
 with utils;
 with lib;
 with import ./lib.nix lib;
 
 let
+  throwIf = lib.throwIf or (cond: msg: if cond then throw msg else x: x);
 
   types =
     if lib.types ? either then
@@ -165,7 +166,21 @@ let
 
   nixosVersion = builtins.substring 0 5 (config.system.nixos.version or config.system.nixosVersion);
 
-  amis = import <nixpkgs/nixos/modules/virtualisation/ec2-amis.nix>;
+  amisLegacy = import (pkgs.path + "/nixos/modules/virtualisation/ec2-amis.nix");
+
+  amisPath = pkgs.path + "/nixos/modules/virtualisation/amazon-ec2-amis.nix";
+  amis = import amisPath;
+
+  lookupAMI = { nixosVersion, region, system, virtType }:
+    assert builtins.trace "Looking up AMI for ${nixosVersion} in ${region} for ${system} with ${virtType}..." true;
+    if builtins.pathExists amisPath
+    then
+        (((amis.${nixosVersion} or amis.latest)
+        .${region} or (throw "No AMIs for region ${region}"))
+        .${system} or (throw "No AMIs for instance type ${system} in region ${region}"))
+        .${virtType} or (throw "No AMI for virtualisation type ${virtType} on instance type ${system} in region ${region}")
+    else
+      (amisLegacy.${nixosVersion} or amisLegacy.latest).${region}.${virtType};
 
 in
 
@@ -484,7 +499,7 @@ in
 
   config = mkIf (config.deployment.targetEnv == "ec2") {
 
-    nixpkgs.hostPlatform =
+    nixpkgs.${if options?nixpkgs.hostPlatform then "hostPlatform" else "system"} =
       let
         checked =
           throwIf (config.deployment.ec2.physicalProperties.platforms or [] == [])
@@ -507,7 +522,7 @@ in
           < ranking.${b.cpu} or unrankedRank;
 
         systemString =
-          lib.throwIf (plat.os or "linux" != "linux")
+          throwIf (plat.os or "linux" != "linux")
             "Instance does not seem to be intended for running Linux. Please set nixpkgs.hostPlatform manually."
           plat.cpu + "-linux";
       in
@@ -516,20 +531,18 @@ in
     deployment.ec2.ami = mkDefault (
       let
         # FIXME: select hvm-s3 AMIs if appropriate.
-        type =
+        virtType =
           if isEc2Hvm then
             if cfg.ebsBoot then "hvm-ebs" else "hvm-s3"
           else
             if cfg.ebsBoot then "pv-ebs" else "pv-s3";
-        amis' = amis."${nixosVersion}" or amis.latest;
       in
-        with builtins;
-        if hasAttr cfg.region amis' then
-          let r = amis'."${cfg.region}";
-        in if hasAttr type r then r."${type}" else
-          throw "I don't know an AMI for virtualisation type ${type} with instance type ${cfg.instanceType}"
-        else
-          throw "I don't know an AMI for region ‘${cfg.region}’ and platform type ‘${config.nixpkgs.hostPlatform.system}’"
+        lookupAMI { 
+          inherit virtType;
+          inherit nixosVersion;
+          inherit (cfg) region;
+          system = config.nixpkgs.hostPlatform.system or config.nixpkgs.system;
+        }
       );
 
     # Workaround: the evaluation of blockDeviceMapping requires fileSystems to be defined.
